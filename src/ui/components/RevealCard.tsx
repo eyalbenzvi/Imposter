@@ -82,7 +82,9 @@ export function RevealCard({
 
   return (
     <div className="flex min-h-0 w-full flex-1 animate-fade-in flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-2 pb-1 text-sm text-slate-400">
+      {/* Name and counter both sit at the start edge: the end edge is where the
+          fixed home button lives on every screen. */}
+      <div className="flex shrink-0 items-center gap-2 pe-14 pb-1 text-sm text-slate-400">
         <span className="niqqud truncate">{view.playerName}</span>
         <span className="num">
           {position} / {total}

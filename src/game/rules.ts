@@ -37,6 +37,13 @@ export function playerById(state: GameState, id: PlayerId): Player {
   return found;
 }
 
+/** The player whose turn it is to be handed the device, by shuffled order. */
+export function playerAtReveal(state: GameState, index: number): Player {
+  const id = state.revealOrder[index];
+  if (!id) throw new Error(`No player at reveal position ${index}`);
+  return playerById(state, id);
+}
+
 export function aliveImposterCount(state: GameState): number {
   return state.players.filter((p) => p.alive && p.isImposter).length;
 }
