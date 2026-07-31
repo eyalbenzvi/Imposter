@@ -1,0 +1,119 @@
+@category בגדים, צבעים וצורות
+
+# ── מה שלובשים למעלה ─────────────────────────────────────────────────────────
+clothes | בְּגָדִים | shirt | pants | dress | coat | shoes
+shirt | חלצה | tshirt | tanktop | sweater | pants | collar
+tshirt | חֻלְצַת טִי | shirt | tanktop | sweater | hoodie | shorts
+tanktop | גופיה | tshirt | shirt | shorts | underwear | pajamas
+sweater | סודר | hoodie | jacket | coat | shirt | vest
+hoodie | קפוצ'ון | sweater | jacket | tracksuit | coat | tshirt
+jacket | ג'קט | coat | sweater | hoodie | vest | suit
+coat | מעיל | raincoat | jacket | sweater | scarf | hoodie
+raincoat | מְעִיל גֶּשֶׁם | coat | umbrella | boots | jacket | scarf
+vest | אפדה | sweater | jacket | shirt | suit | coat
+suit | חליפה | uniform | tie | jacket | dress | vest
+uniform | מדים | suit | tracksuit | tie | shirt | hat
+robe | חלוק | pajamas | tracksuit | dress | slippers | overall
+pajamas | פיג'מה | robe | tracksuit | tanktop | underwear | slippers
+tracksuit | טרנינג | hoodie | pajamas | uniform | sneakers | shorts
+overall | סרבל | pajamas | dress | shorts | skirt | tracksuit
+
+# ── מה שלובשים למטה ──────────────────────────────────────────────────────────
+pants | מכנסים | shorts | jeans | skirt | tights | tracksuit
+jeans | ג'ִינְס | pants | shorts | skirt | overall | shirt
+shorts | מכנסים קצרים | pants | jeans | skirt | swimsuit | tshirt
+skirt | חצאית | dress | pants | shorts | tights | jeans
+dress | שמלה | skirt | overall | suit | tights | robe
+tights | גרביונים | socks | skirt | pants | dress | shoes
+underwear | תחתונים | tanktop | socks | pajamas | swimsuit | shorts
+swimsuit | בגד ים | shorts | flipflops | underwear | tanktop | sunglasses
+
+# ── נעליים ───────────────────────────────────────────────────────────────────
+shoes | נעלים | sneakers | sandals | boots | socks | shoelace
+sneakers | נַעֲלֵי סְפּוֹרְט | shoes | sandals | boots | flipflops | shoelace
+sandals | סנדלים | flipflops | shoes | sneakers | boots | slippers
+boots | מגפים | shoes | sneakers | sandals | slippers | socks
+flipflops | כפכפים | sandals | slippers | shoes | swimsuit | sneakers
+slippers | נַעֲלֵי בַּיִת | flipflops | sandals | socks | robe | boots
+heels | עקבים | shoes | sandals | boots | dress | sneakers
+socks | גרבים | tights | shoes | slippers | underwear | sneakers
+shoelace | שרוך | shoes | sneakers | boots | button | ribbon
+
+# ── על הראש ובידיים ──────────────────────────────────────────────────────────
+hat | כובע | cap | kippah | kerchief | crown | scarf
+cap | כּוֹבַע מִצְחִיָּה | hat | kippah | sunglasses | sneakers | kerchief
+kippah | כפה | hat | kerchief | cap | crown | scarf
+kerchief | מטפחת | scarf | hat | kippah | ribbon | gloves
+scarf | צעיף | gloves | coat | kerchief | hat | sweater
+gloves | כפפות | scarf | socks | coat | hat | boots
+crown | כֶּתֶר | hat | mask | costume | necklace | ring
+mask | מַסֵּכָה | costume | crown | sunglasses | hat | glasses
+costume | תחפשת | mask | crown | uniform | dress | hat
+glasses | משקפים | sunglasses | mask | earring | necklace | wristwatch
+sunglasses | משקפי שמש | glasses | cap | swimsuit | hat | mask
+wristwatch | שָׁעוֹן יָד | glasses | bracelet | ring | necklace | earring
+
+# ── תכשיטים ואביזרים ─────────────────────────────────────────────────────────
+necklace | שרשרת | bracelet | ring | earring | crown | pin
+bracelet | צמיד | necklace | ring | earring | wristwatch | pin
+ring | טבעת | earring | bracelet | necklace | crown | pin
+earring | עגיל | ring | necklace | bracelet | pin | crown
+pin | סִיכָּה | ring | earring | button | ribbon | bracelet
+ribbon | סֶרֶט | pin | hairband | braid | shoelace | kerchief
+hairband | גֻּמִּיָּה | ribbon | braid | ponytail | pin | kerchief
+braid | צַמָּה | ponytail | hairband | ribbon | kerchief | pin
+ponytail | קוּקוּ | braid | hairband | ribbon | pin | kerchief
+bag | תיק | wallet | umbrella | pocket | clothes | shoes
+wallet | ארנק | bag | pocket | pin | ring | umbrella
+umbrella | מטריה | raincoat | boots | bag | coat | hat
+belt | חגורה | pants | buckle | jeans | pocket | shoes
+buckle | אַבְזָם | belt | button | zipper | pin | shoelace
+tie | עניבה | bowtie | suit | collar | shirt | belt
+bowtie | עֲנִיבַת פַּרְפָּר | tie | collar | suit | shirt | pin
+
+# ── פרטים בבגד ───────────────────────────────────────────────────────────────
+button | כפתור | zipper | pocket | seam | shoelace | buckle
+zipper | רוכסן | button | pocket | seam | bag | buckle
+pocket | כיס | button | zipper | sleeve | pants | bag
+sleeve | שרוול | collar | pocket | shirt | seam | sweater
+collar | צוארון | sleeve | button | shirt | tie | pocket
+seam | תֶּפֶר | thread | needle | button | zipper | fabric
+thread | חוט | needle | seam | fabric | button | wool
+needle | מַחַט | thread | seam | pin | button | fabric
+fabric | בַּד | wool | cotton | thread | seam | clothes
+wool | צֶמֶר | cotton | fabric | sweater | thread | scarf
+cotton | כֻּתְנָה | wool | fabric | tshirt | thread | socks
+size | מִדָּה | clothes | fashion | shoes | shirt | pants
+fashion | אָפְנָה | clothes | dress | size | color | shoes
+
+# ── צבעים ────────────────────────────────────────────────────────────────────
+color | צֶבַע | red | blue | yellow | green | dark
+red | אָדֹם | orange-color | pink | purple | yellow | brown
+orange-color | כָּתֹם | red | yellow | pink | brown | beige
+yellow | צָהֹב | orange-color | green | gold | red | beige
+green | יָרֹק | turquoise | yellow | blue | lightblue | gray
+turquoise | טוּרְקִיז | lightblue | green | blue | purple | silver
+blue | כָּחֹל | lightblue | turquoise | purple | green | dark
+lightblue | תְּכֵלֶת | blue | turquoise | white | green | silver
+purple | סָגֹל | pink | blue | red | turquoise | dark
+pink | וָרֹד | purple | red | orange-color | beige | white
+brown | חוּם | beige | orange-color | gray | black | red
+beige | בֵּז' | brown | white | gray | pink | yellow
+black | שָׁחֹר | white | gray | dark | brown | silver
+white | לָבָן | black | gray | beige | lightblue | silver
+gray | אָפֹר | black | white | silver | brown | beige
+gold | זָהָב | silver | yellow | brown | crown | color
+silver | כֶּסֶף | gold | gray | white | turquoise | color
+dark | כֵּהֶה | black | blue | purple | color | gray
+
+# ── צורות ────────────────────────────────────────────────────────────────────
+circle | עִגּוּל | square-shape | triangle | rectangle | dot | cube
+square-shape | רִבּוּעַ | rectangle | triangle | circle | cube | checks
+rectangle | מַלְבֵּן | square-shape | triangle | circle | line | cube
+triangle | מְשֻׁלָּשׁ | square-shape | circle | rectangle | arrow | cube
+cube | קֻבִּיָּה | square-shape | circle | rectangle | triangle | dot
+line | קַו | stripe | dot | arrow | rectangle | checks
+stripe | פַּס | line | checks | dot | ribbon | color
+checks | מִשְׁבְּצוֹת | stripe | square-shape | dot | line | color
+dot | נְקֻדָּה | circle | line | stripe | checks | pin
+arrow | חֵץ | line | triangle | circle | dot | stripe

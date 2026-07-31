@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES, WORDS, getWordEntry, wordsInCategory } from './words';
+import {
+  CATEGORIES,
+  WORDS,
+  getWordEntry,
+  wordsInCategories,
+  wordsInCategory,
+} from './words';
 import { hasNiqqud, normalize, stripNiqqud } from './niqqud';
 import { HINTS_PER_WORD } from './types';
 
@@ -54,10 +60,26 @@ describe('word store', () => {
     }
   });
 
-  it('keeps every category big enough for a 4-option guess screen', () => {
+  it('keeps every category deep enough to be played on its own', () => {
     for (const category of CATEGORIES) {
-      expect(wordsInCategory(category).length, category).toBeGreaterThanOrEqual(4);
+      expect(wordsInCategory(category).length, category).toBeGreaterThanOrEqual(100);
     }
+  });
+
+  it('draws only from the chosen categories', () => {
+    const one = CATEGORIES[3]!;
+    const pool = wordsInCategories([one]);
+    expect(pool.length).toBe(wordsInCategory(one).length);
+    expect(pool.every((w) => w.category === one)).toBe(true);
+
+    const two = wordsInCategories([CATEGORIES[0]!, CATEGORIES[1]!]);
+    expect(new Set(two.map((w) => w.category)).size).toBe(2);
+  });
+
+  it('falls back to the whole store when the selection is empty or unknown', () => {
+    // A setting saved by an older build must never leave a group wordless.
+    expect(wordsInCategories([]).length).toBe(WORDS.length);
+    expect(wordsInCategories(['קטגוריה שלא קיימת']).length).toBe(WORDS.length);
   });
 
   it('looks up entries by id and rejects unknown ones', () => {

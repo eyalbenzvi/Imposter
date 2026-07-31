@@ -1,59 +1,48 @@
 /**
  * The word store.
  *
- * One JSON file per category. Nothing in the app assumes a particular number
- * of entries or categories — the game works fine against a partially filled
- * store, it just draws from whatever is here.
+ * Eleven categories, one JSON file each, every word one an 8-year-old actually
+ * uses — that goes for the hints too, since a hint a child has never heard is
+ * worse than no hint at all. Nothing in the app assumes a particular number of
+ * entries or categories: the game works fine against a partially filled store,
+ * it just draws from whatever is here.
  *
- * Every string in these files is fully pointed and NFC-normalized. Comparisons
- * never happen on the raw strings; they go through `stripNiqqud`.
+ * These files are generated — edit `scripts/kidwords/*.txt` and run
+ * `npm run build:words`. Hints are written there as ids and resolved inside the
+ * same file, so a hint is always a sibling from the same category and can never
+ * be pointed differently from the entry it names.
+ *
+ * Every string is fully pointed and NFC-normalized. Comparisons never happen on
+ * the raw strings; they go through `stripNiqqud`.
  */
 
 import type { WordEntry } from '../types';
 import { stripNiqqud } from '../niqqud';
 
-import food from './food.json';
-import drinks from './drinks.json';
-import produce from './produce.json';
 import animals from './animals.json';
-import professions from './professions.json';
-import household from './household.json';
-import kitchen from './kitchen.json';
-import clothing from './clothing.json';
-import city from './city.json';
+import food from './food.json';
+import plants from './plants.json';
 import nature from './nature.json';
-import sports from './sports.json';
-import transport from './transport.json';
-import instruments from './instruments.json';
 import body from './body.json';
-import weather from './weather.json';
-import tools from './tools.json';
-import tech from './tech.json';
+import home from './home.json';
+import clothing from './clothing.json';
 import school from './school.json';
-import holidays from './holidays.json';
-import feelings from './feelings.json';
+import sports from './sports.json';
+import city from './city.json';
+import people from './people.json';
 
 const FILES: WordEntry[][] = [
-  food,
-  drinks,
-  produce,
   animals,
-  professions,
-  household,
-  kitchen,
-  clothing,
-  city,
+  food,
+  plants,
   nature,
-  sports,
-  transport,
-  instruments,
   body,
-  weather,
-  tools,
-  tech,
+  home,
+  clothing,
   school,
-  holidays,
-  feelings,
+  sports,
+  city,
+  people,
 ];
 
 export const WORDS: WordEntry[] = FILES.flat();
@@ -76,6 +65,17 @@ export function findWordEntry(id: string): WordEntry | undefined {
 
 export function wordsInCategory(category: string): WordEntry[] {
   return WORDS.filter((w) => w.category === category);
+}
+
+/**
+ * The pool a game draws from. An empty selection, or one naming only categories
+ * that no longer exist, means "all of them" — a stored setting from an older
+ * build must never leave a group with no words to play.
+ */
+export function wordsInCategories(categories: readonly string[]): WordEntry[] {
+  const wanted = new Set(categories);
+  const pool = WORDS.filter((w) => wanted.has(w.category));
+  return pool.length > 0 ? pool : WORDS;
 }
 
 /** Niqqud-insensitive lookup, used by tests and the validator. */

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate:words": "node scripts/validate-words.ts"
+    "validate:words": "node scripts/validate-words.ts",
+    "build:words": "node scripts/build-words.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

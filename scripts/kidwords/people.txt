@@ -1,0 +1,156 @@
+@category אנשים, מקצועות וחגים
+
+# ── מי שמטפל בנו ─────────────────────────────────────────────────────────────
+doctor | רופא | nurse | dentist | paramedic | vet | pharmacist
+dentist | רופא שנים | doctor | nurse | vet | paramedic | pharmacist
+nurse | אחות | doctor | paramedic | dentist | pharmacist | vet
+paramedic | פרמדיק | nurse | doctor | firefighter | lifeguard | dentist
+pharmacist | רוקח | doctor | nurse | dentist | vet | scientist
+vet | וטרינר | doctor | dentist | nurse | shepherd | farmer
+psychologist | פסיכולוג | doctor | teacher | nurse | scientist | lawyer
+lifeguard | מַצִּיל | paramedic | firefighter | guard | coach | policeman
+
+# ── מי ששומר עלינו ───────────────────────────────────────────────────────────
+policeman | שוטר | firefighter | soldier | guard | detective | lifeguard
+firefighter | כבאי | policeman | paramedic | soldier | lifeguard | guard
+soldier | חיל | policeman | firefighter | guard | pilot | sailor
+guard | מאבטח | policeman | soldier | lifeguard | detective | firefighter
+detective | בַּלָּשׁ | policeman | guard | lawyer | judge | scientist
+judge | שופט | lawyer | policeman | detective | coach | teacher
+lawyer | עורך דין | judge | detective | journalist | writer | policeman
+
+# ── מי שמלמד ─────────────────────────────────────────────────────────────────
+teacher | מורה | kindergarten-teacher | coach | librarian | psychologist | scientist
+kindergarten-teacher | גַּנֶּנֶת | teacher | librarian | coach | nurse | mother
+coach | מאמן | teacher | lifeguard | judge | kindergarten-teacher | dancer
+librarian | סַפְרָן | teacher | writer | kindergarten-teacher | journalist | scientist
+scientist | מַדְעָן | astronaut | programmer | engineer | psychologist | detective
+astronaut | אַסְטְרוֹנָאוּט | pilot | scientist | engineer | sailor | soldier
+
+# ── מי שבונה ומתקן ───────────────────────────────────────────────────────────
+carpenter | נגר | builder | electrician | plumber | architect | tailor
+builder | בנאי | carpenter | plumber | electrician | architect | engineer
+electrician | חשמלאי | plumber | carpenter | builder | engineer | programmer
+plumber | אינסטלטור | electrician | carpenter | builder | engineer | architect
+architect | אדריכל | engineer | builder | carpenter | artist | programmer
+engineer | מהנדס | architect | programmer | electrician | scientist | builder
+programmer | מתכנת | engineer | scientist | architect | electrician | astronaut
+
+# ── מי שנוסע ומוביל ──────────────────────────────────────────────────────────
+pilot | טיס | flight-attendant | sailor | driver | astronaut | soldier
+flight-attendant | דיל | pilot | waiter | sailor | driver | guard
+sailor | יַמַּאי | fisherman | pilot | driver | soldier | astronaut
+driver | נהג | pilot | sailor | mailman | flight-attendant | seller
+mailman | דור | driver | seller | guard | waiter | policeman
+
+# ── מי שעושה אוכל ────────────────────────────────────────────────────────────
+chef | שף | cook | baker | butcher | waiter | farmer
+cook | טַבָּח | chef | baker | butcher | waiter | seller
+baker | אופה | chef | cook | butcher | seller | farmer
+butcher | קצב | baker | cook | chef | fisherman | seller
+waiter | מלצר | chef | cook | seller | flight-attendant | barber
+seller | מוכר | waiter | butcher | baker | mailman | barber
+
+# ── מי שעובד באדמה ובים ──────────────────────────────────────────────────────
+farmer | חקלאי | gardener | shepherd | fisherman | vet | butcher
+gardener | גנן | farmer | shepherd | carpenter | fisherman | builder
+shepherd | רוֹעֶה | farmer | gardener | vet | fisherman | soldier
+fisherman | דיג | sailor | farmer | shepherd | butcher | gardener
+
+# ── מי שיוצר ומופיע ──────────────────────────────────────────────────────────
+actor | שחקן | singer | dancer | clown | musician | magician
+singer | זמר | musician | actor | dancer | clown | writer
+musician | נגן | singer | actor | dancer | clown | writer
+dancer | רקדן | singer | actor | musician | coach | clown
+clown | לֵיצָן | magician | actor | acrobat | singer | dancer
+magician | קוֹסֵם | clown | acrobat | actor | detective | singer
+acrobat | לוּלְיָן | clown | magician | dancer | actor | coach
+artist | ציר | sculptor | photographer | writer | architect | actor
+sculptor | פסל | artist | carpenter | photographer | architect | builder
+photographer | צלם | artist | journalist | sculptor | writer | actor
+writer | סופר | journalist | artist | librarian | singer | lawyer
+journalist | עתונאי | writer | photographer | lawyer | librarian | artist
+barber | ספר | tailor | waiter | seller | photographer | gardener
+tailor | חיט | barber | carpenter | seller | artist | sculptor
+
+# ── במשפחה ───────────────────────────────────────────────────────────────────
+mother | אִמָּא | father | grandmother | grandfather | parents | brother
+father | אַבָּא | mother | grandfather | grandmother | parents | brother
+parents | הוֹרִים | mother | father | grandmother | grandfather | brother
+grandmother | סָבְתָא | grandfather | mother | father | aunt | grandchild
+grandfather | סַבָּא | grandmother | father | mother | uncle | grandchild
+brother | אָח | twins | cousin | mother | father | baby
+twins | תְּאוֹמִים | brother | cousin | baby | boy | girl
+uncle | דּוֹד | aunt | cousin | grandfather | father | grandmother
+aunt | דּוֹדָה | uncle | cousin | grandmother | mother | grandfather
+cousin | בֶּן דּוֹד | uncle | aunt | brother | twins | grandchild
+grandchild | נֶכֶד | grandmother | grandfather | brother | cousin | baby
+baby | תִּינוֹק | boy | girl | twins | brother | toddler
+toddler | פָּעוֹט | baby | boy | girl | twins | brother
+boy | יֶלֶד | girl | baby | teenager | twins | toddler
+girl | יַלְדָּה | boy | baby | teenager | twins | toddler
+teenager | נַעַר | boy | girl | grownup | brother | cousin
+grownup | מְבֻגָּר | teenager | parents | uncle | aunt | neighbor
+friend | חָבֵר | neighbor | guest | boy | girl | teenager
+neighbor | שָׁכֵן | friend | guest | grownup | uncle | aunt
+guest | אוֹרֵחַ | neighbor | friend | bride | groom | party
+bride | כַּלָּה | groom | chuppah | party | guest | present
+groom | חָתָן | bride | chuppah | party | guest | present
+
+# ── מי שיש בסיפורים ──────────────────────────────────────────────────────────
+king | מֶלֶךְ | queen | prince | princess | knight | giant
+queen | מַלְכָּה | king | princess | prince | fairy | knight
+prince | נָסִיךְ | princess | king | queen | knight | giant
+princess | נְסִיכָה | prince | queen | king | fairy | knight
+knight | אַבִּיר | prince | king | pirate | giant | soldier
+pirate | פִּירָט | knight | sailor | thief | giant | king
+giant | עֲנָק | knight | king | fairy | hero | pirate
+fairy | פֵּיָה | princess | queen | magician | giant | hero
+hero | גִּבּוֹר | knight | giant | fairy | king | pirate
+thief | גַּנָּב | pirate | detective | policeman | knight | giant
+
+# ── חגים ─────────────────────────────────────────────────────────────────────
+rosh-hashana | ראש השנה | yom-kippur | sukkot | hanukkah | purim | pesach
+yom-kippur | יום כפור | rosh-hashana | sukkot | fast | prayer | shabbat
+sukkot | סכות | sukkah | lulav | etrog | simchat-torah | rosh-hashana
+simchat-torah | שמחת תורה | sukkot | torah | hanukkah | shavuot | purim
+hanukkah | חנכה | hanukkiah | dreidel | purim | pesach | rosh-hashana
+tu-bishvat | טו בשבט | hanukkah | purim | shavuot | lag-baomer | pesach
+purim | פורים | noisemaker | mishloach-manot | hanukkah | pesach | party
+pesach | פסח | seder | haggadah | afikoman | purim | shavuot
+yom-haatzmaut | יום העצמאות | flag | fireworks | mangal | lag-baomer | shavuot
+lag-baomer | לג בעמר | mangal | yom-haatzmaut | tu-bishvat | shavuot | fireworks
+shavuot | שבועות | pesach | sukkot | tu-bishvat | torah | lag-baomer
+tisha-beav | תשעה באב | yom-kippur | fast | prayer | shabbat | rosh-hashana
+shabbat | שבת | shabbat-candles | kiddush | prayer | siddur | torah
+
+# ── מה שיש בחג ───────────────────────────────────────────────────────────────
+sukkah | סכה | lulav | etrog | sukkot | simchat-torah | party
+lulav | לולב | etrog | sukkah | sukkot | torah | prayer
+etrog | אתרוג | lulav | sukkah | sukkot | torah | prayer
+hanukkiah | חנכיה | dreidel | hanukkah | shabbat-candles | present | party
+dreidel | סביבון | hanukkiah | hanukkah | noisemaker | present | party
+shabbat-candles | נרות שבת | kiddush | shabbat | hanukkiah | siddur | prayer
+kiddush | קדוש | shabbat-candles | shabbat | torah | prayer | siddur
+mishloach-manot | משלוח מנות | noisemaker | purim | present | party | charity
+noisemaker | רעשן | mishloach-manot | purim | dreidel | party | present
+seder | סדר | haggadah | afikoman | pesach | siddur | prayer
+haggadah | הגדה | seder | afikoman | pesach | siddur | torah
+afikoman | אפיקומן | seder | haggadah | pesach | present | party
+torah | תורה | siddur | prayer | mezuzah | simchat-torah | bar-mitzvah
+siddur | סדור | torah | prayer | mezuzah | kiddush | haggadah
+prayer | תפלה | siddur | torah | kiddush | fast | mezuzah
+mezuzah | מזוזה | torah | siddur | prayer | kiddush | shabbat
+fast | צום | yom-kippur | tisha-beav | prayer | charity | shabbat
+charity | צדקה | fast | prayer | present | mitzvah | mishloach-manot
+mitzvah | מִצְוָה | charity | prayer | fast | present | friend
+bar-mitzvah | בר מצוה | bat-mitzvah | chuppah | party | torah | present
+bat-mitzvah | בת מצוה | bar-mitzvah | chuppah | party | torah | present
+chuppah | חפה | bride | groom | bar-mitzvah | bat-mitzvah | party
+
+# ── חוגגים ───────────────────────────────────────────────────────────────────
+party | מְסִבָּה | present | fireworks | guest | mangal | flag
+present | מַתָּנָה | party | fireworks | guest | bar-mitzvah | charity
+fireworks | זִקּוּקִים | party | flag | yom-haatzmaut | mangal | present
+flag | דֶּגֶל | yom-haatzmaut | fireworks | party | mangal | lag-baomer
+mangal | מַנְגָּל | lag-baomer | yom-haatzmaut | party | flag | fireworks

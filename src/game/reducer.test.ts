@@ -17,12 +17,13 @@ import {
   maxImposterCount,
   nextStepAfterVote,
   revealViewsFor,
+  selectedCategories,
   suggestImposterCount,
   voteTargetsFor,
 } from './rules';
 import { makeRng } from './prng';
 import { stripNiqqud } from './niqqud';
-import { getWordEntry } from './words';
+import { CATEGORIES, getWordEntry } from './words';
 import {
   aliveCitizens,
   castVotes,
@@ -1051,6 +1052,61 @@ describe('defaults', () => {
       discussionSeconds: 0,
       clueTimerSeconds: 0,
       imposterGuessEnabled: false,
+      categories: [],
     });
+  });
+});
+
+describe('category selection', () => {
+  const start = (categories: string[], seed: string) => {
+    let state = createInitialState(['אָ', 'בְּ', 'גִּ'], { categories });
+    state = reducer(state, { type: 'START_GAME', seed });
+    return getSecretEntry(state)!;
+  };
+
+  it('draws the secret word only from the chosen categories', () => {
+    const only = CATEGORIES[6]!;
+    // Many seeds, because one lucky draw would pass by accident.
+    for (let i = 0; i < 40; i++) {
+      expect(start([only], `cat-${i}`).category).toBe(only);
+    }
+  });
+
+  it('can be narrowed to two categories and stays inside them', () => {
+    const pair = [CATEGORIES[0]!, CATEGORIES[9]!];
+    for (let i = 0; i < 40; i++) {
+      expect(pair).toContain(start(pair, `pair-${i}`).category);
+    }
+  });
+
+  it('treats an empty selection as every category', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) seen.add(start([], `all-${i}`).category);
+    expect(seen.size).toBeGreaterThan(1);
+    expect(selectedCategories({ ...DEFAULT_SETTINGS, categories: [] })).toEqual([
+      ...CATEGORIES,
+    ]);
+  });
+
+  it('ignores a stored category that no longer exists', () => {
+    // Rather than fail to start, an unrecognised setting means "all of them".
+    const entry = start(['קטגוריה שנמחקה'], 'gone');
+    expect(CATEGORIES).toContain(entry.category);
+    expect(
+      selectedCategories({ ...DEFAULT_SETTINGS, categories: ['לא קיים'] }),
+    ).toEqual([...CATEGORIES]);
+  });
+
+  it('keeps the guess options inside the category the word came from', () => {
+    const only = CATEGORIES[2]!;
+    let state = createInitialState(['אָ', 'בְּ', 'גִּ'], {
+      categories: [only],
+      imposterGuessEnabled: true,
+    });
+    state = reducer(state, { type: 'START_GAME', seed: 'guess-cat' });
+    const options = buildGuessOptions(state.secretWordId!, makeRng('opts'));
+    for (const id of options) {
+      expect(getWordEntry(id).category).toBe(only);
+    }
   });
 });

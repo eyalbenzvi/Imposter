@@ -35,7 +35,7 @@ import {
   suggestImposterCount,
   voteTargetsFor,
 } from './rules';
-import { WORDS, getWordEntry } from './words';
+import { WORDS, getWordEntry, wordsInCategories } from './words';
 
 export class InvalidTransitionError extends Error {
   readonly phase: Phase;
@@ -62,6 +62,8 @@ export const DEFAULT_SETTINGS: Settings = {
   discussionSeconds: 0,
   clueTimerSeconds: 0,
   imposterGuessEnabled: false,
+  // Empty = every category, which is the default the setup screen shows.
+  categories: [],
 };
 
 export function createInitialState(
@@ -124,7 +126,8 @@ function dealRoles(state: GameState, seed: string): GameState {
     throw new GameRuleError('The word store is empty — cannot start a game');
   }
 
-  const entry = makeRng(subSeed(seed, 'word')).pick(WORDS);
+  const pool = wordsInCategories(state.settings.categories);
+  const entry = makeRng(subSeed(seed, 'word')).pick(pool);
   const hintIndex = makeRng(subSeed(seed, 'hint')).int(
     Math.min(entry.hints.length, HINTS_PER_WORD),
   );

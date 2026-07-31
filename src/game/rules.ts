@@ -19,7 +19,7 @@ import {
 } from './types';
 import { stripNiqqud } from './niqqud';
 import { makeRng, type Rng } from './prng';
-import { WORDS, getWordEntry, wordsInCategory } from './words';
+import { CATEGORIES, WORDS, getWordEntry, wordsInCategory } from './words';
 
 // ── players ──────────────────────────────────────────────────────────────────
 
@@ -128,6 +128,17 @@ export function buildGuessOptions(secretWordId: string, rng: Rng): string[] {
     ...distractors.slice(0, GUESS_OPTION_COUNT - 1).map((entry) => entry.id),
   ];
   return rng.shuffle(options);
+}
+
+/**
+ * The categories a game will actually draw from, resolved the same way the
+ * reducer resolves them: an empty or unrecognised selection means all of them.
+ * The setup screen renders from this, so what it shows lit is exactly what the
+ * draw will use.
+ */
+export function selectedCategories(settings: GameState['settings']): string[] {
+  const chosen = CATEGORIES.filter((c) => settings.categories.includes(c));
+  return chosen.length > 0 ? chosen : [...CATEGORIES];
 }
 
 // ── reveal projection ────────────────────────────────────────────────────────

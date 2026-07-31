@@ -1,0 +1,126 @@
+@category טבע ומזג אוויר
+
+# ── הרים ובקעות ──────────────────────────────────────────────────────────────
+mountain | הר | hill | summit | valley | cliff | volcano
+summit | פסגה | mountain | hill | cliff | slope | valley
+hill | גבעה | mountain | valley | plain | summit | slope
+slope | מִדְרוֹן | hill | cliff | mountain | summit | path
+valley | עמק | hill | plain | mountain | wadi | field
+plain | מישור | valley | field | desert | hill | land
+wadi | וָאדִי | valley | stream | desert | cave | path
+cliff | צוק | mountain | cave | rock | summit | slope
+cave | מערה | cliff | rock | mountain | wadi | stone
+rock | סלע | stone | cliff | cave | mountain | sand
+stone | אבן | rock | sand | soil | dust | cave
+sand | חול | soil | stone | desert | beach | dust
+soil | אדמה | sand | mud | dust | stone | field
+mud | בץ | soil | puddle | sand | dust | rain
+dust | אָבָק | sand | soil | smoke | mud | stone
+desert | מדבר | sand | plain | wadi | heat | dryness
+forest | יער | field | grove | desert | mountain | valley
+grove | חֹרְשָׁה | forest | field | path | valley | hill
+pole | קֹטֶב | glacier | ice | snow | cold | continent
+field | שדה | forest | plain | valley | soil | grove
+path | שְׁבִיל | field | forest | slope | wadi | view
+island | אי | bay | beach | sea | ocean | volcano
+bay | מפרץ | island | beach | sea | ocean | lake
+sunbeam | קֶרֶן שֶׁמֶשׁ | sun | light | shade | sunrise | sky
+land | יַבָּשָׁה | continent | island | sea | soil | plain
+continent | יַבֶּשֶׁת | land | island | ocean | earth | sea
+
+# ── מים ──────────────────────────────────────────────────────────────────────
+sea | ים | ocean | lake | beach | sea-wave | river
+ocean | אוקינוס | sea | lake | sea-wave | continent | island
+beach | חוף | sea | sand | sea-wave | bay | island
+sea-wave | גל | sea | ocean | foam | current | beach
+foam | קֶצֶף | sea-wave | current | sea | drop | dew
+current | זֶרֶם | sea-wave | river | stream | foam | waterfall
+river | נהר | stream | lake | waterfall | current | spring
+stream | נחל | river | spring | waterfall | wadi | lake
+waterfall | מפל | river | stream | spring | current | cliff
+spring | מעין | well | stream | river | waterfall | puddle
+well | באר | spring | puddle | lake | river | stream
+lake | אגם | sea | river | bay | ocean | stream
+glacier | קרחון | ice | snow | mountain | frost | cold
+volcano | הר געש | lava | mountain | earthquake | summit | cliff
+lava | לבה | volcano | fire | smoke | mountain | heat
+earthquake | רעידת אדמה | volcano | tsunami | flood | storm | lava
+tsunami | צונאמי | sea-wave | flood | earthquake | storm | ocean
+flood | שטפון | rain | tsunami | puddle | storm | river
+
+# ── גשם ושלג ─────────────────────────────────────────────────────────────────
+rain | גשם | drizzle | showers | drop | storm | cloud
+drizzle | טפטוף | rain | showers | drop | dew | fog
+showers | ממטרים | rain | drizzle | storm | hail | cloud
+drop | טפה | drizzle | dew | rain | puddle | foam
+puddle | שלולית | rain | mud | drop | flood | dew
+snow | שלג | hail | frost | ice | glacier | cold
+hail | ברד | snow | ice | frost | rain | storm
+ice | קרח | snow | frost | glacier | hail | cold
+frost | כפור | ice | snow | dew | cold | hail
+dew | טל | frost | drop | drizzle | fog | rain
+
+# ── רוח ושמש ─────────────────────────────────────────────────────────────────
+wind | רוח | gust | storm | tempest | cloud | tornado
+gust | משב | wind | storm | tempest | tornado | cloud
+storm | סופה | tempest | wind | hurricane | tornado | rain
+tempest | סערה | storm | wind | hurricane | tornado | gust
+hurricane | הוריקן | tornado | storm | tempest | wind | flood
+tornado | טורנדו | hurricane | storm | tempest | gust | wind
+cloud | ענן | fog | rain | sky | cloudy | sun
+fog | ערפל | cloud | dew | drizzle | smoke | air
+sun | שמש | sunrise | sunset | heat | sky | shade
+shade | צל | sun | cloud | darkness | heat | cold
+heat | חם | cold | heatwave | hamsin | sun | dryness
+cold | קר | heat | frost | ice | snow | wind
+heatwave | שרב | hamsin | heat | dryness | drought | sun
+hamsin | חמסין | heatwave | heat | dryness | dust | sun
+dryness | יבש | drought | heatwave | hamsin | dust | desert
+drought | בצרת | dryness | heatwave | hamsin | desert | heat
+humidity | לחות | heat | dew | fog | rain | air
+lightning | ברק | thunder | storm | rain | cloud | spark
+thunder | רעם | lightning | storm | rain | cloud | wind
+rainbow | קשת בענן | cloud | rain | sun | light | sky
+
+# ── מודדים ומספרים ───────────────────────────────────────────────────────────
+weather | מֶזֶג אֲוִיר | forecast | temperature | season | cloud | wind
+forecast | תחזית | weather | temperature | thermometer | cloudy | clear
+temperature | טמפרטורה | degrees | thermometer | forecast | heat | cold
+degrees | מעלות | temperature | thermometer | forecast | heat | cold
+thermometer | מדחום | temperature | degrees | forecast | heat | cold
+clear | בהיר | cloudy | sun | sky | air | light
+cloudy | מענן | clear | cloud | fog | rain | sky
+air | אויר | wind | sky | humidity | fog | weather
+
+# ── שמים וחלל ────────────────────────────────────────────────────────────────
+sky | שמים | cloud | star | moon | sun | horizon
+horizon | אפק | sky | sunset | sunrise | sea | view
+view | נוֹף | horizon | mountain | field | nature | sky
+nature | טֶבַע | view | forest | field | mountain | sky
+sunrise | זריחה | sunset | sun | morning | light | sky
+sunset | שקיעה | sunrise | sun | evening | horizon | light
+star | כוכב | moon | planet | comet | sky | space
+moon | ירח | star | sun | planet | sky | night
+planet | כּוֹכַב לֶכֶת | star | earth | moon | space | comet
+comet | שָׁבִיט | star | planet | moon | space | earth
+earth | כְּדוּר הָאָרֶץ | planet | continent | moon | space | land
+space | חָלָל | star | planet | earth | moon | sky
+light | אוֹר | darkness | shade | sun | spark | fire
+darkness | חֹשֶׁךְ | light | night | shade | evening | midnight
+fire | אֵשׁ | smoke | spark | heat | lava | light
+smoke | עָשָׁן | fire | spark | fog | dust | air
+spark | נִצּוֹץ | fire | smoke | light | lightning | star
+
+# ── זמן ועונות ───────────────────────────────────────────────────────────────
+season | עונה | springtime | summer | autumn | winter | weather
+springtime | אביב | summer | autumn | winter | season | bloom
+summer | קיץ | springtime | autumn | winter | season | heat
+autumn | סתו | winter | springtime | summer | season | rain
+winter | חרף | autumn | summer | springtime | season | snow
+bloom | פְּרִיחָה | springtime | season | summer | nature | view
+day | יוֹם | night | morning | evening | noon | midnight
+night | לַיְלָה | day | evening | midnight | darkness | moon
+morning | בֹּקֶר | evening | noon | day | sunrise | night
+noon | צָהֳרַיִם | morning | evening | day | sun | night
+evening | עֶרֶב | night | morning | noon | sunset | day
+midnight | חֲצוֹת | night | evening | day | darkness | moon

@@ -1,0 +1,128 @@
+@category פירות, ירקות וצמחים
+
+# ── פירות הדר ────────────────────────────────────────────────────────────────
+orange | תפוז | clementine | lemon | grapefruit | apple | pomegranate
+clementine | קלמנטינה | orange | lemon | grapefruit | apple | pear
+lemon | לימון | orange | clementine | grapefruit | apple | fig
+grapefruit | אשכולית | orange | lemon | clementine | pomegranate | apple
+
+# ── פירות ────────────────────────────────────────────────────────────────────
+apple | תפוח | pear | peach | plum | orange | banana
+pear | אגס | apple | peach | plum | banana | loquat
+loquat | שֶׁסֶק | pear | apricot | plum | peach | driedfig
+banana | בננה | apple | pear | mango | pineapple | grapes
+grapes | ענבים | raisins | cherry | fig | plum | strawberry
+raisins | צִמּוּקִים | grapes | date | fig | nut | almond
+watermelon | אבטיח | melon | strawberry | grapes | pineapple | pomegranate
+melon | מלון | watermelon | pineapple | mango | papaya | grapes
+strawberry | תות | cherry | raspberry | blueberry | grapes | watermelon
+raspberry | פֶּטֶל | strawberry | blueberry | cherry | grapes | fig
+blueberry | אֻכְמָנִיּוֹת | raspberry | strawberry | cherry | grapes | fig
+cherry | דבדבן | plum | strawberry | apricot | raspberry | grapes
+plum | שזיף | apricot | peach | cherry | pear | nectarine
+apricot | מִשְׁמֵשׁ | plum | peach | nectarine | cherry | loquat
+peach | אפרסק | nectarine | plum | apricot | apple | pear
+nectarine | נקטרינה | peach | plum | apricot | apple | pear
+mango | מנגו | pineapple | papaya | banana | lychee | melon
+pineapple | אננס | mango | papaya | banana | melon | coconut
+papaya | פפיה | mango | pineapple | melon | lychee | banana
+lychee | לִיצִ'י | papaya | mango | pineapple | coconut | cherry
+kiwi | קיווי | mango | pineapple | papaya | apple | pear
+coconut | קוֹקוֹס | pineapple | mango | date | nut | palmtree
+pomegranate | רמון | fig | date | orange | grapes | apple
+fig | תאנה | date | pomegranate | grapes | driedfig | raisins
+driedfig | גְּרוֹגֶרֶת | fig | date | raisins | pomegranate | loquat
+date | תמר | fig | raisins | pomegranate | palmtree | coconut
+avocado | אבוקדו | tomato | cucumber | olive | mango | pepper
+persimmon | אפרסמון | pomegranate | apple | fig | date | orange
+olive | זית | pickle | tomato | avocado | pepper | fig
+
+# ── ירקות ────────────────────────────────────────────────────────────────────
+cucumber | מלפפון | tomato | pepper | zucchini | lettuce | pickle
+pickle | מְלָפְפוֹן חָמוּץ | cucumber | olive | tomato | cabbage | pepper
+tomato | עגבניה | cucumber | pepper | eggplant | lettuce | onion
+pepper | פלפל | tomato | cucumber | eggplant | zucchini | onion
+eggplant | חציל | zucchini | pepper | tomato | pumpkin | cucumber
+zucchini | קשוא | eggplant | cucumber | pumpkin | pepper | carrot
+pumpkin | דלעת | zucchini | eggplant | sweet-potato | carrot | beet
+carrot | גזר | beet | radish | cucumber | potato | zucchini
+beet | סלק | carrot | radish | turnip | kohlrabi | sweet-potato
+radish | צנון | beet | carrot | turnip | kohlrabi | cucumber
+turnip | לֶפֶת | kohlrabi | beet | radish | carrot | cabbage
+kohlrabi | קוֹלוֹרָבִּי | turnip | cabbage | beet | radish | cauliflower
+potato | תַּפּוּחַ אֲדָמָה | sweet-potato | carrot | onion | pumpkin | beet
+sweet-potato | בטטה | potato | pumpkin | carrot | beet | onion
+onion | בצל | garlic | leek | sprouts | tomato | pepper
+leek | כְּרֵישָׁה | onion | garlic | celery | cabbage | sprouts
+garlic | שום | onion | leek | ginger | pepper | parsley
+ginger | זַנְגְּבִיל | garlic | onion | dill | mint | leek
+dill | שָׁמִיר | basil | parsley | coriander | mint | ginger
+basil | בָּזִילִיקוּם | dill | mint | parsley | coriander | rosemary
+rosemary | רוֹזְמָרִין | basil | mint | dill | parsley | coriander
+mint | נענע | rosemary | basil | parsley | coriander | dill
+parsley | פטרוזיליה | coriander | basil | mint | celery | dill
+coriander | כסברה | parsley | mint | basil | celery | dill
+celery | סלרי | parsley | lettuce | leek | coriander | cabbage
+cabbage | כרוב | cauliflower | lettuce | kohlrabi | broccoli | spinach
+cauliflower | כרובית | cabbage | broccoli | kohlrabi | lettuce | spinach
+broccoli | ברוקולי | cauliflower | cabbage | spinach | lettuce | peas
+lettuce | חסה | cabbage | spinach | celery | cucumber | sprouts
+spinach | תרד | lettuce | cabbage | broccoli | celery | peas
+sprouts | נְבָטִים | lettuce | spinach | onion | leek | seed
+peas | אפונה | beans | corn | lentils | broccoli | spinach
+beans | שְׁעוּעִית | peas | lentils | corn | sprouts | nut
+lentils | עֲדָשִׁים | beans | peas | corn | sprouts | seeds-snack
+corn | תירס | peas | beans | pumpkin | potato | lentils
+mushroom | פטריה | onion | zucchini | lettuce | pepper | eggplant
+
+# ── אגוזים וגרעינים ──────────────────────────────────────────────────────────
+nut | אֱגוֹז | walnut | almond | peanut | pistachio | cashew
+walnut | אֱגוֹז מֶלֶךְ | nut | almond | pecan | pistachio | cashew
+almond | שָׁקֵד | nut | walnut | pistachio | cashew | peanut
+peanut | בּוֹטְנִים | almond | nut | cashew | pistachio | seeds-snack
+pistachio | פִּיסְטוּק | cashew | almond | walnut | peanut | pecan
+cashew | קָשְׁיוּ | pistachio | almond | peanut | pecan | walnut
+pecan | פֶּקָאן | walnut | pistachio | cashew | almond | nut
+seeds-snack | גַּרְעִינִים | seeds-sesame | pinenuts | peanut | almond | nut
+seeds-sesame | שֻׁמְשֹׁם | seeds-snack | pinenuts | almond | peanut | nut
+pinenuts | צְנוֹבָרִים | seeds-sesame | seeds-snack | almond | pistachio | nut
+
+# ── פרחים ────────────────────────────────────────────────────────────────────
+flower | פרח | rose | tulip | daisy | bouquet | bud
+rose | שׁוֹשַׁנָּה | tulip | daisy | flower | orchid | cyclamen
+tulip | צִבְעוֹנִי | rose | narcissus | anemone | daisy | cyclamen
+narcissus | נַרְקִיס | tulip | anemone | cyclamen | daisy | rose
+anemone | כַּלָּנִית | cyclamen | narcissus | tulip | daisy | rose
+cyclamen | רַקֶּפֶת | anemone | narcissus | tulip | daisy | orchid
+daisy | חִנָּנִית | rose | tulip | anemone | cyclamen | sunflower
+sunflower | חַמָּנִית | daisy | rose | tulip | flower | seeds-snack
+orchid | סַחְלָב | rose | cyclamen | tulip | flower | daisy
+bouquet | זֵר | flower | rose | bud | tulip | daisy
+bud | נִצָּן | bouquet | flower | leaf | seedling | rose
+
+# ── עצים וצמחים ──────────────────────────────────────────────────────────────
+tree | עץ | bush | palmtree | pine | oak | branch
+bush | שיח | tree | cactus | grass | thorn | leaf
+palmtree | דֶּקֶל | tree | pine | cypress | oak | date
+pine | אֹרֶן | cypress | palmtree | oak | tree | pinecone
+cypress | בְּרוֹשׁ | pine | palmtree | oak | tree | willow
+oak | אַלּוֹן | pine | cypress | willow | tree | palmtree
+willow | עֲרָבָה | oak | cypress | pine | tree | bush
+cactus | קקטוס | thorn | bush | tree | grass | flower
+thorn | קוֹץ | cactus | bush | branch | leaf | grass
+pinecone | אִצְטְרֻבָּל | pine | seed | cypress | branch | leaf
+leaf | עלה | branch | root | trunk | bud | flower
+branch | ענף | leaf | trunk | root | tree | thorn
+trunk | גזע | branch | root | leaf | tree | oak
+root | שרש | trunk | branch | leaf | seed | seedling
+seed | זרע | seedling | root | sprouts | pinecone | bud
+seedling | שָׁתִיל | seed | bud | root | gardenpatch | leaf
+grass | עשב | lawn | bush | thorn | leaf | flower
+lawn | דשא | grass | gardenpatch | bush | leaf | tree
+gardenpatch | גִּנָּה | lawn | greenhouse | orchard | vineyard | flower
+greenhouse | חֲמָמָה | gardenpatch | orchard | vineyard | seedling | lawn
+orchard | פַּרְדֵּס | vineyard | greenhouse | gardenpatch | tree | orange
+vineyard | כֶּרֶם | orchard | greenhouse | gardenpatch | grapes | tree
+peel | קְלִיפָּה | pit | bunch | seed | banana | orange
+pit | גַּלְעִין | peel | seed | bunch | plum | date
+bunch | אֶשְׁכּוֹל | grapes | peel | pit | branch | bouquet
