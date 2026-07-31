@@ -11,9 +11,11 @@ import {
   buildGuessOptions,
   checkWinner,
   currentVoter,
+  gameOverReason,
   getRevealView,
   getSecretEntry,
   maxImposterCount,
+  nextStepAfterVote,
   revealViewsFor,
   suggestImposterCount,
   voteTargetsFor,
@@ -423,6 +425,72 @@ describe('clue round', () => {
 
 // ── voting ───────────────────────────────────────────────────────────────────
 
+describe('the vote result says what actually comes next', () => {
+  const plan: Record<PlayerId, PlayerId> = { p0: 'p2', p1: 'p2', p2: 'p0', p3: 'p0' };
+
+  it('reports GAME_OVER when the last imposter is caught', () => {
+    const game = startedGame(5, { imposterGuessEnabled: false });
+    const state = voteOut(playClueRound(game), imposterOf(game));
+    expect(nextStepAfterVote(state)).toBe('GAME_OVER');
+    expect(gameOverReason(state)).toBe('IMPOSTER_CAUGHT');
+  });
+
+  it('reports GAME_OVER when only two players are left', () => {
+    let state = startedGame(4, { imposterGuessEnabled: false });
+    state = ejectPlayer(playClueRound(state), citizensOf(state)[0]!);
+    state = voteOut(playClueRound(state), aliveCitizens(state)[0]!);
+    expect(nextStepAfterVote(state)).toBe('GAME_OVER');
+    expect(gameOverReason(state)).toBe('IMPOSTERS_OUTNUMBER');
+  });
+
+  it('reports the guess when it is enabled and the imposter was caught', () => {
+    const game = startedGame(5, { imposterGuessEnabled: true });
+    const state = voteOut(playClueRound(game), imposterOf(game));
+    expect(nextStepAfterVote(state)).toBe('IMPOSTER_GUESS');
+  });
+
+  it('reports another clue round while the game is undecided', () => {
+    const game = startedGame(6, { imposterGuessEnabled: false });
+    const state = voteOut(playClueRound(game), citizensOf(game)[0]!);
+    expect(nextStepAfterVote(state)).toBe('NEXT_CLUE_ROUND');
+    expect(gameOverReason(state)).toBeNull();
+  });
+
+  it('reports a runoff after a first tie', () => {
+    let state = playClueRound(startedGame(4));
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
+    state = castVotes(state, plan);
+    expect(nextStepAfterVote(state)).toBe('RUNOFF');
+  });
+
+  it('never disagrees with where CONTINUE actually goes', () => {
+    // The screen labels its button from nextStepAfterVote; the reducer routes on
+    // it. Walk a whole game and assert they match at every vote result.
+    const expected = {
+      RUNOFF: 'VOTING',
+      IMPOSTER_GUESS: 'IMPOSTER_GUESS',
+      GAME_OVER: 'GAME_OVER',
+      NEXT_CLUE_ROUND: 'CLUES',
+    } as const;
+    for (const seed of ['m1', 'm2', 'm3', 'm4', 'm5']) {
+      let state = startedGame(6, { imposterGuessEnabled: true }, seed);
+      for (let step = 0; step < 12 && state.phase !== 'GAME_OVER'; step++) {
+        if (state.phase === 'CLUES') state = playClueRound(state);
+        if (state.phase === 'DISCUSSION') {
+          state = voteOut(state, aliveIds(state)[0]!);
+        }
+        if (state.phase === 'VOTE_RESULT') {
+          const said = nextStepAfterVote(state);
+          state = reducer(state, { type: 'CONTINUE', seed: `c${step}` });
+          expect(state.phase).toBe(expected[said]);
+        } else if (state.phase === 'IMPOSTER_GUESS') {
+          state = reducer(state, { type: 'SUBMIT_GUESS', wordId: state.guessOptions![0]! });
+        }
+      }
+    }
+  });
+});
+
 describe('another clue round from the discussion', () => {
   it('opens a fresh clue round instead of voting', () => {
     const before = playClueRound(startedGame(5));
@@ -476,6 +544,21 @@ describe('another clue round from the discussion', () => {
     expect(state.roundNumber).toBe(4);
     expect(state.players.every((p) => p.alive)).toBe(true);
     expect(state.winner).toBeNull();
+  });
+
+  it('ends the game instead of opening a pointless round when already decided', () => {
+    // Not reachable through the vote path, but a game restored from storage by
+    // an older build could land here.
+    const game = startedGame(4, { imposterGuessEnabled: false });
+    const decided = playClueRound(game);
+    const rigged: typeof decided = {
+      ...decided,
+      players: decided.players.map((p) => (p.isImposter ? p : { ...p, alive: false })),
+    };
+    expect(checkWinner(rigged)).toBe('IMPOSTERS');
+    const after = reducer(rigged, { type: 'ANOTHER_CLUE_ROUND', seed: 'x' });
+    expect(after.phase).toBe('GAME_OVER');
+    expect(after.winner).toBe('IMPOSTERS');
   });
 
   it('is not available outside the discussion', () => {

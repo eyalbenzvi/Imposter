@@ -1,4 +1,4 @@
-import { playerById } from '../../game/rules';
+import { gameOverReason, nextStepAfterVote, playerById } from '../../game/rules';
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../components/Screen';
 import type { Game } from '../useGame';
 
@@ -21,12 +21,18 @@ export function VoteResultScreen({ game }: { game: Game }) {
         ? 'תיקו'
         : 'תיקו שני — אף אחד לא הודח';
 
-  const cta =
-    result.outcome === 'TIE_RUNOFF'
-      ? 'להצבעה חוזרת'
-      : result.outcome === 'TIE_NO_EJECTION'
-        ? 'לסבב רמזים נוסף'
-        : 'המשיכו';
+  // Labelled from the same function the reducer routes on, so the button can
+  // never promise a round that isn't coming. It used to read "המשיכו" whether
+  // play continued or the game had just ended.
+  const next = nextStepAfterVote(state);
+  const over = next === 'GAME_OVER';
+  const reason = gameOverReason(state);
+  const cta = {
+    RUNOFF: 'להצבעה חוזרת',
+    IMPOSTER_GUESS: 'לניחוש האחרון של המתחזה',
+    GAME_OVER: 'לתוצאות המשחק',
+    NEXT_CLUE_ROUND: 'לסבב רמזים נוסף',
+  }[next];
 
   return (
     <Screen>
@@ -59,6 +65,27 @@ export function VoteResultScreen({ game }: { game: Game }) {
                 {wasImposter ? 'מִתְחַזֶּה' : 'אֶזְרָח'}
               </p>
             </div>
+          )}
+
+          {/* Say outright that this is the end, and why — the tally alone left
+              people expecting another round. */}
+          {over && (
+            <p
+              className={`niqqud pt-3 font-display text-2xl font-black ${
+                reason === 'IMPOSTER_CAUGHT' ? 'text-safe' : 'text-danger'
+              }`}
+            >
+              הַמִּשְׂחָק נִגְמַר
+            </p>
+          )}
+          {over && (
+            <p className="pt-1 text-base text-slate-400">
+              {reason === 'IMPOSTER_CAUGHT'
+                ? state.imposterIds.length > 1
+                  ? 'כל המתחזים הודחו'
+                  : 'המתחזה נתפס'
+                : 'נותרו שני שחקנים בלבד'}
+            </p>
           )}
 
           {result.outcome === 'TIE_RUNOFF' && (
