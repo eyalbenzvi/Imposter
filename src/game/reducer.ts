@@ -27,6 +27,7 @@ import {
   currentVoter,
   drawTurnOrder,
   maxImposterCount,
+  nextStepAfterVote,
   playerAtReveal,
   playerById,
   playerCountIsValid,
@@ -306,6 +307,11 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'ANOTHER_CLUE_ROUND': {
       requirePhase(state, action, 'DISCUSSION');
+      // A decided game has nothing left to discuss. Unreachable through the
+      // vote path, but a game restored from storage by an older build could
+      // land here, and opening a pointless round would be worse than ending.
+      const decided = checkWinner(state);
+      if (decided !== null) return { ...state, phase: 'GAME_OVER', winner: decided };
       // The group wants to hear everyone again before accusing anyone. Same
       // secret word and same players — only the turn order is redrawn, and any
       // typed clues are cleared so the new round starts blank.
@@ -373,45 +379,45 @@ export function reducer(state: GameState, action: Action): GameState {
       const result = state.lastVote;
       if (!result) throw new GameRuleError('CONTINUE without a vote result');
 
-      if (result.outcome === 'TIE_RUNOFF') {
-        // Re-vote, candidates narrowed to the tied leaders.
-        return {
-          ...state,
-          phase: 'VOTING',
-          voteStage: 'RUNOFF',
-          eligibleTargets: result.tiedIds,
-          voterOrder: drawTurnOrder(aliveIds(state), subSeed(action.seed, 'runoffVoters')),
-          voterIndex: 0,
-          votes: [],
-          lastVote: null,
-        };
-      }
+      // Routes on the same function the vote-result screen labels its button
+      // from, so the two can never disagree about what comes next.
+      switch (nextStepAfterVote(state)) {
+        case 'RUNOFF':
+          // Re-vote, candidates narrowed to the tied leaders.
+          return {
+            ...state,
+            phase: 'VOTING',
+            voteStage: 'RUNOFF',
+            eligibleTargets: result.tiedIds,
+            voterOrder: drawTurnOrder(
+              aliveIds(state),
+              subSeed(action.seed, 'runoffVoters'),
+            ),
+            voterIndex: 0,
+            votes: [],
+            lastVote: null,
+          };
 
-      const winner = checkWinner(state);
-
-      if (winner === 'CITIZENS' && state.settings.imposterGuessEnabled) {
-        // The last imposter caught gets one shot at the secret word.
-        const guessingImposterId = result.ejectedId;
-        if (guessingImposterId && state.secretWordId) {
+        case 'IMPOSTER_GUESS':
+          // The last imposter caught gets one shot at the secret word.
           return {
             ...state,
             phase: 'IMPOSTER_GUESS',
-            guessingImposterId,
+            guessingImposterId: result.ejectedId,
             guessOptions: buildGuessOptions(
-              state.secretWordId,
+              state.secretWordId!,
               makeRng(subSeed(action.seed, 'guessOptions')),
             ),
             guessResult: null,
             winner: null,
           };
-        }
-      }
 
-      if (winner !== null) {
-        return { ...state, phase: 'GAME_OVER', winner };
-      }
+        case 'GAME_OVER':
+          return { ...state, phase: 'GAME_OVER', winner: checkWinner(state) };
 
-      return startClueRound(state, action.seed, state.roundNumber + 1);
+        case 'NEXT_CLUE_ROUND':
+          return startClueRound(state, action.seed, state.roundNumber + 1);
+      }
     }
 
     case 'SUBMIT_GUESS': {

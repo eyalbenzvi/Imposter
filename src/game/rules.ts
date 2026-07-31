@@ -238,6 +238,44 @@ export function resolveVote(state: GameState, votes: Vote[]): VoteResult {
   };
 }
 
+/**
+ * What actually happens after a resolved vote.
+ *
+ * The reducer routes on this and the vote-result screen labels its button from
+ * it, so the screen can never promise a round that isn't coming. Before this
+ * existed the button read "המשיכו" whether play continued or the game had just
+ * ended, which read as "on to another discussion round" at the exact moment the
+ * imposter had been caught.
+ */
+export type NextStep = 'RUNOFF' | 'IMPOSTER_GUESS' | 'GAME_OVER' | 'NEXT_CLUE_ROUND';
+
+export function nextStepAfterVote(state: GameState): NextStep {
+  const result = state.lastVote;
+  if (!result) throw new Error('nextStepAfterVote: no vote has been resolved');
+
+  if (result.outcome === 'TIE_RUNOFF') return 'RUNOFF';
+
+  const winner = checkWinner(state);
+  if (
+    winner === 'CITIZENS' &&
+    state.settings.imposterGuessEnabled &&
+    result.ejectedId !== null &&
+    state.secretWordId !== null
+  ) {
+    return 'IMPOSTER_GUESS';
+  }
+  if (winner !== null) return 'GAME_OVER';
+  return 'NEXT_CLUE_ROUND';
+}
+
+/** Why the game ended, for a screen that has to say so plainly. */
+export function gameOverReason(state: GameState): 'IMPOSTER_CAUGHT' | 'IMPOSTERS_OUTNUMBER' | null {
+  const winner = checkWinner(state);
+  if (winner === 'CITIZENS') return 'IMPOSTER_CAUGHT';
+  if (winner === 'IMPOSTERS') return 'IMPOSTERS_OUTNUMBER';
+  return null;
+}
+
 // ── misc ─────────────────────────────────────────────────────────────────────
 
 /** Turn order for a clue round, reshuffled every round so the opener changes. */
