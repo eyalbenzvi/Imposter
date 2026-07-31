@@ -17,9 +17,18 @@
  * The word column is either fully pointed Hebrew (a new word) or plain Hebrew
  * (reuse the pointing already recorded in `kidwords/lexicon.json`, which was
  * seeded from the previous store). Nothing is written unless every file is good.
+ *
+ * KNOWN-mode clues live apart, in `kidwords/clues/<same-name>.txt`, one line per
+ * entry keyed by the same id:
+ *
+ *   dog | נֶאֱמָנוּת | רְצוּעָה | נוֹבֵחַ
+ *
+ * in the order pair | related | trait. They sit in their own file because they
+ * are a different kind of writing from the sibling lists, and because a clue is
+ * free text rather than a pointer at another entry.
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,6 +56,50 @@ const lexicon = new Map();
 const problems = [];
 const unpointed = new Set();
 const parsed = [];
+
+const CLUE_FIELDS = ['pair', 'related', 'trait'];
+
+/** id → {pair, related, trait} for one category file, or an empty map. */
+function readClues(file) {
+  const path = join(SRC, 'clues', file);
+  if (!existsSync(path)) return new Map();
+  const out = new Map();
+  readFileSync(path, 'utf8')
+    .split('\n')
+    .forEach((raw, i) => {
+      const line = raw.trim();
+      if (line === '' || line.startsWith('#')) return;
+      const where = `clues/${file}:${i + 1}`;
+      const parts = line.split('|').map((p) => nfc(p.trim()));
+      if (parts.length !== 1 + CLUE_FIELDS.length) {
+        problems.push(
+          `${where}: expected "id | pair | related | trait", got ${parts.length} fields`,
+        );
+        return;
+      }
+      const [id, ...values] = parts;
+      if (out.has(id)) {
+        problems.push(`${where}: duplicate id "${id}"`);
+        return;
+      }
+      const clues = {};
+      values.forEach((value, k) => {
+        if (!HAS_NIQQUD.test(value)) {
+          const known = lexicon.get(strip(value));
+          if (!known) {
+            unpointed.add(`${value}  (${where})`);
+            problems.push(`${where}: "${value}" has no niqqud and is not in the lexicon`);
+            return;
+          }
+          clues[CLUE_FIELDS[k]] = known;
+          return;
+        }
+        clues[CLUE_FIELDS[k]] = value;
+      });
+      out.set(id, clues);
+    });
+  return out;
+}
 
 for (const file of readdirSync(SRC).filter((f) => f.endsWith('.txt')).sort()) {
   const lines = readFileSync(join(SRC, file), 'utf8').split('\n');
@@ -102,7 +155,14 @@ for (const file of readdirSync(SRC).filter((f) => f.endsWith('.txt')).sort()) {
 
 // ── resolve hint ids inside their own file ───────────────────────────────────
 const built = [];
+let withClues = 0;
 for (const { file, category, rows } of parsed) {
+  const clueRows = readClues(file);
+  for (const id of clueRows.keys()) {
+    if (!rows.some((r) => r.id === id)) {
+      problems.push(`clues/${file}: "${id}" is not an entry in ${file}`);
+    }
+  }
   const byId = new Map(rows.map((r) => [r.id, r]));
   if (byId.size !== rows.length) {
     const seen = new Set();
@@ -132,7 +192,11 @@ for (const { file, category, rows } of parsed) {
       used.add(hintId);
       hints.push(target.word);
     }
-    return { id: row.id, word: row.word, hints, category };
+    const clues = clueRows.get(row.id);
+    if (clues) withClues++;
+    return clues
+      ? { id: row.id, word: row.word, hints, clues, category }
+      : { id: row.id, word: row.word, hints, category };
   });
 
   built.push({ out: basename(file, '.txt') + '.json', category, entries });
@@ -157,6 +221,11 @@ for (const { out, entries } of built) {
         (e) =>
           `  { "id": ${JSON.stringify(e.id)}, "word": ${JSON.stringify(e.word)}, ` +
           `"hints": [${e.hints.map((h) => JSON.stringify(h)).join(', ')}], ` +
+          (e.clues
+            ? `"clues": { ${CLUE_FIELDS.map(
+                (k) => `${JSON.stringify(k)}: ${JSON.stringify(e.clues[k])}`,
+              ).join(', ')} }, `
+            : '') +
           `"category": ${JSON.stringify(e.category)} }`,
       )
       .join(',\n') +
@@ -167,6 +236,12 @@ for (const { out, entries } of built) {
 let total = 0;
 for (const { out, category, entries } of built) {
   total += entries.length;
-  console.log(`  ${String(entries.length).padStart(4)}  ${category.padEnd(26)} ${out}`);
+  const clued = entries.filter((e) => e.clues).length;
+  const flag = clued === entries.length ? '✓' : `${clued}/${entries.length} clues`;
+  console.log(
+    `  ${String(entries.length).padStart(4)}  ${category.padEnd(26)} ${out.padEnd(15)} ${flag}`,
+  );
 }
-console.log(`\n✓ ${total} entries across ${built.length} categories`);
+console.log(
+  `\n✓ ${total} entries across ${built.length} categories, ${withClues} with KNOWN-mode clues`,
+);

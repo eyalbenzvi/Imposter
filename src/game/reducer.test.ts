@@ -24,6 +24,7 @@ import {
 import { makeRng } from './prng';
 import { stripNiqqud } from './niqqud';
 import { CATEGORIES, getWordEntry } from './words';
+import { CLUE_KINDS } from './types';
 import {
   aliveCitizens,
   castVotes,
@@ -300,7 +301,14 @@ describe('KNOWN mode', () => {
     const [first, second] = state.imposterIds as [PlayerId, PlayerId];
     const view = getRevealView(state, first);
 
-    expect(Object.keys(view).sort()).toEqual(['kind', 'playerName', 'word']);
+    // The point is that no field could carry a second player's identity, so the
+    // key set is pinned: adding one to this view has to be a deliberate act.
+    expect(Object.keys(view).sort()).toEqual([
+      'hintKind',
+      'kind',
+      'playerName',
+      'word',
+    ]);
     const serialized = JSON.stringify(view);
     expect(serialized).not.toContain(second);
     // ...and not the partner's name either.
@@ -1108,5 +1116,66 @@ describe('category selection', () => {
     for (const id of options) {
       expect(getWordEntry(id).category).toBe(only);
     }
+  });
+});
+
+describe('what the imposter is handed, by mode', () => {
+  it('HIDDEN gives a sibling word from the same category', () => {
+    // The imposter has not been told, so what they hold has to read like an
+    // ordinary word from the pool. A clue here would announce the role on sight.
+    for (let i = 0; i < 30; i++) {
+      const state = startedGame(5, { mode: 'HIDDEN' }, `hid-${i}`);
+      const entry = getSecretEntry(state)!;
+      expect(state.hintKind).toBe('SIBLING');
+      expect(state.clueKind).toBeNull();
+      expect(entry.hints).toContain(state.hintWord);
+    }
+  });
+
+  it('KNOWN gives a clue about the real word, not a word', () => {
+    for (let i = 0; i < 30; i++) {
+      const state = startedGame(5, { mode: 'KNOWN' }, `kno-${i}`);
+      const entry = getSecretEntry(state)!;
+      expect(state.hintKind).toBe('CLUE');
+      expect(CLUE_KINDS).toContain(state.clueKind!);
+      expect(state.hintWord).toBe(entry.clues![state.clueKind!]);
+      expect(entry.hints).not.toContain(state.hintWord);
+    }
+  });
+
+  it('draws all three kinds of clue across many games', () => {
+    const kinds = new Set<string>();
+    for (let i = 0; i < 120; i++) {
+      kinds.add(startedGame(4, { mode: 'KNOWN' }, `kind-${i}`).clueKind!);
+    }
+    expect([...kinds].sort()).toEqual([...CLUE_KINDS].sort());
+  });
+
+  it('tells the reveal card which kind it is showing', () => {
+    const known = startedGame(5, { mode: 'KNOWN' });
+    const view = getRevealView(known, imposterOf(known));
+    expect(view.kind).toBe('IMPOSTER');
+    expect(view.kind === 'IMPOSTER' && view.hintKind).toBe('CLUE');
+
+    const hidden = startedGame(5, { mode: 'HIDDEN' });
+    // HIDDEN stays structurally identical for everyone — nothing to label.
+    expect(getRevealView(hidden, imposterOf(hidden)).kind).toBe('PLAIN');
+  });
+
+  it('gives both imposters the very same clue', () => {
+    const state = startedGame(8, { mode: 'KNOWN', imposterCount: 2 });
+    const [a, b] = state.imposterIds as [string, string];
+    expect(getRevealView(state, a).word).toBe(getRevealView(state, b).word);
+  });
+
+  it('is the same clue for the same seed, and varies with the seed', () => {
+    const one = startedGame(5, { mode: 'KNOWN' }, 'same-seed');
+    const two = startedGame(5, { mode: 'KNOWN' }, 'same-seed');
+    expect(one.hintWord).toBe(two.hintWord);
+    const words = new Set<string>();
+    for (let i = 0; i < 20; i++) {
+      words.add(startedGame(5, { mode: 'KNOWN' }, `vary-${i}`).hintWord!);
+    }
+    expect(words.size).toBeGreaterThan(1);
   });
 });
