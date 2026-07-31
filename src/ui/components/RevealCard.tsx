@@ -19,32 +19,43 @@ import { WordHero } from './WordHero';
  *    • The word is only on screen while a finger is held down. Let go — by
  *      lifting, sliding off, or the browser stealing focus — and it is gone
  *      instantly. The phone can never be handed on with a word still showing.
- *    • Every uncovering is counted in `state.revealViews`. The count is shown
- *      here live, and the group can audit the totals afterwards. Because
- *      SHOW_ROLE is idempotent and the flow never goes back, the count is
- *      always exactly 1 — a second look is impossible, not merely discouraged.
+ *    • Every uncovering is counted in `state.revealViews`. Because SHOW_ROLE is
+ *      idempotent and the flow never goes back, that count is always exactly 1
+ *      — a second look is impossible, not merely discouraged. The number is not
+ *      rendered: a counter that can only ever read "1" tells a player nothing
+ *      they can act on, so the ledger stays as the enforced invariant behind
+ *      the guarantee rather than as UI.
  */
 
-/** Identical for every role, so hold time can never give a role away. */
+/**
+ * How long the word must have been on screen before the player may move on.
+ * Identical for every role, so dwell time can never give a role away.
+ *
+ * This is CUMULATIVE across presses. Requiring one unbroken hold was a bug: a
+ * finger drifting off the panel fires pointerleave, which hid the word and
+ * threw the progress away, so a player who held twice for 800ms was still
+ * locked out and had to keep uncovering the word to get past the button.
+ */
 const MIN_HOLD_MS = 900;
 
 export function RevealCard({
   view,
   position,
   total,
-  views,
   onHide,
 }: {
   view: RevealView;
   position: number;
   total: number;
-  /** Times this player has uncovered their word — 1 by construction. */
-  views: number;
   onHide: () => void;
 }) {
   const [held, setHeld] = useState(false);
   const [heldLongEnough, setHeldLongEnough] = useState(false);
   const holdTimer = useRef<number | null>(null);
+  /** Milliseconds this player has already had the word on screen. */
+  const heldMs = useRef(0);
+  /** When the current press started, or null when nothing is held. */
+  const pressedAt = useRef<number | null>(null);
 
   const release = useCallback(() => {
     setHeld(false);
@@ -52,12 +63,23 @@ export function RevealCard({
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
     }
+    // Bank the time instead of discarding it, so letting go — or a finger
+    // slipping off the panel — costs nothing but the word being hidden.
+    if (pressedAt.current !== null) {
+      heldMs.current += Date.now() - pressedAt.current;
+      pressedAt.current = null;
+    }
   }, []);
 
   const press = useCallback(() => {
     setHeld(true);
+    if (pressedAt.current === null) pressedAt.current = Date.now();
     if (holdTimer.current === null) {
-      holdTimer.current = window.setTimeout(() => setHeldLongEnough(true), MIN_HOLD_MS);
+      const left = Math.max(0, MIN_HOLD_MS - heldMs.current);
+      holdTimer.current = window.setTimeout(() => {
+        setHeldLongEnough(true);
+        holdTimer.current = null;
+      }, left);
     }
   }, []);
 
@@ -95,7 +117,12 @@ export function RevealCard({
           nothing here may depend on `kind` except colour and wording. */}
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
-          onPointerDown={press}
+          onPointerDown={(e) => {
+            // Capture the pointer so a slight drift doesn't fire pointerleave
+            // and hide the word out from under the player.
+            e.currentTarget.setPointerCapture?.(e.pointerId);
+            press();
+          }}
           onPointerUp={release}
           onPointerCancel={release}
           onPointerLeave={release}
@@ -165,20 +192,6 @@ export function RevealCard({
       </div>
 
       <div className="shrink-0 pt-3">
-        {/* The audit line: this player's word was uncovered exactly this many
-            times, and the group sees the same totals at the end of the handout. */}
-        <p className="pb-2 text-center text-xs text-slate-500">
-          {views === 1 ? (
-            <>
-              נחשף <span className="num font-bold text-safe">1</span> פעם — רק אתם
-              ראיתם אותה
-            </>
-          ) : (
-            <>
-              נחשף <span className="num font-bold text-gold">{views}</span> פעמים
-            </>
-          )}
-        </p>
         <button
           type="button"
           onClick={onHide}

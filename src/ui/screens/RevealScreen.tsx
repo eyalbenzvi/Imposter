@@ -1,4 +1,4 @@
-import { getRevealView, playerAtReveal, revealViewsFor } from '../../game/rules';
+import { getRevealView, playerAtReveal } from '../../game/rules';
 import { PassDevice } from '../components/PassDevice';
 import { RevealCard } from '../components/RevealCard';
 import { Screen } from '../components/Screen';
@@ -24,7 +24,6 @@ export function RevealScreen({ game }: { game: Game }) {
           view={getRevealView(state, player.id)}
           position={state.revealIndex + 1}
           total={state.revealOrder.length}
-          views={revealViewsFor(state, player.id)}
           onHide={() => dispatch({ type: 'HIDE_ROLE' })}
         />
       ) : (

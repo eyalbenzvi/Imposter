@@ -95,6 +95,12 @@ export type GameState = {
 
   // CLUES
   turnOrder: PlayerId[];
+  /**
+   * Speaking order for the discussion, drawn independently of `turnOrder` and
+   * of `revealOrder` — three separate shuffles, so knowing one tells you
+   * nothing about the others.
+   */
+  discussionOrder: PlayerId[];
   clueTurnIndex: number;
   /** Only used in TYPE mode; cleared at the start of every clue round. */
   clues: Record<PlayerId, string>;

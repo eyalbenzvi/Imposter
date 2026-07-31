@@ -14,7 +14,6 @@ import {
   getRevealView,
   getSecretEntry,
   maxImposterCount,
-  revealAudit,
   revealViewsFor,
   suggestImposterCount,
   voteTargetsFor,
@@ -129,13 +128,10 @@ describe('dealing roles', () => {
 
   it('counts exactly one uncovering per player', () => {
     const state = startedGame(5);
-    const audit = revealAudit(state);
-    expect(audit.rows.map((r) => r.views)).toEqual([1, 1, 1, 1, 1]);
-    expect(audit.everyoneSawOnce).toBe(true);
-    expect(audit.extraViews).toBe(0);
     for (const player of state.players) {
       expect(revealViewsFor(state, player.id)).toBe(1);
     }
+    expect(Object.values(state.revealViews)).toEqual([1, 1, 1, 1, 1]);
   });
 
   it('does not count a second SHOW_ROLE for the same player', () => {
@@ -152,11 +148,13 @@ describe('dealing roles', () => {
 
   it('starts a fresh ledger for a new round', () => {
     let state = startedGame(4, { imposterGuessEnabled: false });
-    expect(revealAudit(state).everyoneSawOnce).toBe(true);
+    expect(Object.values(state.revealViews).every((n) => n === 1)).toBe(true);
     state = ejectPlayer(playClueRound(state), imposterOf(state));
     state = reducer(state, { type: 'NEW_ROUND', seed: 'again' });
     expect(state.revealViews).toEqual({});
-    expect(revealAudit(state).rows.every((r) => r.views === 0)).toBe(true);
+    for (const player of state.players) {
+      expect(revealViewsFor(state, player.id)).toBe(0);
+    }
   });
 
   it('keeps the ledger untouched by the rest of the game', () => {
@@ -207,6 +205,33 @@ describe('dealing roles', () => {
     const first = reducer(state, { type: 'START_VOTING', seed: 'a' });
     const second = reducer(state, { type: 'START_VOTING', seed: 'b' });
     expect(first.voterOrder).not.toEqual(second.voterOrder);
+  });
+
+  it('draws the discussion order separately from the clue and reveal orders', () => {
+    // Three independent shuffles: across seeds they must disagree, not track
+    // each other.
+    let sameAsClues = 0;
+    let sameAsReveal = 0;
+    const seeds = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'];
+    for (const seed of seeds) {
+      const state = startedGame(6, {}, seed);
+      expect([...state.discussionOrder].sort()).toEqual([...aliveIds(state)].sort());
+      if (state.discussionOrder.join() === state.turnOrder.join()) sameAsClues++;
+      if (state.discussionOrder.join() === state.revealOrder.join()) sameAsReveal++;
+    }
+    expect(sameAsClues).toBeLessThan(seeds.length);
+    expect(sameAsReveal).toBeLessThan(seeds.length);
+  });
+
+  it('redraws the discussion order for every clue round', () => {
+    const before = playClueRound(startedGame(6));
+    const orders = new Set(
+      ['x1', 'x2', 'x3', 'x4', 'x5', 'x6'].map(
+        (seed) =>
+          reducer(before, { type: 'ANOTHER_CLUE_ROUND', seed }).discussionOrder.join(),
+      ),
+    );
+    expect(orders.size).toBeGreaterThan(1);
   });
 
   it('gives everyone a fresh turn order per round', () => {

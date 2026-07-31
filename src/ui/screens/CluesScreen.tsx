@@ -5,7 +5,6 @@ import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../components/Sc
 import { TimerBar } from '../components/TimerBar';
 import { useTimer } from '../useTimer';
 import type { Game } from '../useGame';
-import { RevealAudit } from '../components/RevealAudit';
 
 export function CluesScreen({ game }: { game: Game }) {
   return game.state.settings.clueMode === 'SPEAK' ? (
@@ -66,8 +65,7 @@ function SpeakingRound({ game }: { game: Game }) {
       />
 
       <ScreenBody className="justify-between">
-        <div className="flex w-full shrink-0 flex-col gap-3">
-          {state.roundNumber === 1 && <RevealAudit state={state} />}
+        <div className="w-full shrink-0">
           <TurnOrder game={game} />
         </div>
 
