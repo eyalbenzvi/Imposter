@@ -1,5 +1,7 @@
 # מִתְחַזֶּה
 
+**▶ לשחק: https://eyalbenzvi.github.io/Imposter/**
+
 משחק מסיבות למכשיר אחד שעובר בין השחקנים. עברית מלאה עם ניקוד, RTL,
 מובייל-first. אין שרת, אין חשבונות, ואין תלות באינטרנט אחרי הטעינה הראשונה.
 
@@ -22,14 +24,18 @@ npm run dev
 
 ## פרסום ב-GitHub Pages
 
-הרפו כולל workflow ב-`.github/workflows/deploy.yml` שבונה ומפרסם אוטומטית.
-כדי להפעיל, פעם אחת:
+הרפו כולל workflow ב-`.github/workflows/deploy.yml` שבונה ומפרסם בכל דחיפה
+ל-`main`. הוא כבר מוגדר ורץ — האתר החי הוא
+https://eyalbenzvi.github.io/Imposter/.
 
-1. **Settings → Pages → Build and deployment → Source: GitHub Actions**
-2. לדחוף ל-`main` (או להריץ את ה-workflow ידנית מלשונית Actions).
+ב-fork או בריפו חדש נדרשת פעולה ידנית **אחת** לפני הריצה הראשונה:
+**Settings → Pages → Build and deployment → Source: `GitHub Actions`**.
+אין דרך לעשות את זה מתוך ה-workflow: יצירת אתר Pages דורשת הרשאת admin על
+הריפו, ול-`GITHUB_TOKEN` אין אותה בשום הגדרת permissions (גם לא עם
+`enablement: true`, שמחזיר `Resource not accessible by integration`).
 
-הכתובת תהיה `https://<user>.github.io/<repo>/`. ה-build משתמש ב-`base: './'`,
-כך שאותו build עובד גם מתיקיית שורש וגם מתת-נתיב של פרויקט — אין מה להגדיר.
+ה-build משתמש ב-`base: './'`, כך שאותו build עובד גם מתיקיית שורש וגם מתת-נתיב
+של פרויקט — אין מה להגדיר.
 
 ה-workflow מריץ `validate:words` ו-`npm test` לפני ה-build, כך שמחסן מילים
 שבור או לוגיקה שנשברה לא מגיעים לאוויר.
