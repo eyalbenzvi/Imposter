@@ -297,6 +297,14 @@ export function reducer(state: GameState, action: Action): GameState {
       return { ...state, phase: 'DISCUSSION' };
     }
 
+    case 'ANOTHER_CLUE_ROUND': {
+      requirePhase(state, action, 'DISCUSSION');
+      // The group wants to hear everyone again before accusing anyone. Same
+      // secret word and same players — only the turn order is redrawn, and any
+      // typed clues are cleared so the new round starts blank.
+      return startClueRound(state, action.seed, state.roundNumber + 1);
+    }
+
     case 'START_VOTING': {
       requirePhase(state, action, 'DISCUSSION');
       const living = aliveIds(state);

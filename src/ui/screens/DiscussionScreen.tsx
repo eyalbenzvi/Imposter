@@ -72,6 +72,15 @@ export function DiscussionScreen({ game }: { game: Game }) {
         >
           להצבעה
         </button>
+        {/* Not ready to accuse anyone yet — hear everyone again first. Same
+            secret word, fresh turn order. */}
+        <button
+          type="button"
+          onClick={() => dispatchSeeded('ANOTHER_CLUE_ROUND')}
+          className="btn-ghost w-full"
+        >
+          סבב רמזים נוסף
+        </button>
       </ScreenFooter>
     </Screen>
   );
