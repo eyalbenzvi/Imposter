@@ -1,0 +1,172 @@
+/* Self-hosted so nothing needs the network after the first load.
+   Noto Sans Hebrew and Frank Ruhl Libre are the two Hebrew families with
+   genuinely well-placed niqqud — Heebo and Assistant misplace the marks. */
+@font-face {
+  font-family: 'Noto Sans Hebrew';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/noto-sans-hebrew-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+
+@font-face {
+  font-family: 'Frank Ruhl Libre';
+  font-style: normal;
+  font-weight: 500 900;
+  font-display: swap;
+  src: url('/fonts/frank-ruhl-libre-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* Fall back to the visual viewport on mobile so the layout never sits
+       under the browser chrome. */
+    --app-height: 100dvh;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 text-slate-100 antialiased;
+    font-family: 'Noto Sans Hebrew', system-ui, sans-serif;
+    /* Niqqud are combining marks that sit above and below the baseline — a
+       tight line-height clips them. 1.6 is the floor everywhere. */
+    line-height: 1.65;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  /* Pointed Hebrew is never allowed to be clipped: no fixed heights and no
+     overflow:hidden on anything that carries a word. */
+  .niqqud {
+    line-height: 1.75;
+    padding-block: 0.12em;
+    overflow: visible;
+    text-wrap: balance;
+  }
+
+  .niqqud-hero {
+    line-height: 1.6;
+    padding-block: 0.16em;
+    overflow: visible;
+    letter-spacing: 0.005em;
+  }
+
+  /* Counters like "3 / 12" must stay in logical order inside an RTL document —
+     the bidi algorithm would otherwise render them reversed. */
+  .num {
+    direction: ltr;
+    display: inline-block;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+  }
+
+  button {
+    font-family: inherit;
+    touch-action: manipulation;
+  }
+
+  input {
+    font-family: inherit;
+  }
+
+  /* Respect a user who asked for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Every tap target is at least 44px tall. */
+  .btn {
+    @apply inline-flex min-h-[52px] select-none items-center justify-center gap-2
+      rounded-2xl px-6 text-lg font-semibold transition
+      active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply btn bg-glow text-ink-950 shadow-lg shadow-glow-deep/30
+      hover:bg-glow-soft;
+  }
+
+  .btn-ghost {
+    @apply btn border border-ink-600 bg-ink-850/70 text-slate-200
+      hover:border-glow/60 hover:bg-ink-800;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger/90 text-ink-950 hover:bg-danger;
+  }
+
+  .card {
+    @apply rounded-3xl border border-ink-700/80 bg-ink-900/80 p-5
+      shadow-xl shadow-black/40 backdrop-blur;
+  }
+
+  .chip {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl
+      border px-4 text-base font-medium transition active:scale-[0.97];
+  }
+
+  .chip-off {
+    @apply chip border-ink-600 bg-ink-850/60 text-slate-300
+      hover:border-glow/50;
+  }
+
+  .chip-on {
+    @apply chip border-glow bg-glow/15 text-glow-soft;
+  }
+
+  /* Fills the screen without ever needing to scroll, and keeps clear of the
+     iOS home indicator. */
+  .screen {
+    @apply flex flex-col;
+    min-height: var(--app-height);
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-inline: 1rem;
+  }
+}
+
+/* The atmospheric backdrop: two slow drifting glows behind everything. */
+.aura::before,
+.aura::after {
+  content: '';
+  position: fixed;
+  inset-inline-start: -20%;
+  top: -15%;
+  width: 75vw;
+  height: 75vw;
+  max-width: 620px;
+  max-height: 620px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.32), transparent 68%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.aura::after {
+  inset-inline-start: auto;
+  inset-inline-end: -25%;
+  top: auto;
+  bottom: -20%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 68%);
+}
