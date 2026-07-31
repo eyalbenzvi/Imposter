@@ -18,7 +18,11 @@ export function TimerBar({ timer, total }: { timer: Timer; total: number }) {
         className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-ink-700 bg-ink-850/70 px-4 py-2 text-start active:scale-[0.99]"
       >
         <span className="text-sm text-slate-400">
-          {timer.expired ? 'הזמן נגמר' : timer.running ? 'עצור' : 'המשך'}
+          {timer.expired
+            ? 'הזמן נגמר — הקישו לזמן נוסף'
+            : timer.running
+              ? 'עצרו'
+              : 'המשיכו'}
         </span>
         <span
           className={`font-display text-2xl font-bold tabular-nums ${

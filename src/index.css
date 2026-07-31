@@ -134,11 +134,15 @@
     @apply chip border-glow bg-glow/15 text-glow-soft;
   }
 
-  /* Fills the screen without ever needing to scroll, and keeps clear of the
-     iOS home indicator. */
+  /* A hard viewport-height box, not a floor: with min-height, a long list (a
+     12-player tally) grows the element past the screen and takes the footer
+     button with it. Fixing the height makes the inner overflow-y-auto regions
+     do the scrolling instead, so no game screen ever scrolls as a whole and
+     the primary button is always reachable. Keeps clear of the iOS home
+     indicator too. */
   .screen {
     @apply flex flex-col;
-    min-height: var(--app-height);
+    height: var(--app-height);
     padding-top: max(0.75rem, env(safe-area-inset-top));
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     padding-inline: 1rem;

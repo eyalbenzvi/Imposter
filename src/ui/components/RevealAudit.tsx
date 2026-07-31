@@ -16,15 +16,15 @@ export function RevealAudit({ state }: { state: GameState }) {
 
   return (
     <div
-      className={`w-full shrink-0 animate-rise-in rounded-2xl border px-3 py-2 ${
+      className={`w-full shrink-0 animate-rise-in rounded-2xl border px-3 py-1.5 ${
         audit.everyoneSawOnce
           ? 'border-safe/40 bg-safe/[0.07]'
           : 'border-gold/40 bg-gold/[0.07]'
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-1">
         <p
-          className={`text-sm font-bold ${
+          className={`text-xs font-bold leading-snug ${
             audit.everyoneSawOnce ? 'text-safe' : 'text-gold'
           }`}
         >
@@ -36,17 +36,17 @@ export function RevealAudit({ state }: { state: GameState }) {
           type="button"
           onClick={() => setOpen(false)}
           aria-label="סגור"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:text-slate-300"
+          className="-me-2 grid h-12 w-12 shrink-0 place-items-center rounded-lg text-slate-500 hover:text-slate-300"
         >
           ✕
         </button>
       </div>
 
-      <ul className="flex flex-wrap gap-1.5 pt-2">
+      <ul className="flex flex-wrap gap-1 pt-1">
         {audit.rows.map((row) => (
           <li
             key={row.playerId}
-            className="niqqud flex items-center gap-1.5 rounded-full border border-ink-700 bg-ink-900/60 px-2.5 py-0.5 text-xs text-slate-300"
+            className="niqqud flex items-center gap-1 rounded-full border border-ink-700 bg-ink-900/60 px-2 py-0 text-[11px] text-slate-300"
           >
             {row.name}
             <span

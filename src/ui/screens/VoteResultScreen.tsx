@@ -12,6 +12,8 @@ export function VoteResultScreen({ game }: { game: Game }) {
   const wasImposter = result.ejectedWasImposter === true;
   const votesFor = (id: string) =>
     result.votes.filter((v) => v.target === id).map((v) => playerById(state, v.voter).name);
+  const scored = result.tally.filter((row) => row.count > 0);
+  const unscored = result.tally.filter((row) => row.count === 0);
 
   const headline =
     result.outcome === 'EJECTED'
@@ -76,13 +78,15 @@ export function VoteResultScreen({ game }: { game: Game }) {
           )}
         </div>
 
-        {/* Full breakdown — who voted for whom */}
+        {/* Full breakdown — who voted for whom. Players nobody voted for are
+            collapsed into one line, so with a big group the rows that actually
+            carry information stay above the fold. */}
         <div className="min-h-0 w-full flex-1 overflow-y-auto">
           <p className="pb-2 text-xs font-semibold tracking-[0.04em] text-slate-500">
             הספירה המלאה
           </p>
           <ul className="flex flex-col gap-1.5">
-            {result.tally.map((row) => {
+            {scored.map((row) => {
               const voters = votesFor(row.playerId);
               const isEjected = row.playerId === result.ejectedId;
               const isTied = result.tiedIds.includes(row.playerId);
@@ -104,14 +108,23 @@ export function VoteResultScreen({ game }: { game: Game }) {
                     <span className="niqqud block truncate text-base font-bold text-slate-100">
                       {playerById(state, row.playerId).name}
                     </span>
-                    <span className="niqqud block truncate text-xs text-slate-500">
-                      {voters.length > 0 ? voters.join(' · ') : 'ללא הצבעות'}
+                    {/* Wraps rather than truncates: who voted for whom is the
+                        whole point of this screen. */}
+                    <span className="niqqud block text-xs leading-snug text-slate-400">
+                      {voters.join(' · ')}
                     </span>
                   </span>
                 </li>
               );
             })}
           </ul>
+
+          {unscored.length > 0 && (
+            <p className="niqqud pt-2 text-xs leading-relaxed text-slate-600">
+              ללא הצבעות:{' '}
+              {unscored.map((row) => playerById(state, row.playerId).name).join(' · ')}
+            </p>
+          )}
         </div>
       </ScreenBody>
 
