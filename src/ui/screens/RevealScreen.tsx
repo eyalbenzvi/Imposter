@@ -1,4 +1,4 @@
-import { getRevealView, revealViewsFor } from '../../game/rules';
+import { getRevealView, playerAtReveal, revealViewsFor } from '../../game/rules';
 import { PassDevice } from '../components/PassDevice';
 import { RevealCard } from '../components/RevealCard';
 import { Screen } from '../components/Screen';
@@ -10,7 +10,9 @@ import type { Game } from '../useGame';
  */
 export function RevealScreen({ game }: { game: Game }) {
   const { state, dispatch } = game;
-  const player = state.players[state.revealIndex];
+  const player = state.revealOrder[state.revealIndex]
+    ? playerAtReveal(state, state.revealIndex)
+    : null;
   if (!player) return null;
 
   return (
@@ -21,7 +23,7 @@ export function RevealScreen({ game }: { game: Game }) {
           key={player.id}
           view={getRevealView(state, player.id)}
           position={state.revealIndex + 1}
-          total={state.players.length}
+          total={state.revealOrder.length}
           views={revealViewsFor(state, player.id)}
           onHide={() => dispatch({ type: 'HIDE_ROLE' })}
         />
@@ -31,7 +33,7 @@ export function RevealScreen({ game }: { game: Game }) {
           name={player.name}
           hint="המילה תוצג רק כל זמן שתחזיקו את האצבע על המסך, ופעם אחת בלבד"
           cta="גלה את המילה שלי"
-          progress={`${state.revealIndex + 1} / ${state.players.length}`}
+          progress={`${state.revealIndex + 1} / ${state.revealOrder.length}`}
           onContinue={() => dispatch({ type: 'SHOW_ROLE' })}
         />
       )}

@@ -29,7 +29,9 @@ export type Game = {
   state: GameState;
   dispatch: (action: Action) => void;
   /** Dispatch an action that needs randomness, with a freshly minted seed. */
-  dispatchSeeded: (type: 'START_GAME' | 'CONTINUE' | 'NEW_ROUND') => void;
+  dispatchSeeded: (
+    type: 'START_GAME' | 'START_VOTING' | 'CONTINUE' | 'NEW_ROUND',
+  ) => void;
   /** Set when a dispatch was rejected, so the UI can say why. */
   error: string | null;
   clearError: () => void;
@@ -65,7 +67,7 @@ export function useGame(): Game {
   }, []);
 
   const dispatchSeeded = useCallback(
-    (type: 'START_GAME' | 'CONTINUE' | 'NEW_ROUND') => {
+    (type: 'START_GAME' | 'START_VOTING' | 'CONTINUE' | 'NEW_ROUND') => {
       setError(null);
       rawDispatch({ type, seed: newSeed() } as Action);
     },

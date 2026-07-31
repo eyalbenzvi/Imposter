@@ -78,6 +78,11 @@ export type GameState = {
   hintWord: string | null;
 
   // REVEAL
+  /**
+   * The order roles are handed out in — shuffled, so the sequence carries no
+   * information about who was entered first and can't be predicted.
+   */
+  revealOrder: PlayerId[];
   revealIndex: number;
   /** false = "pass the device to X" screen, true = word is on screen. */
   revealShown: boolean;
@@ -127,7 +132,7 @@ export type Action =
   | { type: 'NEXT_CLUE_TURN' }
   | { type: 'FINISH_CLUES' }
   // DISCUSSION / VOTING
-  | { type: 'START_VOTING' }
+  | { type: 'START_VOTING'; seed: string }
   | { type: 'CAST_VOTE'; voter: PlayerId; target: PlayerId }
   // VOTE_RESULT
   | { type: 'CONTINUE'; seed: string }

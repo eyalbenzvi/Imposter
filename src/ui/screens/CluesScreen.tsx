@@ -5,7 +5,6 @@ import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../components/Sc
 import { TimerBar } from '../components/TimerBar';
 import { useTimer } from '../useTimer';
 import type { Game } from '../useGame';
-import { ExitButton } from '../components/ExitButton';
 import { RevealAudit } from '../components/RevealAudit';
 
 export function CluesScreen({ game }: { game: Game }) {
@@ -64,7 +63,6 @@ function SpeakingRound({ game }: { game: Game }) {
       <ScreenHeader
         eyebrow={`סבב ${state.roundNumber}`}
         title="סבב רמזים"
-        action={<ExitButton game={game} />}
       />
 
       <ScreenBody className="justify-between">
@@ -146,7 +144,6 @@ function TypingRound({ game }: { game: Game }) {
         <ScreenHeader
           eyebrow={`סבב ${state.roundNumber}`}
           title="סבב רמזים"
-          action={<ExitButton game={game} />}
         />
         <PassDevice
           key={currentId}

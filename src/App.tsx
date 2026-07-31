@@ -6,6 +6,7 @@ import { RevealScreen } from './ui/screens/RevealScreen';
 import { SetupScreen } from './ui/screens/SetupScreen';
 import { VoteResultScreen } from './ui/screens/VoteResultScreen';
 import { VotingScreen } from './ui/screens/VotingScreen';
+import { HomeButton } from './ui/components/HomeButton';
 import { useGame } from './ui/useGame';
 
 /**
@@ -39,6 +40,8 @@ export default function App() {
   return (
     <>
       {screen}
+      {/* One fixed control, same spot on every screen of a running game. */}
+      {game.state.phase !== 'SETUP' && <HomeButton game={game} />}
       {game.error && (
         <div
           role="alert"

@@ -27,6 +27,7 @@ import {
   currentVoter,
   drawTurnOrder,
   maxImposterCount,
+  playerAtReveal,
   playerById,
   playerCountIsValid,
   resolveVote,
@@ -57,9 +58,9 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: 'HIDDEN',
   clueMode: 'SPEAK',
   imposterCount: 1,
-  discussionSeconds: 90,
+  discussionSeconds: 0,
   clueTimerSeconds: 0,
-  imposterGuessEnabled: true,
+  imposterGuessEnabled: false,
 };
 
 export function createInitialState(
@@ -75,6 +76,7 @@ export function createInitialState(
     secretWordId: null,
     hintIndex: null,
     hintWord: null,
+    revealOrder: [],
     revealIndex: 0,
     revealShown: false,
     revealViews: {},
@@ -143,6 +145,7 @@ function dealRoles(state: GameState, seed: string): GameState {
     ...state,
     players,
     imposterIds,
+    revealOrder: makeRng(subSeed(seed, 'revealOrder')).shuffle(ids),
     secretWordId: entry.id,
     hintIndex,
     // Both imposters receive this exact same substitute word.
@@ -168,7 +171,7 @@ function startClueRound(state: GameState, seed: string, roundNumber: number): Ga
     clues: {},
     voteStage: 'FIRST',
     eligibleTargets: living,
-    voterOrder: living,
+    voterOrder: drawTurnOrder(living, subSeed(seed, `voterOrder:${roundNumber}`)),
     voterIndex: 0,
     votes: [],
     lastVote: null,
@@ -230,7 +233,7 @@ export function reducer(state: GameState, action: Action): GameState {
       requirePhase(state, action, 'REVEAL');
       // Idempotent, so the counter can only ever record one view per player.
       if (state.revealShown) return state;
-      const player = state.players[state.revealIndex];
+      const player = playerAtReveal(state, state.revealIndex);
       if (!player) throw new GameRuleError('SHOW_ROLE with nobody left to reveal');
       return {
         ...state,
@@ -250,7 +253,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const next = state.revealIndex + 1;
       // Roles are handed out exactly once, and there is no way back to a
       // previous player's screen.
-      if (next >= state.players.length) {
+      if (next >= state.revealOrder.length) {
         return { ...state, phase: 'CLUES', revealShown: false, revealIndex: next };
       }
       return { ...state, revealIndex: next, revealShown: false };
@@ -302,7 +305,7 @@ export function reducer(state: GameState, action: Action): GameState {
         phase: 'VOTING',
         voteStage: 'FIRST',
         eligibleTargets: living,
-        voterOrder: living,
+        voterOrder: drawTurnOrder(living, subSeed(action.seed, 'voterOrder')),
         voterIndex: 0,
         votes: [],
         lastVote: null,
@@ -362,7 +365,7 @@ export function reducer(state: GameState, action: Action): GameState {
           phase: 'VOTING',
           voteStage: 'RUNOFF',
           eligibleTargets: result.tiedIds,
-          voterOrder: aliveIds(state),
+          voterOrder: drawTurnOrder(aliveIds(state), subSeed(action.seed, 'runoffVoters')),
           voterIndex: 0,
           votes: [],
           lastVote: null,

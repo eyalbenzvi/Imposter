@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { currentVoter, playerById, voteTargetsFor } from '../../game/rules';
-import { ExitButton } from '../components/ExitButton';
 import { PassDevice } from '../components/PassDevice';
 import { Screen, ScreenBody, ScreenHeader } from '../components/Screen';
 import type { Game } from '../useGame';
@@ -31,7 +30,6 @@ export function VotingScreen({ game }: { game: Game }) {
         <ScreenHeader
           eyebrow={runoff ? 'הצבעה חוזרת' : `סבב ${state.roundNumber}`}
           title="הצבעה"
-          action={<ExitButton game={game} />}
         />
         <PassDevice
           key={voter}

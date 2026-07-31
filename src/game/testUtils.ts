@@ -51,8 +51,12 @@ export function playClueRound(state: GameState): GameState {
 }
 
 /** Everyone votes for `target`; `target` itself votes for the first other option. */
-export function voteOut(state: GameState, target: PlayerId): GameState {
-  let next = reducer(state, { type: 'START_VOTING' });
+export function voteOut(
+  state: GameState,
+  target: PlayerId,
+  seed = 'seed-vote',
+): GameState {
+  let next = reducer(state, { type: 'START_VOTING', seed });
   next = castAll(next, target);
   return next;
 }

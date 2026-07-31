@@ -1,5 +1,4 @@
 import { playerById } from '../../game/rules';
-import { ExitButton } from '../components/ExitButton';
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../components/Screen';
 import type { Game } from '../useGame';
 
@@ -31,10 +30,7 @@ export function VoteResultScreen({ game }: { game: Game }) {
 
   return (
     <Screen>
-      <ScreenHeader
-        eyebrow={`סבב ${state.roundNumber} · תוצאות ההצבעה`}
-        action={<ExitButton game={game} />}
-      />
+      <ScreenHeader eyebrow={`סבב ${state.roundNumber} · תוצאות ההצבעה`} />
 
       <ScreenBody className="justify-start gap-4">
         {/* The verdict */}

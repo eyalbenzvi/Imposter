@@ -44,7 +44,9 @@ describe('setup', () => {
     expect(state.settings.mode).toBe('HIDDEN');
     expect(state.settings.clueMode).toBe('SPEAK');
     expect(state.settings.imposterCount).toBe(1);
-    expect(state.settings.imposterGuessEnabled).toBe(true);
+    // Matches the settings screen as it is actually played.
+    expect(state.settings.discussionSeconds).toBe(0);
+    expect(state.settings.imposterGuessEnabled).toBe(false);
   });
 
   it('suggests 2 imposters from 7 players and 1 below that', () => {
@@ -115,11 +117,13 @@ describe('dealing roles', () => {
     while (state.phase === 'REVEAL') {
       state = reducer(state, { type: 'SHOW_ROLE' });
       expect(state.revealShown).toBe(true);
-      seen.push(state.players[state.revealIndex]!.id);
+      seen.push(state.revealOrder[state.revealIndex]!);
       state = reducer(state, { type: 'HIDE_ROLE' });
     }
 
-    expect(seen).toEqual(['p0', 'p1', 'p2', 'p3']);
+    // Every player exactly once, in the round's shuffled order.
+    expect([...seen].sort()).toEqual(['p0', 'p1', 'p2', 'p3']);
+    expect(seen).toEqual(state.revealOrder);
     expect(state.phase).toBe('CLUES');
   });
 
@@ -137,12 +141,13 @@ describe('dealing roles', () => {
   it('does not count a second SHOW_ROLE for the same player', () => {
     let state = createInitialState(names(4));
     state = reducer(state, { type: 'START_GAME', seed: 'peek' });
+    const first = state.revealOrder[0]!;
     state = reducer(state, { type: 'SHOW_ROLE' });
     // Tapping again must not register another look.
     state = reducer(state, { type: 'SHOW_ROLE' });
     state = reducer(state, { type: 'SHOW_ROLE' });
-    expect(revealViewsFor(state, 'p0')).toBe(1);
-    expect(state.revealViews).toEqual({ p0: 1 });
+    expect(revealViewsFor(state, first)).toBe(1);
+    expect(state.revealViews).toEqual({ [first]: 1 });
   });
 
   it('starts a fresh ledger for a new round', () => {
@@ -167,6 +172,41 @@ describe('dealing roles', () => {
     let state = createInitialState(names(4));
     state = reducer(state, { type: 'START_GAME', seed: 's' });
     expect(() => reducer(state, { type: 'HIDE_ROLE' })).toThrow(GameRuleError);
+  });
+
+  it('shuffles the reveal order over every player', () => {
+    const state = startedGame(6);
+    expect([...state.revealOrder].sort()).toEqual(
+      state.players.map((p) => p.id).sort(),
+    );
+    expect(state.revealOrder).toHaveLength(6);
+  });
+
+  it('varies the reveal order across seeds', () => {
+    const orders = new Set(
+      ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8'].map((seed) =>
+        startedGame(6, {}, seed).revealOrder.join(','),
+      ),
+    );
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it('shuffles who is asked to vote first', () => {
+    const orders = new Set<string>();
+    for (const seed of ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8']) {
+      const state = playClueRound(startedGame(6, {}, seed));
+      const voting = reducer(state, { type: 'START_VOTING', seed: `vote-${seed}` });
+      expect([...voting.voterOrder].sort()).toEqual(aliveIds(voting).sort());
+      orders.add(voting.voterOrder.join(','));
+    }
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it('reshuffles the voters for a runoff', () => {
+    const state = playClueRound(startedGame(6));
+    const first = reducer(state, { type: 'START_VOTING', seed: 'a' });
+    const second = reducer(state, { type: 'START_VOTING', seed: 'b' });
+    expect(first.voterOrder).not.toEqual(second.voterOrder);
   });
 
   it('gives everyone a fresh turn order per round', () => {
@@ -361,7 +401,7 @@ describe('clue round', () => {
 describe('voting', () => {
   it('hides the tally until the last vote lands', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
 
     while (state.phase === 'VOTING') {
       expect(state.lastVote).toBeNull();
@@ -379,7 +419,7 @@ describe('voting', () => {
   it('reveals the full breakdown of who voted for whom', () => {
     const state = voteOut(playClueRound(startedGame(4)), 'p2');
     expect(state.lastVote!.votes).toHaveLength(4);
-    expect(state.lastVote!.votes.map((v) => v.voter)).toEqual([
+    expect(state.lastVote!.votes.map((v) => v.voter).sort()).toEqual([
       'p0',
       'p1',
       'p2',
@@ -390,7 +430,7 @@ describe('voting', () => {
 
   it('will not let a player vote for themselves', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
     const voter = currentVoter(state)!;
     expect(voteTargetsFor(state, voter)).not.toContain(voter);
     expect(() => reducer(state, { type: 'CAST_VOTE', voter, target: voter })).toThrow(
@@ -400,14 +440,20 @@ describe('voting', () => {
 
   it('will not let a player vote out of turn or twice', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
+
+    // Voting order is shuffled, so derive the turn rather than assuming it.
+    const first = currentVoter(state)!;
+    const later = state.voterOrder[2]!;
+    const target = voteTargetsFor(state, first)[0]!;
+
     expect(() =>
-      reducer(state, { type: 'CAST_VOTE', voter: 'p2', target: 'p0' }),
+      reducer(state, { type: 'CAST_VOTE', voter: later, target }),
     ).toThrow(GameRuleError);
 
-    state = reducer(state, { type: 'CAST_VOTE', voter: 'p0', target: 'p1' });
+    state = reducer(state, { type: 'CAST_VOTE', voter: first, target });
     expect(() =>
-      reducer(state, { type: 'CAST_VOTE', voter: 'p0', target: 'p1' }),
+      reducer(state, { type: 'CAST_VOTE', voter: first, target }),
     ).toThrow(GameRuleError);
   });
 
@@ -432,7 +478,7 @@ describe('ties', () => {
 
   it('sends a first tie to a runoff between the leaders only', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
     state = castVotes(state, tiedPlan);
 
     expect(state.phase).toBe('VOTE_RESULT');
@@ -452,7 +498,7 @@ describe('ties', () => {
 
   it('ejects nobody after a second tie and opens another clue round', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
     state = castVotes(state, tiedPlan);
     state = reducer(state, { type: 'CONTINUE', seed: 'runoff' });
     state = castVotes(state, tiedPlan);
@@ -472,7 +518,7 @@ describe('ties', () => {
 
   it('resolves a runoff that is no longer tied', () => {
     let state = playClueRound(startedGame(4));
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
     state = castVotes(state, tiedPlan);
     state = reducer(state, { type: 'CONTINUE', seed: 'runoff' });
     state = castVotes(state, { p0: 'p2', p1: 'p2', p2: 'p0', p3: 'p2' });
@@ -486,7 +532,7 @@ describe('ties', () => {
     let state = playClueRound(startedGame(4));
     const word = state.secretWordId;
     const hint = state.hintWord;
-    state = reducer(state, { type: 'START_VOTING' });
+    state = reducer(state, { type: 'START_VOTING', seed: 'v' });
     state = castVotes(state, tiedPlan);
     state = reducer(state, { type: 'CONTINUE', seed: 'r' });
     state = castVotes(state, tiedPlan);
@@ -742,7 +788,7 @@ describe('illegal transitions', () => {
   it('throws when an action does not belong to the current phase', () => {
     const setup = createInitialState(names(4));
     expect(() => reducer(setup, { type: 'SHOW_ROLE' })).toThrow(InvalidTransitionError);
-    expect(() => reducer(setup, { type: 'START_VOTING' })).toThrow(
+    expect(() => reducer(setup, { type: 'START_VOTING', seed: 'v' })).toThrow(
       InvalidTransitionError,
     );
     expect(() => reducer(setup, { type: 'CONTINUE', seed: 's' })).toThrow(
@@ -773,8 +819,8 @@ describe('illegal transitions', () => {
       InvalidTransitionError,
     );
 
-    const voting = reducer(discussion, { type: 'START_VOTING' });
-    expect(() => reducer(voting, { type: 'START_VOTING' })).toThrow(
+    const voting = reducer(discussion, { type: 'START_VOTING', seed: 'v' });
+    expect(() => reducer(voting, { type: 'START_VOTING', seed: 'v' })).toThrow(
       InvalidTransitionError,
     );
     expect(() => reducer(voting, { type: 'CONTINUE', seed: 's' })).toThrow(
@@ -807,7 +853,7 @@ describe('illegal transitions', () => {
   it('allows bailing out to setup from anywhere', () => {
     const state = startedGame(4);
     expect(reducer(state, { type: 'BACK_TO_SETUP' }).phase).toBe('SETUP');
-    const voting = reducer(playClueRound(state), { type: 'START_VOTING' });
+    const voting = reducer(playClueRound(state), { type: 'START_VOTING', seed: 'v' });
     expect(reducer(voting, { type: 'BACK_TO_SETUP' }).phase).toBe('SETUP');
   });
 
@@ -826,9 +872,9 @@ describe('defaults', () => {
       mode: 'HIDDEN',
       clueMode: 'SPEAK',
       imposterCount: 1,
-      discussionSeconds: 90,
+      discussionSeconds: 0,
       clueTimerSeconds: 0,
-      imposterGuessEnabled: true,
+      imposterGuessEnabled: false,
     });
   });
 });

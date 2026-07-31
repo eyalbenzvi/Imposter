@@ -28,8 +28,9 @@ type HeaderProps = {
 };
 
 export function ScreenHeader({ eyebrow, title, action }: HeaderProps) {
+  // pe-14 keeps header text clear of the fixed home button at the end edge.
   return (
-    <header className="flex shrink-0 items-start justify-between gap-3 pb-2">
+    <header className="flex shrink-0 items-start justify-between gap-3 pb-2 pe-14">
       <div className="min-w-0">
         {eyebrow && (
           <p className="text-xs font-semibold tracking-[0.04em] text-glow/70">
