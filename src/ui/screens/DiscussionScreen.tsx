@@ -44,15 +44,21 @@ export function DiscussionScreen({ game }: { game: Game }) {
             <p className="max-w-[28ch] text-base leading-relaxed text-slate-400">
               דברו על הרמזים שנאמרו. מי היה כללי מדי? מי היה מדויק בצורה חשודה?
             </p>
-            <div className="flex flex-wrap justify-center gap-1.5 pt-2">
-              {state.turnOrder.map((id) => (
-                <span
-                  key={id}
-                  className="niqqud rounded-full border border-ink-700 px-3 py-1 text-sm text-slate-400"
-                >
-                  {playerById(state, id).name}
-                </span>
-              ))}
+            <div className="w-full pt-2">
+              <p className="pb-1.5 text-xs font-semibold tracking-[0.04em] text-glow/70">
+                סדר הדיבור בדיון
+              </p>
+              <ol className="flex flex-wrap justify-center gap-1.5">
+                {state.discussionOrder.map((id, i) => (
+                  <li
+                    key={id}
+                    className="niqqud flex items-center gap-1.5 rounded-full border border-ink-700 px-3 py-1 text-sm text-slate-300"
+                  >
+                    <span className="num text-xs text-glow/80">{i + 1}</span>
+                    {playerById(state, id).name}
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         )}

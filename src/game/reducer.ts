@@ -81,6 +81,7 @@ export function createInitialState(
     revealShown: false,
     revealViews: {},
     turnOrder: [],
+    discussionOrder: [],
     clueTurnIndex: 0,
     clues: {},
     voteStage: 'FIRST',
@@ -167,6 +168,12 @@ function startClueRound(state: GameState, seed: string, roundNumber: number): Ga
     phase: 'CLUES',
     roundNumber,
     turnOrder: drawTurnOrder(living, subSeed(seed, `turnOrder:${roundNumber}`)),
+    // A separate draw from the clue order, so the discussion doesn't simply
+    // repeat the sequence people just spoke in.
+    discussionOrder: drawTurnOrder(
+      living,
+      subSeed(seed, `discussionOrder:${roundNumber}`),
+    ),
     clueTurnIndex: 0,
     clues: {},
     voteStage: 'FIRST',

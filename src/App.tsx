@@ -7,6 +7,7 @@ import { SetupScreen } from './ui/screens/SetupScreen';
 import { VoteResultScreen } from './ui/screens/VoteResultScreen';
 import { VotingScreen } from './ui/screens/VotingScreen';
 import { HomeButton } from './ui/components/HomeButton';
+import { useFreshBuild } from './ui/useFreshBuild';
 import { useGame } from './ui/useGame';
 
 /**
@@ -15,6 +16,9 @@ import { useGame } from './ui/useGame';
  */
 export default function App() {
   const game = useGame();
+  // Only offered between games: reloading is free on the setup screen, and a
+  // banner over a live round would be noise.
+  const build = useFreshBuild(game.state.phase === 'SETUP');
 
   const screen = (() => {
     switch (game.state.phase) {
@@ -42,6 +46,18 @@ export default function App() {
       {screen}
       {/* One fixed control, same spot on every screen of a running game. */}
       {game.state.phase !== 'SETUP' && <HomeButton game={game} />}
+      {build.stale && (
+        <button
+          type="button"
+          onClick={build.reload}
+          className="fixed inset-x-3 z-50 min-h-[52px] animate-rise-in rounded-2xl
+            border border-glow/60 bg-glow/15 px-4 py-3 text-center text-sm
+            font-bold text-glow-soft backdrop-blur"
+          style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
+          יש גרסה חדשה של המשחק — הקישו לרענון
+        </button>
+      )}
       {game.error && (
         <div
           role="alert"
