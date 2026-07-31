@@ -14,6 +14,8 @@ import {
   getRevealView,
   getSecretEntry,
   maxImposterCount,
+  revealAudit,
+  revealViewsFor,
   suggestImposterCount,
   voteTargetsFor,
 } from './rules';
@@ -119,6 +121,46 @@ describe('dealing roles', () => {
 
     expect(seen).toEqual(['p0', 'p1', 'p2', 'p3']);
     expect(state.phase).toBe('CLUES');
+  });
+
+  it('counts exactly one uncovering per player', () => {
+    const state = startedGame(5);
+    const audit = revealAudit(state);
+    expect(audit.rows.map((r) => r.views)).toEqual([1, 1, 1, 1, 1]);
+    expect(audit.everyoneSawOnce).toBe(true);
+    expect(audit.extraViews).toBe(0);
+    for (const player of state.players) {
+      expect(revealViewsFor(state, player.id)).toBe(1);
+    }
+  });
+
+  it('does not count a second SHOW_ROLE for the same player', () => {
+    let state = createInitialState(names(4));
+    state = reducer(state, { type: 'START_GAME', seed: 'peek' });
+    state = reducer(state, { type: 'SHOW_ROLE' });
+    // Tapping again must not register another look.
+    state = reducer(state, { type: 'SHOW_ROLE' });
+    state = reducer(state, { type: 'SHOW_ROLE' });
+    expect(revealViewsFor(state, 'p0')).toBe(1);
+    expect(state.revealViews).toEqual({ p0: 1 });
+  });
+
+  it('starts a fresh ledger for a new round', () => {
+    let state = startedGame(4, { imposterGuessEnabled: false });
+    expect(revealAudit(state).everyoneSawOnce).toBe(true);
+    state = ejectPlayer(playClueRound(state), imposterOf(state));
+    state = reducer(state, { type: 'NEW_ROUND', seed: 'again' });
+    expect(state.revealViews).toEqual({});
+    expect(revealAudit(state).rows.every((r) => r.views === 0)).toBe(true);
+  });
+
+  it('keeps the ledger untouched by the rest of the game', () => {
+    let state = startedGame(5, { imposterGuessEnabled: false });
+    const ledger = state.revealViews;
+    state = playClueRound(state);
+    state = voteOut(state, citizensOf(state)[0]!);
+    state = reducer(state, { type: 'CONTINUE', seed: 'on' });
+    expect(state.revealViews).toEqual(ledger);
   });
 
   it('refuses to hide a role that was never shown', () => {

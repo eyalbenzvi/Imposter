@@ -1,4 +1,4 @@
-import { getRevealView } from '../../game/rules';
+import { getRevealView, revealViewsFor } from '../../game/rules';
 import { PassDevice } from '../components/PassDevice';
 import { RevealCard } from '../components/RevealCard';
 import { Screen } from '../components/Screen';
@@ -22,13 +22,14 @@ export function RevealScreen({ game }: { game: Game }) {
           view={getRevealView(state, player.id)}
           position={state.revealIndex + 1}
           total={state.players.length}
+          views={revealViewsFor(state, player.id)}
           onHide={() => dispatch({ type: 'HIDE_ROLE' })}
         />
       ) : (
         <PassDevice
           key={player.id}
           name={player.name}
-          hint="ודאו שאף אחד אחר לא רואה את המסך"
+          hint="המילה תוצג רק כל זמן שתחזיקו את האצבע על המסך, ופעם אחת בלבד"
           cta="גלה את המילה שלי"
           progress={`${state.revealIndex + 1} / ${state.players.length}`}
           onContinue={() => dispatch({ type: 'SHOW_ROLE' })}

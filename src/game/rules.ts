@@ -151,6 +151,34 @@ export function getRevealView(state: GameState, playerId: PlayerId): RevealView 
   };
 }
 
+// ── reveal audit ─────────────────────────────────────────────────────────────
+
+/** How many times this player's word was uncovered. Always 0 or 1. */
+export function revealViewsFor(state: GameState, playerId: PlayerId): number {
+  return state.revealViews[playerId] ?? 0;
+}
+
+/**
+ * Proof for the group that the handout was clean: every player uncovered their
+ * word exactly once, so nobody got a second look at anyone's screen.
+ */
+export function revealAudit(state: GameState): {
+  rows: { playerId: PlayerId; name: string; views: number }[];
+  everyoneSawOnce: boolean;
+  extraViews: number;
+} {
+  const rows = state.players.map((p) => ({
+    playerId: p.id,
+    name: p.name,
+    views: revealViewsFor(state, p.id),
+  }));
+  return {
+    rows,
+    everyoneSawOnce: rows.every((r) => r.views === 1),
+    extraViews: rows.reduce((sum, r) => sum + Math.max(0, r.views - 1), 0),
+  };
+}
+
 // ── voting ───────────────────────────────────────────────────────────────────
 
 /** Who this voter may pick: eligible targets minus themselves. */

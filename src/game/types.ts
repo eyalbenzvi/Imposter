@@ -81,6 +81,12 @@ export type GameState = {
   revealIndex: number;
   /** false = "pass the device to X" screen, true = word is on screen. */
   revealShown: boolean;
+  /**
+   * How many times each player's word has been uncovered this game. The reveal
+   * flow only ever moves forward, so every count lands on exactly 1 — which is
+   * what lets the app show the group proof that nobody got a second look.
+   */
+  revealViews: Record<PlayerId, number>;
 
   // CLUES
   turnOrder: PlayerId[];

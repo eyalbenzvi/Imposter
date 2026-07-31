@@ -77,6 +77,7 @@ export function createInitialState(
     hintWord: null,
     revealIndex: 0,
     revealShown: false,
+    revealViews: {},
     turnOrder: [],
     clueTurnIndex: 0,
     clues: {},
@@ -146,6 +147,7 @@ function dealRoles(state: GameState, seed: string): GameState {
     hintIndex,
     // Both imposters receive this exact same substitute word.
     hintWord: entry.hints[hintIndex]!,
+    revealViews: {},
     guessingImposterId: null,
     guessOptions: null,
     guessResult: null,
@@ -226,8 +228,18 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'SHOW_ROLE': {
       requirePhase(state, action, 'REVEAL');
+      // Idempotent, so the counter can only ever record one view per player.
       if (state.revealShown) return state;
-      return { ...state, revealShown: true };
+      const player = state.players[state.revealIndex];
+      if (!player) throw new GameRuleError('SHOW_ROLE with nobody left to reveal');
+      return {
+        ...state,
+        revealShown: true,
+        revealViews: {
+          ...state.revealViews,
+          [player.id]: (state.revealViews[player.id] ?? 0) + 1,
+        },
+      };
     }
 
     case 'HIDE_ROLE': {
