@@ -162,10 +162,16 @@ export function getRevealView(state: GameState, playerId: PlayerId): RevealView 
   if (state.settings.mode === 'HIDDEN') {
     return { kind: 'PLAIN', playerName: player.name, word };
   }
+  if (!player.isImposter) {
+    return { kind: 'CITIZEN', playerName: player.name, word };
+  }
   return {
-    kind: player.isImposter ? 'IMPOSTER' : 'CITIZEN',
+    kind: 'IMPOSTER',
     playerName: player.name,
     word,
+    // KNOWN mode hands over a clue rather than a substitute word; the card has
+    // to say which, or the imposter reads a trait as the word itself.
+    hintKind: state.hintKind ?? 'SIBLING',
   };
 }
 

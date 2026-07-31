@@ -10,6 +10,7 @@
  */
 
 import {
+  CLUE_KINDS,
   HINTS_PER_WORD,
   type Action,
   type ActionType,
@@ -78,6 +79,8 @@ export function createInitialState(
     roundNumber: 0,
     secretWordId: null,
     hintIndex: null,
+    hintKind: null,
+    clueKind: null,
     hintWord: null,
     revealOrder: [],
     revealIndex: 0,
@@ -118,8 +121,10 @@ function setPlayers(state: GameState, names: string[]): GameState {
 }
 
 /**
- * Draw a word, one of its five hints, and the imposters — in a fixed order so
- * that adding a future draw cannot shift the existing ones.
+ * Draw the word, what the imposter gets, and who the imposters are.
+ *
+ * Every draw takes its own sub-seed keyed by purpose, so adding one — `clue`
+ * came later than the rest — cannot shift any of the others.
  */
 function dealRoles(state: GameState, seed: string): GameState {
   if (WORDS.length === 0) {
@@ -131,6 +136,18 @@ function dealRoles(state: GameState, seed: string): GameState {
   const hintIndex = makeRng(subSeed(seed, 'hint')).int(
     Math.min(entry.hints.length, HINTS_PER_WORD),
   );
+  const clueKind = makeRng(subSeed(seed, 'clue')).pick(CLUE_KINDS);
+
+  // The two modes need opposite things from this word.
+  //
+  // HIDDEN: the imposter has not been told, so what they hold must read like an
+  // ordinary word from the pool — a sibling from the same category. A clue here
+  // would announce the role on sight.
+  //
+  // KNOWN: the imposter has been told, so there is nothing left to disguise.
+  // A clue about the real word is what lets them bluff on purpose.
+  const useClue = state.settings.mode === 'KNOWN' && entry.clues !== undefined;
+  const hintWord = useClue ? entry.clues![clueKind] : entry.hints[hintIndex]!;
 
   const ids = state.players.map((p) => p.id);
   const chosen = makeRng(subSeed(seed, 'imposters')).sample(
@@ -153,8 +170,10 @@ function dealRoles(state: GameState, seed: string): GameState {
     revealOrder: makeRng(subSeed(seed, 'revealOrder')).shuffle(ids),
     secretWordId: entry.id,
     hintIndex,
-    // Both imposters receive this exact same substitute word.
-    hintWord: entry.hints[hintIndex]!,
+    hintKind: useClue ? 'CLUE' : 'SIBLING',
+    clueKind: useClue ? clueKind : null,
+    // Both imposters receive this exact same text.
+    hintWord,
     revealViews: {},
     guessingImposterId: null,
     guessOptions: null,

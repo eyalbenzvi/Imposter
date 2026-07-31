@@ -97,9 +97,16 @@ export function RevealCard({
   }, [release]);
 
   const isImposter = view.kind === 'IMPOSTER';
-  const roleLine = isImposter ? 'אַתָּה הַמִּתְחַזֶּה' : 'הַמִּלָּה שֶׁלְּךָ';
+  const isClue = view.kind === 'IMPOSTER' && view.hintKind === 'CLUE';
+  const roleLine = isImposter
+    ? isClue
+      ? 'אַתָּה הַמִּתְחַזֶּה — וְזֶה רֶמֶז'
+      : 'אַתָּה הַמִּתְחַזֶּה'
+    : 'הַמִּלָּה שֶׁלְּךָ';
   const subLine = isImposter
-    ? 'זו מילת התחליף — היעזרו בה כדי להשתלב'
+    ? isClue
+      ? 'זה לא המילה — זה רמז אליה. נחשו והשתלבו'
+      : 'זו מילת התחליף — היעזרו בה כדי להשתלב'
     : 'שמרו עליה. אמרו רק מילה אחת שקשורה אליה';
 
   return (

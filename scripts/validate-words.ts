@@ -10,6 +10,9 @@
  *   3. a word or hint with no niqqud at all
  *   4. a hint equal to its own word, or two identical hints in one entry
  *   5. a category with fewer than 100 entries (each one must be playable alone)
+ *   6. a missing or bad KNOWN-mode clue: not three of them, unpointed, repeated,
+ *      containing the word itself, equal to one of the hints, or equal to another
+ *      entry in the same category (that would make it a sibling, not a clue)
  *
  * Plus two consistency checks that keep the pointing honest:
  *   6. a hint that also exists as an entry must be spelled and pointed identically
@@ -36,6 +39,8 @@ type RawEntry = {
   category?: unknown;
 };
 
+const CLUE_KINDS = ['pair', 'related', 'trait'] as const;
+
 const errors: string[] = [];
 const notes: string[] = [];
 
@@ -60,6 +65,9 @@ const plainOwner = new Map<string, string>();
 const pointedByPlain = new Map<string, string>();
 const categoryCounts = new Map<string, number>();
 const allHints: { file: string; id: string; hint: string }[] = [];
+const clueUses: { file: string; id: string; category: string; value: string }[] = [];
+/** stripped word → its category, for the "clue is a sibling entry" check. */
+const categoryOfPlain = new Map<string, string>();
 
 let totalEntries = 0;
 const emptyFiles: string[] = [];
@@ -159,6 +167,7 @@ for (const file of files) {
     } else {
       plainOwner.set(plain, `${label}:${entry.id}`);
       pointedByPlain.set(plain, entry.word);
+      categoryOfPlain.set(plain, entry.category);
     }
 
     // ── 3. niqqud present ───────────────────────────────────────────────────
@@ -171,6 +180,51 @@ for (const file of files) {
       }
       allHints.push({ file: label, id: entry.id, hint });
     });
+
+    // ── 6. clues ────────────────────────────────────────────────────────
+    const rawClues = (raw as { clues?: unknown }).clues;
+    if (rawClues === undefined) {
+      fail(label, where, 'has no KNOWN-mode clues');
+    } else if (typeof rawClues !== 'object' || rawClues === null) {
+      fail(label, where, 'clues must be an object');
+    } else {
+      const clues = rawClues as Record<string, unknown>;
+      const seenClues = new Map<string, string>();
+      const hintPlains = new Set(entry.hints.map((h) => stripNiqqud(h).trim()));
+      for (const kind of CLUE_KINDS) {
+        const value = clues[kind];
+        if (typeof value !== 'string' || value.trim() === '') {
+          fail(label, where, `clue "${kind}" must be a non-empty string`);
+          continue;
+        }
+        if (normalize(value) !== value) {
+          fail(label, where, `clue "${kind}" is not NFC-normalized`);
+        }
+        if (!hasNiqqud(value)) {
+          fail(label, where, `clue "${kind}" "${value}" has no niqqud`);
+        }
+        const cluePlain = stripNiqqud(value).trim();
+        // A clue that spells the word out is not a clue.
+        if (cluePlain.split(/\s+/).includes(plain)) {
+          fail(label, where, `clue "${kind}" "${value}" contains the word itself`);
+        }
+        if (hintPlains.has(cluePlain)) {
+          fail(label, where, `clue "${kind}" "${value}" repeats one of the hints`);
+        }
+        const firstKind = seenClues.get(cluePlain);
+        if (firstKind) {
+          fail(label, where, `clue "${kind}" repeats clue "${firstKind}"`);
+        } else {
+          seenClues.set(cluePlain, kind);
+        }
+        clueUses.push({ file: label, id: entry.id, category: entry.category, value });
+      }
+      for (const key of Object.keys(clues)) {
+        if (!(CLUE_KINDS as readonly string[]).includes(key)) {
+          fail(label, where, `unknown clue kind "${key}"`);
+        }
+      }
+    }
 
     // ── 4. hint uniqueness ──────────────────────────────────────────────────
     const seenHints = new Map<string, number>();
@@ -191,6 +245,20 @@ for (const file of files) {
       }
     });
   });
+}
+
+// ── 6b. a clue must not be a word from its own category ──────────────────────
+// Those are what `hints` are for. A clue that happens to be a sibling would turn
+// KNOWN mode back into HIDDEN mode without anybody noticing.
+for (const use of clueUses) {
+  const home = categoryOfPlain.get(stripNiqqud(use.value).trim());
+  if (home !== undefined && home === use.category) {
+    fail(
+      use.file,
+      `"${use.id}"`,
+      `clue "${use.value}" is itself an entry in the same category — use a hint for that`,
+    );
+  }
 }
 
 // ── 5. category size ─────────────────────────────────────────────────────────

@@ -24,6 +24,30 @@ export type ClueMode = 'SPEAK' | 'TYPE';
 
 export type Winner = 'CITIZENS' | 'IMPOSTERS';
 
+/**
+ * What the imposter is handed instead of the secret word.
+ *
+ * SIBLING — a similar word from the same category. This is what HIDDEN mode
+ * must use: the imposter does not know they are the imposter, so anything that
+ * doesn't read like an ordinary word from the pool would give it away.
+ * CLUE — a hint about the real word. Only KNOWN mode, where the imposter has
+ * already been told, so there is nothing left to disguise and a clue is what
+ * lets them bluff on purpose.
+ */
+export type ImposterHintKind = 'SIBLING' | 'CLUE';
+
+/** The three kinds of clue an entry carries, in a fixed order. */
+export const CLUE_KINDS = ['pair', 'related', 'trait'] as const;
+export type ClueKind = (typeof CLUE_KINDS)[number];
+
+/**
+ * Clues about a word, for KNOWN mode. Taking סוּס as the example:
+ *   pair    — a word that goes with it: עֲבוֹדָה, כֹּחַ
+ *   related — a thing that belongs with it: אֻכָּף, פַּרְסָה
+ *   trait   — what it is like: מָהִיר
+ */
+export type WordClues = Record<ClueKind, string>;
+
 export type DiscussionSeconds = 0 | 60 | 90 | 120;
 
 export type Settings = {
@@ -79,9 +103,13 @@ export type GameState = {
   /** Clue round counter within the current game, 1-based. */
   roundNumber: number;
   secretWordId: string | null;
-  /** Which of the entry's 5 hints was drawn. */
+  /** Which of the entry's 5 hints was drawn. Only meaningful for SIBLING. */
   hintIndex: number | null;
-  /** The drawn hint, pointed. Both imposters get this same word. */
+  /** Whether `hintWord` is a sibling word or a clue — decided by game mode. */
+  hintKind: ImposterHintKind | null;
+  /** Which kind of clue was drawn. Only meaningful for CLUE. */
+  clueKind: ClueKind | null;
+  /** What the imposter is shown, pointed. Both imposters get this same text. */
   hintWord: string | null;
 
   // REVEAL
@@ -159,14 +187,23 @@ export type Action =
 
 export type ActionType = Action['type'];
 
-/** A pointed word plus the five sibling words that can stand in for it. */
+/**
+ * A pointed word, the five sibling words that can stand in for it in HIDDEN
+ * mode, and the three clues KNOWN mode draws from.
+ */
 export type WordEntry = {
   /** Unique latin slug, e.g. "pizza". */
   id: string;
   /** Fully pointed Hebrew. */
   word: string;
-  /** Exactly 5 fully pointed sibling words. */
+  /** Exactly 5 fully pointed sibling words from the same category. */
   hints: string[];
+  /**
+   * Optional in the type so the app still runs against a store whose clues
+   * aren't written yet — KNOWN mode falls back to a sibling word. The validator
+   * requires them, so this is a safety net, not a licence to skip them.
+   */
+  clues?: WordClues;
   category: string;
 };
 
@@ -181,7 +218,13 @@ export type WordEntry = {
 export type RevealView =
   | { kind: 'PLAIN'; playerName: string; word: string }
   | { kind: 'CITIZEN'; playerName: string; word: string }
-  | { kind: 'IMPOSTER'; playerName: string; word: string };
+  | {
+      kind: 'IMPOSTER';
+      playerName: string;
+      word: string;
+      /** Lets the card say "your substitute word" or "a clue", correctly. */
+      hintKind: ImposterHintKind;
+    };
 
 export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 12;

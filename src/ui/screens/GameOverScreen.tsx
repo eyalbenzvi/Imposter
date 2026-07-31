@@ -47,7 +47,11 @@ export function GameOverScreen({ game }: { game: Game }) {
           <div className="grid grid-cols-2 gap-2">
             {entry && <WordChip label="המילה הסודית" word={entry.word} tone="good" />}
             {state.hintWord && (
-              <WordChip label="מילת הרמז" word={state.hintWord} tone="bad" />
+              <WordChip
+                label={state.hintKind === 'CLUE' ? 'הרמז למתחזה' : 'מילת הרמז'}
+                word={state.hintWord}
+                tone="bad"
+              />
             )}
           </div>
 

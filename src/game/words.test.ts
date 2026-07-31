@@ -7,7 +7,7 @@ import {
   wordsInCategory,
 } from './words';
 import { hasNiqqud, normalize, stripNiqqud } from './niqqud';
-import { HINTS_PER_WORD } from './types';
+import { CLUE_KINDS, HINTS_PER_WORD } from './types';
 
 describe('word store', () => {
   it('is not empty', () => {
@@ -80,6 +80,36 @@ describe('word store', () => {
     // A setting saved by an older build must never leave a group wordless.
     expect(wordsInCategories([]).length).toBe(WORDS.length);
     expect(wordsInCategories(['קטגוריה שלא קיימת']).length).toBe(WORDS.length);
+  });
+
+  it('gives every entry all three kinds of KNOWN-mode clue', () => {
+    for (const entry of WORDS) {
+      expect(entry.clues, entry.id).toBeDefined();
+      for (const kind of CLUE_KINDS) {
+        const clue = entry.clues![kind];
+        expect(typeof clue, `${entry.id}.${kind}`).toBe('string');
+        expect(hasNiqqud(clue), `${entry.id}.${kind}: ${clue}`).toBe(true);
+        expect(normalize(clue)).toBe(clue);
+      }
+    }
+  });
+
+  it('never lets a clue give the word away', () => {
+    // A clue that spells the word out, repeats a hint, or happens to be another
+    // word from the same category is not a clue — it hands over the answer.
+    const categoryOf = new Map(WORDS.map((w) => [stripNiqqud(w.word), w.category]));
+    for (const entry of WORDS) {
+      const plain = stripNiqqud(entry.word);
+      const hints = new Set(entry.hints.map((h) => stripNiqqud(h)));
+      for (const kind of CLUE_KINDS) {
+        const clue = stripNiqqud(entry.clues![kind]);
+        expect(clue.split(/\s+/), `${entry.id}.${kind}`).not.toContain(plain);
+        expect(hints, `${entry.id}.${kind}`).not.toContain(clue);
+        expect(categoryOf.get(clue), `${entry.id}.${kind}: ${clue}`).not.toBe(
+          entry.category,
+        );
+      }
+    }
   });
 
   it('looks up entries by id and rejects unknown ones', () => {
