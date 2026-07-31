@@ -132,6 +132,8 @@ export type Action =
   | { type: 'NEXT_CLUE_TURN' }
   | { type: 'FINISH_CLUES' }
   // DISCUSSION / VOTING
+  /** Run one more clue round instead of voting. Keeps the same secret word. */
+  | { type: 'ANOTHER_CLUE_ROUND'; seed: string }
   | { type: 'START_VOTING'; seed: string }
   | { type: 'CAST_VOTE'; voter: PlayerId; target: PlayerId }
   // VOTE_RESULT

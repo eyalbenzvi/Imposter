@@ -398,6 +398,74 @@ describe('clue round', () => {
 
 // ── voting ───────────────────────────────────────────────────────────────────
 
+describe('another clue round from the discussion', () => {
+  it('opens a fresh clue round instead of voting', () => {
+    const before = playClueRound(startedGame(5));
+    expect(before.phase).toBe('DISCUSSION');
+
+    const after = reducer(before, { type: 'ANOTHER_CLUE_ROUND', seed: 'again' });
+    expect(after.phase).toBe('CLUES');
+    expect(after.roundNumber).toBe(before.roundNumber + 1);
+    expect(after.clueTurnIndex).toBe(0);
+    expect([...after.turnOrder].sort()).toEqual([...aliveIds(before)].sort());
+  });
+
+  it('keeps the same secret word, hint and roles', () => {
+    const before = playClueRound(startedGame(5));
+    const after = reducer(before, { type: 'ANOTHER_CLUE_ROUND', seed: 'again' });
+    expect(after.secretWordId).toBe(before.secretWordId);
+    expect(after.hintWord).toBe(before.hintWord);
+    expect(after.imposterIds).toEqual(before.imposterIds);
+    expect(after.players).toEqual(before.players);
+  });
+
+  it('clears the typed clues so the new round starts blank', () => {
+    let state = startedGame(4, { clueMode: 'TYPE' });
+    while (state.phase === 'CLUES') {
+      const who = state.turnOrder[state.clueTurnIndex]!;
+      state = reducer(state, { type: 'SUBMIT_CLUE', playerId: who, text: `רֶמֶז-${who}` });
+    }
+    expect(Object.keys(state.clues)).toHaveLength(4);
+
+    const again = reducer(state, { type: 'ANOTHER_CLUE_ROUND', seed: 'blank' });
+    expect(again.clues).toEqual({});
+  });
+
+  it('redraws the turn order rather than repeating it', () => {
+    const before = playClueRound(startedGame(6));
+    const orders = new Set(
+      ['a', 'b', 'c', 'd', 'e', 'f'].map(
+        (seed) => reducer(before, { type: 'ANOTHER_CLUE_ROUND', seed }).turnOrder.join(','),
+      ),
+    );
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it('can be taken repeatedly without ejecting anyone', () => {
+    let state = playClueRound(startedGame(5));
+    for (let i = 0; i < 3; i++) {
+      state = reducer(state, { type: 'ANOTHER_CLUE_ROUND', seed: `loop-${i}` });
+      state = playClueRound(state);
+    }
+    expect(state.phase).toBe('DISCUSSION');
+    expect(state.roundNumber).toBe(4);
+    expect(state.players.every((p) => p.alive)).toBe(true);
+    expect(state.winner).toBeNull();
+  });
+
+  it('is not available outside the discussion', () => {
+    const clues = startedGame(4);
+    expect(() =>
+      reducer(clues, { type: 'ANOTHER_CLUE_ROUND', seed: 's' }),
+    ).toThrow(InvalidTransitionError);
+
+    const voting = reducer(playClueRound(clues), { type: 'START_VOTING', seed: 'v' });
+    expect(() =>
+      reducer(voting, { type: 'ANOTHER_CLUE_ROUND', seed: 's' }),
+    ).toThrow(InvalidTransitionError);
+  });
+});
+
 describe('voting', () => {
   it('hides the tally until the last vote lands', () => {
     let state = playClueRound(startedGame(4));
