@@ -39,13 +39,14 @@ jobs:
 
       - run: npm run build
 
-      # enablement turns Pages on through the API when the repository has never
-      # had it configured, using the pages: write permission granted above.
-      # Without it the first run fails with "Get Pages site failed" and the
-      # repository owner has to flip the setting by hand.
+      # Requires Pages to already be switched on for the repository, under
+      # Settings -> Pages -> Source: GitHub Actions. That is a one-time manual
+      # step and cannot be automated from here: the action's `enablement: true`
+      # input calls the create-Pages-site API, which GITHUB_TOKEN is not allowed
+      # to do ("Resource not accessible by integration") no matter what
+      # permissions the workflow requests, because creating a site needs
+      # repository admin rather than `pages: write`.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
