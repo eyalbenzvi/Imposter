@@ -2,12 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    # Pages deployments are gated by the `github-pages` environment, which
-    # GitHub creates allowing the DEFAULT branch only. This repository's default
-    # branch is still claude/imposter-game-app-xajsxb, so a push to main builds
-    # fine but has its deploy job rejected before a runner is even assigned.
-    # Both are listed so publishing works today and keeps working the moment
-    # main is made the default branch — at which point the second entry can go.
+    # Build and test on either branch; see the deploy job for why only one of
+    # them can actually publish.
     branches: [main, claude/imposter-game-app-xajsxb]
   # Lets you publish the current branch by hand from the Actions tab.
   workflow_dispatch:
@@ -60,6 +56,17 @@ jobs:
 
   deploy:
     needs: build
+    # Pages deployments are gated by the `github-pages` environment, which
+    # GitHub creates permitting the DEFAULT branch only. A push from any other
+    # branch has this job rejected before a runner is even assigned, which shows
+    # up as a failed run even though the build was fine — red runs that mean
+    # nothing are exactly what hides the ones that do.
+    #
+    # Comparing against the default branch instead of hard-coding a name means
+    # the job is skipped cleanly (grey, run still green) rather than failing,
+    # and it starts publishing from main the moment main is made the default,
+    # with no edit here.
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages
