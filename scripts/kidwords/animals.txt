@@ -1,0 +1,126 @@
+@category חיות
+
+# ── בחווה ────────────────────────────────────────────────────────────────────
+cow | פרה | calf | horse | sheep | goat | donkey
+calf | עֵגֶל | cow | lamb | kidgoat | foal | chick
+horse | סוס | foal | donkey | cow | sheep | bull
+foal | סַיָּח | horse | calf | donkey | lamb | kidgoat
+donkey | חמור | horse | cow | goat | camel | sheep
+sheep | כבש | lamb | goat | cow | kidgoat | donkey
+lamb | טָלֶה | sheep | kidgoat | calf | goat | foal
+goat | עז | kidgoat | sheep | cow | lamb | donkey
+kidgoat | גְּדִי | goat | lamb | calf | sheep | foal
+pig | חזיר | cow | sheep | goat | donkey | horse
+bull | שׁוֹר | cow | horse | calf | goat | pig
+rooster | תרנגול | hen | chick | duck | goose | turkey
+hen | תַּרְנְגֹלֶת | rooster | chick | duck | goose | turkey
+chick | אֶפְרוֹחַ | hen | rooster | duck | goose | calf
+duck | ברוז | goose | rooster | swan | hen | chick
+goose | אוז | duck | rooster | swan | hen | turkey
+turkey | תַּרְנְגוֹל הֹדוּ | rooster | hen | duck | goose | peacock
+
+# ── חיות מחמד ────────────────────────────────────────────────────────────────
+dog | כלב | cat | puppy | rabbit | kitten | parrot
+puppy | כְּלַבְלַב | dog | kitten | cat | cub | rabbit
+cat | חתול | dog | kitten | rabbit | puppy | mouse
+kitten | חֲתַלְתּוּל | cat | puppy | dog | cub | rabbit
+rabbit | ארנב | hyrax | cat | dog | mouse | squirrel
+hyrax | שָׁפָן | rabbit | mouse | squirrel | hedgehog | cat
+mouse | עכבר | rabbit | squirrel | hyrax | cat | hedgehog
+goldfish | דַּג זָהָב | fish | parrot | cat | dog | turtle
+parrot | תכי | dove | peacock | dog | cat | owl
+
+# ── חיות בר ──────────────────────────────────────────────────────────────────
+lion | אריה | leopard | cheetah | bear | wolf | fox
+leopard | נמר | lion | cheetah | wolf | fox | bear
+cheetah | בַּרְדְּלָס | leopard | lion | wolf | fox | hyena
+bear | דב | wolf | lion | fox | panda | leopard
+wolf | זאב | fox | jackal | bear | lion | leopard
+fox | שועל | wolf | jackal | hyena | bear | leopard
+jackal | תַּן | fox | wolf | hyena | leopard | bear
+hyena | צָבוֹעַ | jackal | fox | wolf | lion | leopard
+gazelle | צבי | deer | horse | goat | fox | camel
+deer | אַיָּל | gazelle | horse | goat | camel | bear
+monkey | קוף | gorilla | chimp | koala | panda | squirrel
+gorilla | גּוֹרִילָה | monkey | chimp | bear | elephant | panda
+chimp | שִׁימְפַּנְזָה | monkey | gorilla | koala | panda | bear
+elephant | פיל | rhino | hippo | giraffe | camel | gorilla
+rhino | קרנף | hippo | elephant | giraffe | zebra | bull
+hippo | היפופוטם | rhino | elephant | crocodile | giraffe | zebra
+giraffe | ג'ירפה | zebra | elephant | camel | rhino | deer
+zebra | זברה | giraffe | horse | camel | rhino | deer
+camel | גמל | donkey | horse | zebra | giraffe | deer
+kangaroo | קנגורו | koala | monkey | rabbit | panda | squirrel
+koala | קוֹאָלָה | panda | kangaroo | monkey | chimp | squirrel
+panda | פַּנְדָּה | bear | koala | monkey | kangaroo | chimp
+squirrel | סְנָאִי | mouse | hedgehog | rabbit | bat | monkey
+hedgehog | קִפּוֹד | squirrel | mouse | rabbit | hyrax | bat
+bat | עֲטַלֵּף | mouse | squirrel | owl | hedgehog | dove
+
+# ── ציפורים ──────────────────────────────────────────────────────────────────
+dove | יונה | sparrow | crow | seagull | hoopoe | parrot
+crow | עורב | dove | sparrow | seagull | eagle | hoopoe
+sparrow | דרור | dove | crow | hoopoe | seagull | wagtail
+wagtail | נַחְלִיאֵלִי | sparrow | dove | hoopoe | crow | seagull
+hoopoe | דּוּכִיפַת | sparrow | dove | crow | peacock | wagtail
+eagle | נשר | falcon | owl | crow | seagull | stork
+falcon | בַּז | eagle | owl | crow | seagull | dove
+owl | ינשוף | eagle | falcon | bat | crow | dove
+peacock | טוס | parrot | rooster | swan | hoopoe | turkey
+penguin | פינגוין | seal | swan | duck | seagull | goose
+stork | חסידה | swan | seagull | eagle | dove | crow
+swan | ברבור | stork | duck | goose | penguin | seagull
+seagull | שַׁחַף | dove | crow | stork | penguin | sparrow
+
+# ── בים ──────────────────────────────────────────────────────────────────────
+fish | דָּג | goldfish | shark | dolphin | seahorse | crab
+shark | כריש | dolphin | whale | fish | octopus | seal
+dolphin | דולפין | whale | shark | seal | fish | octopus
+whale | לויתן | dolphin | shark | seal | octopus | fish
+seal | כֶּלֶב יָם | dolphin | whale | penguin | shark | otter
+otter | לוּטְרָה | seal | dolphin | penguin | fish | whale
+octopus | תמנון | crab | jellyfish | starfish | fish | shark
+crab | סרטן | octopus | starfish | jellyfish | seashell | fish
+starfish | כּוֹכַב יָם | seashell | crab | jellyfish | octopus | seahorse
+jellyfish | מֶדוּזָה | octopus | starfish | crab | seahorse | fish
+seashell | צִדְפָּה | starfish | crab | seahorse | snail | octopus
+seahorse | סוּסוֹן יָם | fish | starfish | seashell | jellyfish | crab
+
+# ── זוחלים ───────────────────────────────────────────────────────────────────
+snake | נחש | lizard | crocodile | turtle | chameleon | scorpion
+lizard | לטאה | snake | chameleon | turtle | crocodile | frog
+chameleon | זִיקִית | lizard | snake | frog | turtle | crocodile
+turtle | צב | lizard | snake | crocodile | frog | seashell
+crocodile | תנין | snake | lizard | turtle | hippo | frog
+frog | צפרדע | toad | tadpole | lizard | turtle | snake
+toad | קַרְפָּדָה | frog | tadpole | lizard | turtle | snake
+tadpole | רֹאשָׁן | frog | toad | fish | lizard | worm
+
+# ── חרקים ────────────────────────────────────────────────────────────────────
+ant | נמלה | bee | beetle | ladybug | fly | grasshopper
+bee | דבורה | ant | butterfly | fly | beehive | ladybug
+butterfly | פרפר | bee | ladybug | beetle | grasshopper | fly
+ladybug | פָּרַת מֹשֶׁה רַבֵּנוּ | beetle | butterfly | bee | ant | fly
+beetle | חִפּוּשִׁית | ladybug | ant | cricket | grasshopper | spider
+mosquito | יַתּוּשׁ | fly | bee | ant | spider | beetle
+fly | זְבוּב | mosquito | bee | ant | beetle | butterfly
+spider | עַכָּבִישׁ | scorpion | beetle | ant | fly | mosquito
+scorpion | עַקְרָב | spider | snake | beetle | ant | lizard
+grasshopper | חָגָב | cricket | butterfly | beetle | ant | ladybug
+cricket | צְרָצַר | grasshopper | beetle | ant | fly | mosquito
+snail | חִלָּזוֹן | worm | seashell | beetle | ant | frog
+worm | תּוֹלַעַת | snail | ant | beetle | tadpole | mosquito
+
+# ── מה שיש לחיה ──────────────────────────────────────────────────────────────
+tail | זָנָב | wing | fur | horn | beak | feather
+wing | כָּנָף | feather | beak | tail | fur | nest
+feather | נוֹצָה | wing | fur | beak | tail | nest
+beak | מַקּוֹר | wing | feather | tail | horn | nest
+fur | פַּרְוָה | feather | tail | wing | horn | mane
+mane | רַעְמָה | fur | tail | horn | feather | wing
+horn | קֶרֶן | tail | elephant-trunk | fur | mane | beak
+elephant-trunk | חֵדֶק | horn | tail | beak | mane | fur
+nest | קֵן | beehive | den | wing | feather | beak
+beehive | כַּוֶּרֶת | nest | den | bee | ant | wing
+den | מְאוּרָה | nest | beehive | cub | fur | horn
+cub | גּוּר | puppy | kitten | calf | lamb | den

@@ -35,6 +35,13 @@ export type Settings = {
   /** 0 = no per-turn timer. */
   clueTimerSeconds: number;
   imposterGuessEnabled: boolean;
+  /**
+   * Which categories the secret word may come from. Empty means all of them,
+   * which is also what a selection naming only unknown categories falls back
+   * to — a setting saved by an older build must never leave a group with no
+   * words to play.
+   */
+  categories: string[];
 };
 
 export type Player = {

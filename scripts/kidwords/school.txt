@@ -1,0 +1,120 @@
+@category בית הספר וחוגים
+
+# ── בכיתה ────────────────────────────────────────────────────────────────────
+classroom | כתה | blackboard | student | lesson | yard | teachersroom
+blackboard | לוח | chalk | marker | classroom | eraser | lesson
+chalk | גיר | blackboard | marker | eraser | pencil | pen
+marker | טוש | chalk | pen | pencil | blackboard | sticker
+pencil | עפרון | pen | eraser | sharpener | marker | pencilcase
+pen | עט | pencil | marker | ink | notebook | pencilcase
+ink | דְּיוֹ | pen | marker | page | notebook | drawing
+eraser | מחק | sharpener | pencil | pencilcase | chalk | marker
+sharpener | מחדד | eraser | pencil | pencilcase | marker | pen
+pencilcase | קלמר | pencil | eraser | sharpener | schoolbag | marker
+ruler | סרגל | compass | pencil | notebook | eraser | pencilcase
+compass | מְחוּגָה | ruler | pencil | notebook | calculator | drawing
+notebook | מחברת | page | textbook | pencilcase | homework | pen
+page | דף | notebook | textbook | cardboard | bristol | ink
+textbook | ספר למוד | notebook | atlas | page | homework | literature
+atlas | אטלס | globe | textbook | geography | notebook | history
+globe | גלובוס | atlas | geography | science | textbook | classroom
+schoolbag | ילקוט | backpack | pencilcase | notebook | textbook | student
+backpack | תרמיל | schoolbag | school-trip | pencilcase | notebook | student
+calculator | מחשבון | arithmetic | math | ruler | notebook | exam
+sticker | מדבקה | marker | glitter | beads | drawing | page
+
+# ── בית הספר ─────────────────────────────────────────────────────────────────
+student | תלמיד | classroom | principal | lesson | homework | grade
+principal | מנהל | student | secretariat | teachersroom | classroom | school-bell
+secretariat | מזכירות | principal | teachersroom | classroom | school-bell | certificate
+teachersroom | חדר מורים | secretariat | principal | classroom | break | lesson
+lesson | שעור | break | homework | exam | classroom | school-bell
+break | הפסקה | school-bell | lesson | yard | court | school-trip
+school-bell | צלצול | break | lesson | classroom | principal | secretariat
+homework | שעורי בית | lesson | exam | notebook | quiz | grade
+exam | מבחן | quiz | grade | homework | lesson | certificate
+quiz | בחן | exam | grade | homework | lesson | certificate
+grade | ציון | certificate | exam | quiz | homework | student
+certificate | תעודה | grade | exam | student | principal | quiz
+yard | חצר | court | break | school-trip | classroom | school-bell
+court | מגרש | yard | pe | break | school-trip | classroom
+school-trip | טיול | backpack | break | yard | pe | court
+
+# ── מקצועות הלימוד ───────────────────────────────────────────────────────────
+math | מתמטיקה | arithmetic | calculator | science | geography | history
+arithmetic | חשבון | math | calculator | science | grammar | reading
+science | מדעים | experiment | math | geography | globe | history
+experiment | נסוי | science | math | globe | atlas | drawing
+history | היסטוריה | geography | bible | literature | atlas | science
+geography | גאוגרפיה | atlas | globe | history | science | math
+bible | תנ״ך | history | literature | hebrew | grammar | reading
+literature | ספרות | reading | writing | grammar | bible | hebrew
+grammar | דקדוק | hebrew | writing | literature | reading | english
+hebrew | עִבְרִית | grammar | english | arabic | writing | reading
+english | אנגלית | hebrew | arabic | grammar | writing | reading
+arabic | עֲרָבִית | hebrew | english | grammar | writing | reading
+reading | קְרִיאָה | writing | literature | grammar | textbook | hebrew
+writing | כְּתִיבָה | reading | grammar | notebook | pen | literature
+art | אמנות | drawing | paintbrush | music-class | exhibition | plasticine
+music-class | מוסיקה | choir | melody | art | note | club
+pe | חנוך גופני | court | yard | dance | break | school-trip
+
+# ── יצירה ────────────────────────────────────────────────────────────────────
+drawing | צִיּוּר | paintbrush | art | cardboard | bristol | exhibition
+paintbrush | מִכְחוֹל | drawing | art | cardboard | plasticine | glue
+glue | דֶּבֶק | scissors | cardboard | bristol | paintbrush | beads
+scissors | מִסְפָּרַיִם | glue | cardboard | bristol | paper | beads
+paper | נְיָר | cardboard | bristol | page | scissors | glue
+cardboard | קַרְטוֹן | bristol | paper | glue | scissors | drawing
+bristol | בְּרִיסְטוֹל | cardboard | paper | glue | drawing | marker
+plasticine | פְּלַסְטֶלִינָה | beads | glue | drawing | art | paintbrush
+beads | חֲרוּזִים | glitter | plasticine | glue | sticker | scissors
+glitter | נִצְנָצִים | beads | sticker | glue | drawing | plasticine
+exhibition | תַּעֲרוּכָה | drawing | art | stage | play | club
+
+# ── חוגים ────────────────────────────────────────────────────────────────────
+club | חוּג | dance | play | choir | band | pe
+dance | רִקּוּד | singing | play | stage | club | rhythm
+singing | שִׁירָה | choir | dance | melody | band | choral
+choral | זִמְרָה | singing | choir | melody | band | dance
+play | הַצָּגָה | stage | dance | stagecostume | club | exhibition
+stagecostume | תַּלְבּוֹשֶׂת | play | stage | dance | exhibition | club
+stage | בָּמָה | play | concert | microphone | dance | orchestra
+band | לַהֲקָה | orchestra | choir | concert | singing | drumset
+
+# ── כלי נגינה ────────────────────────────────────────────────────────────────
+piano | פסנתר | keys | harp | guitar | violin | cello
+keys | קלידים | piano | accordion | xylophone | harp | guitar
+guitar | גיטרה | electric-guitar | bass-guitar | ukulele | violin | harp
+electric-guitar | גיטרה חשמלית | guitar | bass-guitar | ukulele | drumset | piano
+bass-guitar | גיטרת בס | electric-guitar | guitar | ukulele | cello | drumset
+ukulele | יוקללה | guitar | violin | harp | bass-guitar | electric-guitar
+violin | כנור | cello | bow | string | guitar | harp
+cello | צ'לו | violin | bow | string | harp | bass-guitar
+harp | נבל | violin | cello | piano | string | guitar
+bow | קשת | string | violin | cello | harp | drumstick
+string | מיתר | bow | violin | guitar | harp | cello
+flute | חליל | recorder | clarinet | saxophone | trumpet | harmonica
+recorder | חלילית | flute | clarinet | harmonica | saxophone | trumpet
+clarinet | קלרנט | saxophone | flute | recorder | trumpet | accordion
+saxophone | סקסופון | clarinet | trumpet | flute | recorder | accordion
+trumpet | חצוצרה | saxophone | shofar | clarinet | flute | drum
+shofar | שופר | trumpet | flute | harmonica | drum | recorder
+harmonica | מפוחית | recorder | accordion | flute | clarinet | shofar
+accordion | אקורדיון | harmonica | keys | piano | clarinet | saxophone
+drum | תף | drumset | darbuka | tambourine | cymbals | drumstick
+drumset | מערכת תפים | drum | darbuka | cymbals | drumstick | band
+darbuka | דרבוקה | drum | drumset | tambourine | cymbals | rhythm
+tambourine | טמבורין | cymbals | drum | darbuka | bell | rhythm
+cymbals | מצלתים | tambourine | drum | gong | bell | drumset
+drumstick | מקל תף | drum | drumset | cymbals | darbuka | bow
+xylophone | קסילופון | bell | keys | gong | tambourine | drum
+bell | פעמון | gong | xylophone | tambourine | cymbals | rhythm
+gong | גונג | bell | cymbals | xylophone | drum | tambourine
+microphone | מיקרופון | stage | concert | singing | choir | band
+note | תו | melody | rhythm | music-class | choir | orchestra
+melody | מנגינה | note | rhythm | singing | choir | music-class
+rhythm | מקצב | melody | note | drum | dance | darbuka
+orchestra | תזמרת | choir | band | concert | stage | note
+choir | מקהלה | orchestra | singing | band | concert | melody
+concert | קונצרט | stage | orchestra | choir | band | microphone

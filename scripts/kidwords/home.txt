@@ -1,0 +1,144 @@
+@category הבית
+
+# ── חדרים ────────────────────────────────────────────────────────────────────
+room | חֶדֶר | livingroom | kitchen-room | balcony | wall | floor
+livingroom | סָלוֹן | room | kitchen-room | sofa | balcony | carpet
+kitchen-room | מִטְבָּח | livingroom | room | oven | fridge | sink
+balcony | מִרְפֶּסֶת | room | livingroom | window | roof | flowerpot
+wall | קִיר | floor | ceiling | window | door | picture
+floor | רִצְפָּה | wall | ceiling | carpet | stairs | broom
+ceiling | תִּקְרָה | wall | floor | roof | lamp | bulb
+roof | גַּג | ceiling | balcony | wall | window | stairs
+storage | מַחְסָן | closet | shelf | basket | suitcase | room
+door | דלת | window | lock | key | wall | stairs
+window | חלון | door | curtain | wall | balcony | mirror
+stairs | מדרגות | door | floor | roof | wall | storage
+lock | מנעול | key | door | suitcase | closet | drawer
+key | מפתח | lock | door | closet | drawer | suitcase
+
+# ── רהיטים ───────────────────────────────────────────────────────────────────
+sofa | ספה | armchair | chair | table | bed | carpet
+armchair | כרסה | sofa | chair | bed | table | pillow
+chair | כסא | table | sofa | armchair | bed | shelf
+table | שלחן | chair | sofa | shelf | tray | armchair
+bed | מטה | mattress | pillow | blanket | sheet | sofa
+mattress | מזרן | bed | pillow | blanket | sheet | carpet
+pillow | כרית | blanket | bed | mattress | sheet | sofa
+blanket | שמיכה | pillow | sheet | bed | mattress | towel
+sheet | סדין | blanket | pillow | mattress | bed | towel
+closet | ארון | shelf | drawer | bookcase | hanger | storage
+shelf | מדף | bookcase | closet | drawer | table | basket
+bookcase | כוננית | shelf | closet | drawer | table | picture
+drawer | מגרה | shelf | closet | bookcase | key | container
+hanger | קולב | closet | shelf | drawer | towel | brush
+
+# ── תאורה וקישוט ─────────────────────────────────────────────────────────────
+lamp | מנורה | bulb | candle | ceiling | mirror | picture
+bulb | נורה | lamp | candle | socket | cable | ceiling
+candle | נר | lamp | bulb | vase | picture | mirror
+mirror | מראה | picture | window | lamp | wall | brush
+picture | תמונה | mirror | vase | wall | lamp | bookcase
+vase | אגרטל | flowerpot | picture | candle | jug | tray
+flowerpot | עציץ | vase | balcony | picture | tray | basket
+carpet | שטיח | curtain | floor | sofa | mattress | broom
+curtain | וילון | carpet | window | sheet | blanket | wall
+clock | שעון | lamp | picture | mirror | wall | smartwatch
+
+# ── מכשירים בבית ─────────────────────────────────────────────────────────────
+fan | מאורר | airconditioner | heater | lamp | window | vacuum
+airconditioner | מזגן | fan | heater | window | remote | balcony
+heater | תַּנּוּר חִמּוּם | airconditioner | fan | candle | oven | blanket
+washer | מכונת כביסה | dishwasher | iron | hanger | soap | basket
+iron | מגהץ | washer | hanger | cloth | soap | towel
+vacuum | שואב אבק | broom | squeegee | cloth | carpet | floor
+broom | מטאטא | squeegee | vacuum | bin | floor | cloth
+squeegee | מגב | broom | vacuum | cloth | floor | sponge
+cloth | מטלית | sponge | squeegee | towel | soap | brush
+sponge | ספוג | cloth | soap | brush | squeegee | towel
+soap | סבון | sponge | towel | shower | cloth | brush
+towel | מגבת | soap | sponge | shower | bathtub | blanket
+brush | מברשת | comb | sponge | soap | cloth | mirror
+comb | מַסְרֵק | brush | mirror | hair-dryer | soap | towel
+hair-dryer | מְיַבֵּשׁ שֵׂעָר | comb | brush | mirror | iron | fan
+basket | סל | bin | container | shelf | tray | storage
+bin | פח | basket | broom | container | squeegee | sponge
+suitcase | מזודה | storage | closet | basket | container | key
+
+# ── חדר האמבטיה ──────────────────────────────────────────────────────────────
+bathtub | אמבטיה | shower | sink | toilet | towel | soap
+shower | מקלחת | bathtub | sink | tap | towel | soap
+sink | כיור | tap | bathtub | shower | toilet | sponge
+toilet | אסלה | sink | bathtub | shower | tap | soap
+tap | ברז | sink | shower | bathtub | toilet | jug
+
+# ── כלי מטבח ─────────────────────────────────────────────────────────────────
+pot | סיר | pan | lid | kettle | baking-tin | ladle
+pan | מחבת | pot | lid | grill | baking-tin | spatula
+lid | מכסה | pot | pan | container | bottle | cork
+kettle | קומקום | pot | thermos | mug | pitcher | jug
+baking-tin | תבנית | pan | pot | oven | rolling-pin | tray
+grill | מצלה | pan | skewer | oven | stovetop | pot
+skewer | שפוד | grill | fork | knife | pan | tray
+oven | תנור | stovetop | microwave | baking-tin | grill | toaster
+stovetop | כירים | oven | pot | pan | kettle | grill
+microwave | מיקרוגל | oven | toaster | stovetop | fridge | dishwasher
+toaster | טוסטר | microwave | oven | blender | mixer | kettle
+fridge | מקרר | freezer | microwave | oven | dishwasher | container
+freezer | מקפיא | fridge | microwave | container | oven | dishwasher
+dishwasher | מדיח | washer | fridge | sink | plate | freezer
+blender | בלנדר | mixer | toaster | mill | whisk | microwave
+mixer | מיקסר | blender | whisk | mill | toaster | rolling-pin
+mill | מטחנה | blender | mixer | grater | salt-shaker | whisk
+grater | פומפיה | peeler | mill | strainer | knife | cutting-board
+peeler | קולפת | grater | knife | cutting-board | strainer | spatula
+strainer | מסננת | sieve | funnel | ladle | bowl | grater
+sieve | נפה | strainer | funnel | bowl | mill | ladle
+funnel | משפך | strainer | sieve | jug | bottle | ladle
+ladle | מצקית | spoon | spatula | pot | bowl | strainer
+whisk | מקצף | mixer | spoon | bowl | blender | spatula
+spatula | מרית | ladle | whisk | pan | spoon | peeler
+rolling-pin | מערוך | baking-tin | cutting-board | mixer | tray | pan
+cutting-board | קרש חתוך | knife | peeler | grater | tray | rolling-pin
+salt-shaker | ממלחה | mill | bottle | cork | tray | napkin
+scale | משקל | mill | bowl | baking-tin | container | tray
+
+# ── כלי אוכל ─────────────────────────────────────────────────────────────────
+knife | סכין | fork | spoon | plate | cutting-board | peeler
+fork | מזלג | knife | spoon | teaspoon | plate | skewer
+spoon | כף | teaspoon | fork | knife | ladle | bowl
+teaspoon | כפית | spoon | fork | knife | mug | bowl
+plate | צלחת | bowl | glass | mug | tray | knife
+bowl | קערה | plate | glass | tray | spoon | strainer
+glass | כוס | mug | bottle | plate | jug | pitcher
+mug | ספל | glass | teaspoon | kettle | thermos | jug
+jug | כד | pitcher | glass | bottle | kettle | funnel
+pitcher | קנקן | jug | glass | bottle | kettle | mug
+bottle | בקבוק | cork | opener | glass | jug | thermos
+cork | פקק | bottle | opener | lid | jug | container
+opener | פותחן | cork | bottle | knife | lid | container
+thermos | תרמוס | bottle | kettle | mug | container | glass
+container | קופסה | lid | basket | bottle | tray | freezer
+tray | מגש | plate | bowl | table | napkin | container
+napkin | מפית | tray | plate | cloth | apron | towel
+apron | סינר | napkin | cloth | towel | oven | pan
+
+# ── מסכים וחשמל ──────────────────────────────────────────────────────────────
+television | טלויזיה | remote | screen | console | computer | sofa
+remote | שלט | television | console | airconditioner | screen | battery
+console | קונסולה | television | remote | screen | computer | headphones
+computer | מחשב | laptop | screen | keyboard-pc | mouse-pc | tablet
+laptop | מחשב ניד | computer | tablet | screen | keyboard-pc | charger
+tablet | טבלט | laptop | smartphone | computer | screen | headphones
+smartphone | סמארטפון | tablet | smartwatch | camera | charger | screen
+smartwatch | שעון חכם | smartphone | clock | tablet | camera | charger
+screen | מסך | television | computer | laptop | keyboard-pc | console
+keyboard-pc | מקלדת | mouse-pc | computer | screen | laptop | console
+mouse-pc | עכבר מחשב | keyboard-pc | computer | screen | laptop | console
+headphones | אזניות | speaker | smartphone | console | tablet | cable
+speaker | רַמְקוֹל | headphones | television | console | smartphone | cable
+camera | מצלמה | smartphone | printer | screen | picture | battery
+printer | מדפסת | camera | computer | screen | cable | laptop
+charger | מטען | cable | battery | socket | smartphone | laptop
+battery | סוללה | charger | cable | socket | remote | bulb
+cable | כבל | charger | socket | battery | headphones | printer
+socket | שקע | cable | charger | bulb | battery | lamp

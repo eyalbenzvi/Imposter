@@ -9,7 +9,7 @@
  *   2. a duplicate id, or the same word in two categories (compared WITHOUT niqqud)
  *   3. a word or hint with no niqqud at all
  *   4. a hint equal to its own word, or two identical hints in one entry
- *   5. a category with fewer than 4 entries (the guess screen needs 4 options)
+ *   5. a category with fewer than 100 entries (each one must be playable alone)
  *
  * Plus two consistency checks that keep the pointing honest:
  *   6. a hint that also exists as an entry must be spelled and pointed identically
@@ -25,7 +25,9 @@ import { hasNiqqud, normalize, stripNiqqud } from '../src/game/niqqud.ts';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WORDS_DIR = join(HERE, '..', 'src', 'game', 'words');
 const HINTS_REQUIRED = 5;
-const MIN_ENTRIES_PER_CATEGORY = 4;
+// Product rule, not a technical floor: every category a group can pick must be
+// deep enough to play from on its own. (The guess screen needs only 4 options.)
+const MIN_ENTRIES_PER_CATEGORY = 100;
 
 type RawEntry = {
   id?: unknown;
@@ -197,7 +199,7 @@ for (const [category, count] of categoryCounts) {
     errors.push(
       `  ✗ category "${category}" has only ${count} ${
         count === 1 ? 'entry' : 'entries'
-      } — the imposter guess screen needs at least ${MIN_ENTRIES_PER_CATEGORY}`,
+      } — every category needs at least ${MIN_ENTRIES_PER_CATEGORY}`,
     );
   }
 }

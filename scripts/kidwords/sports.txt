@@ -1,0 +1,119 @@
+@category ספורט ומשחקים
+
+# ── משחקי כדור ───────────────────────────────────────────────────────────────
+soccer | כדורגל | basketball | handball | volleyball | goal | ball
+basketball | כדורסל | soccer | volleyball | handball | hoop | ball
+volleyball | כדורעף | basketball | handball | soccer | net | ball
+handball | כדור יד | volleyball | basketball | soccer | dodgeball | goal
+dodgeball | מַחֲנַיִם | handball | volleyball | ball | tag | soccer
+tennis | טניס | pingpong | badminton | racket | net | ball
+pingpong | טניס שלחן | tennis | badminton | racket | net | ball
+badminton | בדמינטון | tennis | pingpong | racket | net | ball
+baseball | ביסבול | soccer | basketball | golf | ball | racket
+golf | גולף | baseball | tennis | ball | hoop | contest
+rugby | רגבי | soccer | handball | wrestling | ball | goal
+hockey | הוקי | soccer | skating | ball | net | goal
+ball | כדור | goal | net | racket | soccer | basketball
+racket | מחבט | ball | net | tennis | pingpong | badminton
+net | רשת | ball | goal | racket | volleyball | tennis
+goal | גול | goalkeeper | net | ball | soccer | kick
+goalkeeper | שוער | goal | net | ball | soccer | handball
+kick | בְּעִיטָה | pass | jump | ball | goal | soccer
+pass | מְסִירָה | kick | ball | jump | basketball | soccer
+jump | קְפִיצָה | kick | pass | trampoline | hoop | climbing
+
+# ── במים ─────────────────────────────────────────────────────────────────────
+swimming | שחיה | diving | surfing | sailing | rowing | ball
+diving | צלילה | swimming | surfing | sailing | rowing | jump
+surfing | גלישה | swimming | diving | sailing | skateboard | snowboard
+sailing | שיט | rowing | surfing | swimming | diving | contest
+rowing | חתירה | sailing | swimming | surfing | diving | training
+
+# ── ריצה והתעמלות ────────────────────────────────────────────────────────────
+running | ריצה | walking | marathon | athletics | jump | training
+walking | הליכה | running | marathon | climbing | training | athletics
+marathon | מרתון | running | walking | athletics | record | contest
+athletics | אתלטיקה | running | jump | marathon | gymnastics | contest
+gymnastics | התעמלות | athletics | yoga | trampoline | stretches | hoop
+yoga | יוגה | gymnastics | stretches | warmup | training | walking
+stretches | מְתִיחוֹת | warmup | yoga | gymnastics | pushups | training
+warmup | חִמּוּם | stretches | training | pushups | situps | running
+pushups | שְׁכִיבוֹת סְמִיכָה | situps | weights | warmup | stretches | training
+situps | כְּפִיפוֹת בֶּטֶן | pushups | weights | warmup | stretches | training
+weights | משקולות | pushups | situps | training | gymnastics | warmup
+training | אמון | warmup | team | contest | stretches | running
+
+# ── קרב ──────────────────────────────────────────────────────────────────────
+boxing | אגרוף | wrestling | karate | judo | kravmaga | fencing
+wrestling | האבקות | boxing | judo | karate | kravmaga | fencing
+judo | ג'ודו | karate | wrestling | kravmaga | boxing | fencing
+karate | קרטה | judo | kravmaga | wrestling | boxing | fencing
+kravmaga | קרב מגע | karate | judo | boxing | wrestling | fencing
+fencing | סיף | boxing | karate | archery | judo | wrestling
+archery | קליעה | fencing | contest | ball | racket | medal
+
+# ── על גלגלים ובשלג ──────────────────────────────────────────────────────────
+ski | סקי | snowboard | skating | surfing | climbing | helmet
+snowboard | סנובורד | ski | skateboard | skating | surfing | helmet
+skating | החלקה | rollerblades | ski | snowboard | skateboard | hockey
+skateboard | סקייטבורד | rollerblades | snowboard | skating | surfing | helmet
+rollerblades | גלגליות | skateboard | skating | ski | helmet | shinguards
+climbing | טפוס | ladder | jump | walking | riding | helmet
+riding | רכיבה | climbing | walking | helmet | training | contest
+helmet | קסדה | shinguards | skateboard | rollerblades | riding | ski
+shinguards | מְגִנֵּי שׁוֹקַיִם | helmet | soccer | goalkeeper | rollerblades | skateboard
+
+# ── תחרויות ──────────────────────────────────────────────────────────────────
+contest | תחרות | championship | tournament | olympics | league | prize
+championship | אליפות | tournament | contest | league | olympics | cup
+tournament | טוּרְנִיר | championship | contest | league | olympics | cup
+league | לִיגָה | championship | tournament | team | nationalteam | contest
+olympics | אולימפיאדה | championship | contest | medal | tournament | record
+team | קבוצה | nationalteam | league | training | supporter | goalkeeper
+nationalteam | נִבְחֶרֶת | team | league | championship | olympics | supporter
+medal | מדליה | cup | prize | record | olympics | championship
+cup | גביע | medal | prize | championship | tournament | win
+prize | פְּרָס | medal | cup | win | championship | record
+record | שִׂיא | medal | olympics | stopwatch | prize | marathon
+win | נִצָּחוֹן | loss | draw | prize | cup | team
+loss | הֶפְסֵד | win | draw | team | contest | prize
+draw | תֵּיקוּ | win | loss | contest | team | goal
+supporter | אוֹהֵד | crowd | team | nationalteam | hall | league
+crowd | קָהָל | supporter | hall | team | contest | whistleblow
+hall | אוּלָם | crowd | supporter | contest | team | gymnastics
+whistle | מַשְׁרוֹקִית | whistleblow | stopwatch | goal | training | team
+whistleblow | שְׁרִיקָה | whistle | goal | training | crowd | contest
+stopwatch | סְטוֹפֶּר | whistle | record | running | marathon | training
+
+# ── משחקי שולחן ──────────────────────────────────────────────────────────────
+game | מִשְׂחָק | toy | cards | puzzle | domino | chess
+chess | שחמט | checkers | domino | cards | monopoly | game
+checkers | דמקה | chess | domino | cards | monopoly | game
+domino | דּוֹמִינוֹ | checkers | chess | cards | taki | game
+cards | קְלָפִים | taki | domino | monopoly | game | checkers
+taki | טָאקִי | cards | monopoly | domino | game | checkers
+monopoly | מוֹנוֹפּוֹל | taki | cards | domino | chess | game
+puzzle | פָּאזֶל | lego | game | marbles | toy | domino
+
+# ── צעצועים ──────────────────────────────────────────────────────────────────
+toy | צַעֲצוּעַ | doll | teddy | lego | game | balloon
+doll | בֻּבָּה | teddy | toy | lego | puzzle | balloon
+teddy | דֻּבִּי | doll | toy | balloon | lego | puzzle
+lego | לֶגוֹ | puzzle | toy | doll | marbles | robot
+marbles | גֻּלּוֹת | lego | puzzle | toy | jumprope | hoop
+balloon | בַּלּוֹן | kite | toy | teddy | doll | hoop
+kite | עֲפִיפוֹן | balloon | toy | jumprope | hoop | drone
+robot | רוֹבּוֹט | drone | lego | toy | game | doll
+drone | רַחְפָן | robot | kite | toy | game | balloon
+jumprope | חֶבֶל קְפִיצָה | hoop | hopscotch | marbles | jump | tag
+hoop | חִשּׁוּק | jumprope | balloon | basketball | hopscotch | jump
+
+# ── בחצר המשחקים ─────────────────────────────────────────────────────────────
+slide | מַגְלֵשָׁה | swing | trampoline | sandbox | ladder | hopscotch
+swing | נַדְנֵדָה | slide | trampoline | sandbox | ladder | hoop
+trampoline | טְרַמְפּוֹלִינָה | swing | slide | jump | gymnastics | sandbox
+sandbox | אַרְגַּז חוֹל | slide | swing | marbles | trampoline | ladder
+ladder | סלם | climbing | slide | swing | trampoline | sandbox
+hopscotch | קְלַאס | jumprope | tag | hideandseek | marbles | dodgeball
+tag | תּוֹפֶסֶת | hideandseek | hopscotch | jumprope | dodgeball | game
+hideandseek | מַחֲבוֹאִים | tag | hopscotch | jumprope | game | dodgeball

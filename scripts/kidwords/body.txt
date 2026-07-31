@@ -1,0 +1,141 @@
+@category הגוף והרגשות
+
+# ── הראש ─────────────────────────────────────────────────────────────────────
+head | ראש | face | neck | hair | forehead | brain
+face | פנים | head | cheek | forehead | chin | nose
+forehead | מצח | face | cheek | chin | eyebrow | head
+cheek | לחיה | chin | forehead | face | nose | lip
+chin | סנטר | cheek | forehead | lip | face | neck
+eye | עין | eyebrow | eyelash | nose | ear | mouth
+eyebrow | גבה | eyelash | eye | forehead | cheek | hair
+eyelash | ריס | eyebrow | eye | hair | forehead | cheek
+nose | אף | mouth | ear | eye | cheek | lip
+mouth | פה | lip | tongue | tooth | nose | chin
+lip | שפה | mouth | tongue | tooth | cheek | chin
+tooth | שן | tongue | lip | mouth | taste | chin
+tongue | לשון | tooth | lip | mouth | taste | voice
+ear | אזן | eye | nose | cheek | head | neck
+hair | שער | head | eyebrow | eyelash | neck | face
+neck | צואר | head | shoulder | chin | face | back
+
+# ── ידיים ורגליים ────────────────────────────────────────────────────────────
+shoulder | כתף | arm | neck | elbow | back | chest
+arm | זרוע | shoulder | elbow | hand | muscle | leg
+elbow | מרפק | arm | shoulder | knee | hand | muscle
+body | גּוּף | head | arm | leg | back | skin
+hand | יד | palm | finger | arm | elbow | thumb
+palm | כף יד | hand | finger | thumb | foot | arm
+finger | אצבע | thumb | nail | hand | palm | toe
+thumb | אגדל | finger | nail | palm | hand | toe
+nail | צפרן | finger | thumb | toe | palm | skin
+leg | רגל | knee | thigh | foot | ankle | heel
+thigh | ירך | leg | knee | belly | back | foot
+knee | ברך | leg | thigh | ankle | elbow | heel
+ankle | קרסל | heel | knee | foot | leg | toe
+heel | עקב | ankle | foot | knee | leg | toe
+foot | כף רגל | heel | ankle | toe | leg | palm
+toe | אצבע רגל | finger | foot | nail | heel | thumb
+
+# ── הגוף מבפנים ──────────────────────────────────────────────────────────────
+chest | חזה | back | belly | shoulder | rib | heart
+back | גב | chest | shoulder | spine | belly | neck
+belly | בטן | chest | navel | back | thigh | hunger
+navel | טבור | belly | chest | back | skin | thigh
+bone | עצם | rib | spine | muscle | skin | knee
+rib | צלע | bone | spine | chest | muscle | back
+spine | עמוד שדרה | bone | rib | back | muscle | neck
+muscle | שריר | bone | strength | arm | leg | rib
+skin | עור | nail | hair | bone | muscle | scratch
+blood | דם | heart | pulse | wound | skin | breath
+heart | לב | blood | pulse | brain | breath | chest
+brain | מח | heart | head | dream | thought | blood
+thought | מַחְשָׁבָה | brain | dream | secret | curiosity | memory
+memory | זִכָּרוֹן | thought | brain | dream | secret | time
+
+# ── חושים ────────────────────────────────────────────────────────────────────
+sight | רְאִיָּה | hearing | smell | taste | touch | eye
+hearing | שְׁמִיעָה | sight | voice | smell | ear | touch
+smell | רֵיחַ | taste | sight | hearing | nose | touch
+taste | טַעַם | smell | tongue | mouth | sight | touch
+touch | מַגָּע | smell | taste | hearing | hand | skin
+voice | קוֹל | hearing | laughter | crying | mouth | tongue
+
+# ── מה שהגוף עושה ────────────────────────────────────────────────────────────
+smile | חִיּוּךְ | laughter | joy | kiss | hug | tear
+laughter | צְחוֹק | smile | joy | voice | tickle | crying
+crying | בְּכִי | tear | sadness | laughter | voice | pain
+tear | דִּמְעָה | crying | sadness | smile | eye | pain
+kiss | נְשִׁיקָה | hug | smile | love | tickle | laughter
+hug | חִבּוּק | kiss | love | smile | tickle | hand
+tickle | דִּגְדּוּג | laughter | hug | kiss | smile | touch
+breath | נְשִׁימָה | pulse | heart | sleep | yawn | blood
+pulse | דֹּפֶק | heart | breath | blood | strength | rest
+sleep | שֵׁנָה | rest | yawn | dream | tiredness | breath
+yawn | פִּהוּק | sleep | tiredness | rest | breath | boredom
+rest | מְנוּחָה | sleep | tiredness | yawn | patience | quiet
+hunger | רָעָב | thirst | belly | taste | tiredness | pain
+thirst | צָמָא | hunger | taste | tongue | tiredness | pain
+strength | כֹּחַ | muscle | courage | pulse | body | age
+sense | חוּשׁ | sight | hearing | smell | taste | touch
+age | גִּיל | time | strength | birthday | family | memory
+
+# ── כשלא מרגישים טוב ─────────────────────────────────────────────────────────
+pain | כְּאֵב | wound | scratch | bruise | sick | crying
+wound | פֶּצַע | scratch | bruise | bandaid | bandage | pain
+scratch | שְׂרִיטָה | wound | bruise | bandaid | pain | skin
+bruise | חַבּוּרָה | scratch | wound | bandaid | pain | knee
+bandaid | פְּלַסְטֶר | bandage | wound | scratch | cast | medicine
+bandage | תַּחְבּוֹשֶׁת | bandaid | cast | wound | medicine | injection
+cast | גֶּבֶס | bandage | bandaid | bone | injection | wound
+sick | חוֹלֶה | healthy | medicine | cough | runnynose | pain
+healthy | בָּרִיא | sick | strength | medicine | vaccine | rest
+cough | שִׁעוּל | sneeze | runnynose | sick | breath | medicine
+sneeze | עִטּוּשׁ | cough | runnynose | nose | sick | breath
+runnynose | נַזֶּלֶת | sneeze | cough | nose | sick | medicine
+medicine | תְּרוּפָה | injection | vaccine | bandaid | sick | healthy
+injection | זְרִיקָה | vaccine | medicine | bandage | cast | pain
+vaccine | חִסּוּן | injection | medicine | healthy | sick | bandaid
+
+# ── רגשות טובים ──────────────────────────────────────────────────────────────
+joy | שמחה | happiness | pleasure | excitement | smile | laughter
+happiness | אשר | joy | pleasure | pride | hope | peace
+pleasure | הנאה | joy | happiness | excitement | pride | freedom
+excitement | התרגשות | joy | surprise | curiosity | happiness | hope
+surprise | הפתעה | excitement | curiosity | joy | secret | disappointment
+love | אהבה | hug | kiss | friendship | happiness | longing
+friendship | חֲבֵרוּת | love | hug | respect | peace | family
+family | מִשְׁפָּחָה | friendship | love | hug | respect | age
+pride | גאוה | happiness | courage | respect | shame | joy
+courage | אמץ | pride | strength | fear | hope | patience
+hope | תקוה | dream | happiness | courage | patience | luck
+dream | חלום | hope | sleep | thought | secret | memory
+luck | מזל | hope | surprise | happiness | dream | freedom
+peace | שלום | quiet | happiness | respect | freedom | friendship
+quiet | שֶׁקֶט | peace | rest | patience | boredom | sleep
+patience | סבלנות | quiet | rest | courage | respect | hope
+curiosity | סקרנות | excitement | surprise | thought | secret | hope
+respect | כבוד | pride | patience | peace | truth | justice
+freedom | חפש | peace | happiness | pleasure | justice | luck
+justice | צדק | truth | respect | freedom | lie | peace
+truth | אמת | lie | secret | justice | respect | promise
+promise | הַבְטָחָה | truth | secret | lie | respect | justice
+lie | שקר | truth | secret | justice | shame | guilt
+secret | סוד | lie | truth | surprise | curiosity | dream
+time | זמן | age | patience | memory | rest | boredom
+birthday | יוֹם הֻלֶּדֶת | age | joy | surprise | family | excitement
+
+# ── רגשות קשים ───────────────────────────────────────────────────────────────
+sadness | עצב | crying | loneliness | disappointment | longing | tear
+anger | כעס | hate | jealousy | shame | sadness | fear
+fear | פחד | courage | worry | anger | loneliness | sadness
+worry | דאגה | fear | sadness | loneliness | patience | hope
+hate | שנאה | anger | jealousy | love | disgust | shame
+jealousy | קנאה | anger | hate | pride | shame | sadness
+shame | בושה | guilt | pride | jealousy | anger | sadness
+guilt | אשמה | shame | lie | sadness | worry | truth
+disappointment | אכזבה | sadness | surprise | hope | anger | worry
+loneliness | בדידות | sadness | longing | worry | boredom | fear
+longing | געגוע | loneliness | sadness | love | memory | family
+disgust | געל | hate | anger | taste | smell | shame
+boredom | שעמום | tiredness | loneliness | yawn | time | rest
+tiredness | עיפות | boredom | sleep | rest | yawn | pain
