@@ -2,7 +2,13 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # Pages deployments are gated by the `github-pages` environment, which
+    # GitHub creates allowing the DEFAULT branch only. This repository's default
+    # branch is still claude/imposter-game-app-xajsxb, so a push to main builds
+    # fine but has its deploy job rejected before a runner is even assigned.
+    # Both are listed so publishing works today and keeps working the moment
+    # main is made the default branch — at which point the second entry can go.
+    branches: [main, claude/imposter-game-app-xajsxb]
   # Lets you publish the current branch by hand from the Actions tab.
   workflow_dispatch:
 
