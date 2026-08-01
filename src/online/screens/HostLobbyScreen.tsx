@@ -5,6 +5,7 @@ import { CategoriesPanel } from '../../ui/components/settings/CategoriesPanel';
 import { ModePanel } from '../../ui/components/settings/ModePanel';
 import { Panel } from '../../ui/components/settings/Panel';
 import { RulesPanel } from '../../ui/components/settings/RulesPanel';
+import { EditableName } from '../components/EditableName';
 import { QrCode } from '../components/QrCode';
 import type { Host } from '../useHost';
 import { shareUrl } from '../storage';
@@ -126,9 +127,19 @@ export function HostLobbyScreen({
                 <span className="w-5 shrink-0 text-center text-sm tabular-nums text-slate-500">
                   {index + 1}
                 </span>
-                <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
-                  {seat.name}
-                </span>
+                {seat.isHost ? (
+                  <EditableName
+                    name={seat.name}
+                    onRename={(name) =>
+                      host.command({ t: 'RENAME_SEAT', seatId: seat.seatId, name })
+                    }
+                    error={host.error}
+                  />
+                ) : (
+                  <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
+                    {seat.name}
+                  </span>
+                )}
                 {seat.isHost && (
                   <span className="shrink-0 rounded-full bg-glow/20 px-2 py-0.5 text-xs font-semibold text-glow-soft">
                     מארח

@@ -28,6 +28,7 @@ import {
   type ConnectFailure,
 } from './peer';
 import { useKeepAwake } from '../ui/useKeepAwake';
+import { nextRetry } from './retry';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
 
@@ -51,24 +52,12 @@ export type Guest = {
   failure: ConnectFailure | null;
   message: string | null;
   retry: () => void;
+  /** Lobby only — the host refuses once the roster is frozen. */
+  rename: (name: string) => void;
   leave: () => void;
 };
 
-const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000];
 
-/**
- * How many times to try before saying so.
- *
- * Retrying forever looks harmless and is not: a phone whose saved session
- * points at a room that was closed hours ago will sit on "connecting…" until
- * somebody force-quits the browser, and — because the session is what sends
- * the app into the online mode on launch — it will do it again on every launch.
- * After this many retries the player gets a screen with a way out. Kept low on
- * purpose: two attempts and a short timeout means about thirteen seconds before
- * somebody is told something useful, and a player staring at a phone counts
- * every one of them.
- */
-const MAX_ATTEMPTS_BEFORE_GIVING_UP = 1;
 
 /** Refusals the player has to act on. Everything else is worth retrying. */
 const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
@@ -89,6 +78,10 @@ export function useGuest(code: string, name: string): Guest {
   const channelRef = useRef<Channel | null>(null);
   /** When the host last said anything. See the heartbeat effect below. */
   const heardFrom = useRef(0);
+  /** Have we ever held a seat here? Changes what a failure means entirely. */
+  const seatedOnce = useRef(false);
+  /** When the current outage began — the clock the reconnect budget runs on. */
+  const outageSince = useRef(Date.now());
   const viewRef = useRef<PlayerView | null>(null);
   const attempt = useRef(0);
   const retryTimer = useRef<number | null>(null);
@@ -104,33 +97,33 @@ export function useGuest(code: string, name: string): Guest {
     stopped.current = false;
     let cancelled = false;
 
-    const giveUp = (why: ConnectFailure): void => {
-      stopped.current = true;
-      // A saved session is what sends the app into the online mode on launch,
-      // so a session pointing at a room that no longer exists would send this
-      // phone back to the same dead screen every single time it opened the
-      // game. Forget it; the player can still tap "try again" from here.
-      if (why === 'NO_ROOM') clearGuestSession();
-      setFailure(why);
-      setStatus('UNREACHABLE');
-    };
-
     const scheduleRetry = (why: ConnectFailure): void => {
       if (cancelled || stopped.current) return;
-      // No amount of waiting conjures up a room that does not exist.
-      if (why === 'NO_ROOM') {
-        giveUp(why);
+      const decision = nextRetry(
+        {
+          seatedOnce: seatedOnce.current,
+          attempt: attempt.current,
+          since: outageSince.current,
+        },
+        why,
+        Date.now(),
+      );
+
+      if (decision.action === 'GIVE_UP') {
+        stopped.current = true;
+        // A session pointing at a room that never answered would send this
+        // phone back to the same dead screen on every launch. A seated
+        // player's session is the opposite — it is how they get back in.
+        if (decision.clearSession) clearGuestSession();
+        setFailure(why);
+        setStatus('UNREACHABLE');
         return;
       }
-      if (attempt.current >= MAX_ATTEMPTS_BEFORE_GIVING_UP) {
-        giveUp(why);
-        return;
-      }
-      const wait = BACKOFF_MS[Math.min(attempt.current, BACKOFF_MS.length - 1)]!;
+
       attempt.current++;
       retryTimer.current = window.setTimeout(() => {
         if (!cancelled && !stopped.current) setNonce((n) => n + 1);
-      }, wait);
+      }, decision.delayMs);
     };
 
     setStatus(viewRef.current ? 'RECONNECTING' : 'CONNECTING');
@@ -153,6 +146,9 @@ export function useGuest(code: string, name: string): Guest {
               return;
             case 'WELCOME':
               saveGuestSession({ code, seatId: msg.seatId, name });
+              // From here on a failure means "the host hiccuped", not "there is
+              // no such room" — and the two get very different patience.
+              seatedOnce.current = true;
               setStatus('PLAYING');
               setReason(null);
               return;
@@ -175,11 +171,16 @@ export function useGuest(code: string, name: string): Guest {
               // game they are still sitting in.
               if (msg.on === 'JOIN' && TERMINAL.has(msg.reason)) {
                 stopped.current = true;
+                // Drop the channel reference too, or the heartbeat below keeps
+                // pinging forever — which keeps the host's `lastSeen` fresh and
+                // makes this channel permanently un-sweepable on their side.
+                channelRef.current = null;
                 setStatus('REJECTED');
               }
               return;
             case 'CLOSED':
               stopped.current = true;
+              channelRef.current = null;
               clearGuestSession();
               setStatus('CLOSED');
               return;
@@ -191,8 +192,9 @@ export function useGuest(code: string, name: string): Guest {
           channelRef.current = null;
           setStatus('RECONNECTING');
           // A channel that was open and then dropped is worth chasing: the host
-          // is probably still there. Start the count again from zero.
+          // is probably still there. Fresh count, fresh clock.
           attempt.current = 0;
+          outageSince.current = Date.now();
           scheduleRetry('NETWORK');
         });
 
@@ -201,7 +203,10 @@ export function useGuest(code: string, name: string): Guest {
         channel.send({
           t: 'JOIN',
           v: PROTOCOL_VERSION,
-          name,
+          // The stored name wins: `name` is a prop captured when the component
+          // mounted, so after a rename it is stale. The host ignores this on a
+          // seat match anyway — belt and braces.
+          name: saved?.name ?? name,
           ...(saved ? { seatId: saved.seatId } : {}),
         } satisfies GuestMessage);
       })
@@ -234,9 +239,10 @@ export function useGuest(code: string, name: string): Guest {
       if (!channel?.isOpen()) return;
       channel.send({ t: 'PING' } satisfies GuestMessage);
       if (Date.now() - heardFrom.current > SILENCE_TIMEOUT_MS) {
-        // Drop it ourselves rather than wait for an event that is not coming;
-        // closing fires `onClose`, which starts the reconnect.
-        channel.close();
+        // `drop()`, not `close()`. Closing is the silent form — it tears the
+        // channel down without telling anyone, so the reconnect this exists to
+        // start would never happen and the screen would freeze for good.
+        channel.drop();
       }
     }, HEARTBEAT_MS);
     return () => window.clearInterval(id);
@@ -249,12 +255,58 @@ export function useGuest(code: string, name: string): Guest {
     channel.send({ ...msg, key } as GuestMessage);
   }, []);
 
+  const rename = useCallback(
+    (next: string) => {
+      const channel = channelRef.current;
+      if (!channel) return;
+      // Deliberately no sync key: two players renaming in the same tick would
+      // otherwise reject each other for no reason. The host validates the name
+      // through the very gate `START_GAME` will apply later.
+      channel.send({ t: 'RENAME', name: next } satisfies GuestMessage);
+      // Kept locally too, so the next reconnect's JOIN carries the new name
+      // rather than the one this component mounted with.
+      const saved = loadGuestSession(code);
+      if (saved) saveGuestSession({ ...saved, name: next });
+    },
+    [code],
+  );
+
   const retry = useCallback(() => {
     stopped.current = false;
     attempt.current = 0;
     setReason(null);
     setFailure(null);
     setNonce((n) => n + 1);
+  }, []);
+
+  /**
+   * Coming back from the background.
+   *
+   * The host has the same handler for the same reason: while the tab was
+   * suspended no intervals ran and no events were delivered, so the first thing
+   * the heartbeat would otherwise do on resume is read the silence as the host
+   * being gone — on a channel that is perfectly alive.
+   */
+  useEffect(() => {
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      // A player who has been told the room closed, or that they were refused,
+      // stays told. Without this, switching apps and back would quietly clear
+      // their terminal state and start re-dialling a room that no longer
+      // exists — the exact loop the unreachable screen was written to end.
+      if (stopped.current) return;
+      const channel = channelRef.current;
+      if (!channel || !channel.isOpen()) {
+        attempt.current = 0;
+        outageSince.current = Date.now();
+        setNonce((n) => n + 1);
+        return;
+      }
+      heardFrom.current = Date.now();
+      channel.send({ t: 'PING' } satisfies GuestMessage);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   useEffect(() => {
@@ -273,10 +325,15 @@ export function useGuest(code: string, name: string): Guest {
 
   const leave = useCallback(() => {
     stopped.current = true;
-    channelRef.current?.send({ t: 'LEAVE' } satisfies GuestMessage);
+    const channel = channelRef.current;
+    channel?.send({ t: 'LEAVE' } satisfies GuestMessage);
+    // Same drain as the host's close: destroying the peer immediately would
+    // take the LEAVE with it, and the host would hold a phantom seat for the
+    // full silence timeout instead of freeing it now.
+    channel?.closeGracefully();
     channelRef.current = null;
-    destroyGuest();
     clearGuestSession();
+    window.setTimeout(() => destroyGuest(), 300);
   }, []);
 
   return {
@@ -287,6 +344,7 @@ export function useGuest(code: string, name: string): Guest {
     failure,
     message: reason ? REJECT_TEXT[reason] : null,
     retry,
+    rename,
     leave,
   };
 }

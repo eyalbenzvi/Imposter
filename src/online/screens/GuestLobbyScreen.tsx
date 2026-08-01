@@ -1,6 +1,7 @@
 import { selectedCategories } from '../../game/rules';
 import { CATEGORIES } from '../../game/words';
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../../ui/components/Screen';
+import { EditableName } from '../components/EditableName';
 import type { PlayerView } from '../view';
 
 /**
@@ -23,9 +24,13 @@ function settingsLine(view: PlayerView): string {
 export function GuestLobbyScreen({
   view,
   onLeave,
+  onRename,
+  renameError,
 }: {
   view: PlayerView;
   onLeave: () => void;
+  onRename: (name: string) => void;
+  renameError?: string | null;
 }) {
   const lobby = view.lobby;
   if (!lobby) return null;
@@ -57,9 +62,17 @@ export function GuestLobbyScreen({
               <span className="w-5 shrink-0 text-center text-sm tabular-nums text-slate-500">
                 {index + 1}
               </span>
-              <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
-                {name}
-              </span>
+              {name === view.you.name ? (
+                <EditableName
+                  name={name}
+                  onRename={onRename}
+                  error={renameError}
+                />
+              ) : (
+                <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
+                  {name}
+                </span>
+              )}
               {index === 0 && (
                 <span className="shrink-0 rounded-full bg-glow/20 px-2 py-0.5 text-xs font-semibold text-glow-soft">
                   מארח

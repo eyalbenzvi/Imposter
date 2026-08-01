@@ -199,24 +199,28 @@ export function validateJoin(
  *
  * The host cannot wait to be told a guest has gone: a tab closed, a phone
  * locked or a wifi dropped all leave the data channel looking open on this
- * side. Silence is the only signal that arrives every time, so it is the one
- * the room acts on.
+ * side. Silence is the only signal that arrives every time.
  *
- * A connection with no recorded sighting at all is treated as seen just now by
- * the caller, not as stale — a seat must never be swept in the window between
- * the channel opening and its first message.
+ * Takes the live connection ids rather than the room, so it also reaps the two
+ * populations that hold no seat and would otherwise accumulate forever: a
+ * channel that was refused entry, and a channel whose seat was taken over by a
+ * reconnect. The host's own pseudo-connection is excluded by construction — it
+ * has no entry in the channel table.
+ *
+ * A connection with no recorded sighting is NOT stale: the caller stamps one
+ * the moment a channel opens, so an absent entry means somebody forgot, and
+ * reaping on that would drop players as they arrive.
  */
 export function staleConnIds(
-  room: Room,
+  connIds: Iterable<string>,
   lastSeen: ReadonlyMap<string, number>,
   now: number,
   timeoutMs: number,
 ): string[] {
   const stale: string[] = [];
-  for (const seat of room.seats) {
-    if (seat.isHost || seat.connId === null) continue;
-    const seen = lastSeen.get(seat.connId);
-    if (seen !== undefined && now - seen > timeoutMs) stale.push(seat.connId);
+  for (const connId of connIds) {
+    const seen = lastSeen.get(connId);
+    if (seen !== undefined && now - seen > timeoutMs) stale.push(connId);
   }
   return stale;
 }

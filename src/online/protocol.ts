@@ -42,6 +42,12 @@ export type GuestMessage =
   | { t: 'LEAVE' }
   /** Heartbeat. Carries nothing; arriving at all is the whole message. */
   | { t: 'PING' }
+  /**
+   * Change my display name. Lobby only, and deliberately without a sync key:
+   * two players renaming in the same tick would otherwise reject each other
+   * for no reason at all.
+   */
+  | { t: 'RENAME'; name: string }
   | { t: 'READY'; key: string }
   | { t: 'CHOOSE'; key: string; option: ChoiceOption }
   | { t: 'VOTE'; key: string; target: PlayerId }
@@ -100,6 +106,10 @@ export type RejectReason =
  */
 export type HostCommand =
   | { t: 'FORCE_REVEAL' }
+  /** Back to the lobby after a game: settings reopen, latecomers can join. */
+  | { t: 'REOPEN' }
+  /** The host renaming themselves — `act` goes through the intent gate. */
+  | { t: 'RENAME_SEAT'; seatId: SeatId; name: string }
   | { t: 'SKIP_TURN' }
   | { t: 'FORCE_CHOICE'; option: ChoiceOption }
   | { t: 'DROP_SEAT'; seatId: SeatId }
@@ -122,6 +132,7 @@ const GUEST_TYPES: ReadonlySet<string> = new Set<GuestMessageType>([
   'JOIN',
   'LEAVE',
   'PING',
+  'RENAME',
   'READY',
   'CHOOSE',
   'VOTE',
@@ -157,6 +168,8 @@ export function parseGuestMessage(raw: unknown): GuestMessage | null {
       return { t: 'LEAVE' };
     case 'PING':
       return { t: 'PING' };
+    case 'RENAME':
+      return str(msg.name) ? { t: 'RENAME', name: msg.name } : null;
     case 'READY':
     case 'NEXT_TURN':
     case 'SKIP_CLUES':

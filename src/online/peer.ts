@@ -10,28 +10,23 @@
  * rewriting this file and nothing else.
  */
 
-import Peer, { type DataConnection } from 'peerjs';
+import Peer from 'peerjs';
+import { makeBrokerLoop, type BrokerState } from './brokerLoop';
+import { wrap, type Channel, type RawConn } from './channel';
 import { PEER_PREFIX } from './protocol';
 
-export type Channel = {
-  id: string;
-  send(msg: unknown): void;
-  close(): void;
-  onMessage(cb: (msg: unknown) => void): void;
-  onClose(cb: () => void): void;
-  isOpen(): boolean;
-};
+export type { Channel } from './channel';
 
 /**
- * Why a connection attempt failed, in the only three flavours that change what
- * a player should be told or what the app should do next.
+ * Why a connection attempt failed, in the flavours that change what a player
+ * should be told or what the app should do next.
  *
  * PeerJS reports "there is no such peer" and "the broker is not answering" as
  * ordinary errors, and without telling them apart the app can only shrug and
- * retry — which is precisely what left a phone re-dialling a room that had
- * been closed hours earlier, forever, with nothing on screen to say so.
+ * retry — which is how a phone ended up re-dialling a room closed hours
+ * earlier, forever, with nothing on screen to say so.
  */
-export type ConnectFailure = 'NO_ROOM' | 'TIMEOUT' | 'NETWORK';
+export type ConnectFailure = 'NO_ROOM' | 'TIMEOUT' | 'NETWORK' | 'CODE_LOST';
 
 export class ConnectError extends Error {
   readonly kind: ConnectFailure;
@@ -43,12 +38,11 @@ export class ConnectError extends Error {
 }
 
 /**
- * How long to wait before calling it.
+ * How long to wait before calling an attempt failed.
  *
  * Nothing in PeerJS times out on its own: a broker that accepts the socket and
  * then goes quiet, or an ICE negotiation that never completes, leaves the
- * promise pending for the lifetime of the tab. Every hang reported so far was
- * this.
+ * promise pending for the lifetime of the tab.
  */
 const CONNECT_TIMEOUT_MS = 6_000;
 
@@ -62,84 +56,29 @@ export function roomPeerId(code: string): string {
  * The peer id lives in a namespace shared with every other copy of this game on
  * the public broker, so a code is not just a convenience — two groups drawing
  * the same one means the second host cannot open their room and a guest who
- * types it lands in a stranger's game. Four digits is 9,000 slots and starts
- * colliding at around a hundred concurrent rooms; six is 900,000.
+ * types it lands in a stranger's game.
  */
 export function randomCode(): string {
   return String(Math.floor(Math.random() * 900_000) + 100_000);
 }
 
-/**
- * A channel has exactly one listener for each event, and registering a new one
- * replaces the old.
- *
- * Appending would look more flexible and would be wrong: a StrictMode remount
- * hands the same channel back to a second effect, and two live handlers means
- * every message is processed twice — two seats claimed for one guest, two votes
- * from one tap.
- */
-function wrap(conn: DataConnection): Channel {
-  let onMessageCb: ((msg: unknown) => void) | null = null;
-  let onCloseCb: (() => void) | null = null;
-  let closed = false;
-
-  conn.on('data', (data) => {
-    // Everything crosses as JSON; a string is what a slightly different peerjs
-    // build might hand us instead of a parsed object.
-    const msg = typeof data === 'string' ? safeParse(data) : data;
-    if (msg !== undefined) onMessageCb?.(msg);
-  });
-
-  const fire = () => {
-    if (closed) return;
-    closed = true;
-    onCloseCb?.();
-  };
-  conn.on('close', fire);
-  conn.on('error', fire);
-
-  return {
-    id: conn.connectionId,
-    send(msg) {
-      if (closed || !conn.open) return;
-      try {
-        conn.send(msg);
-      } catch {
-        // A channel that dies mid-send is handled by the close handler; a
-        // throw here must not take the host's render down with it.
-      }
-    },
-    close() {
-      closed = true;
-      try {
-        conn.close();
-      } catch {
-        /* already gone */
-      }
-    },
-    onMessage(cb) {
-      onMessageCb = cb;
-    },
-    onClose(cb) {
-      onCloseCb = cb;
-    },
-    isOpen: () => !closed && conn.open,
-  };
-}
-
-function safeParse(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
+export type GuestPeer = { channel: Channel; destroy(): void };
 
 export type HostPeer = {
   code: string;
   /** Replaces the handler rather than adding one — see the singleton note. */
   onConnect(cb: (channel: Channel) => void): void;
-  /** Nudge the broker after the tab has been backgrounded. */
+  /**
+   * Watch the signalling socket.
+   *
+   * A setter, not an `openHost` option, for the same reason `onConnect` is one:
+   * `openHost` hands back a cached promise, so a second caller's option would
+   * be silently dropped and the peer left wired to a torn-down closure. The
+   * current state is replayed immediately, so a late subscriber is never stuck
+   * believing everything is fine.
+   */
+  onBroker(cb: (state: BrokerState) => void): void;
+  /** Prod the broker after the tab has been backgrounded. */
   reconnect(): void;
   destroy(): void;
 };
@@ -158,8 +97,8 @@ export type OpenHostOptions = {
   retainMs?: number;
 };
 
-const RETAIN_MS = 45_000;
-const RETRY_STEP_MS = 1_500;
+const RETAIN_MS = 75_000;
+const RETRY_STEP_MS = 3_000;
 
 /**
  * At most one host peer per tab, ever.
@@ -192,11 +131,21 @@ export function openHost(options: OpenHostOptions = {}): Promise<HostPeer> {
   return promise;
 }
 
-/** The real teardown. Only `closeRoom` calls this, never an effect cleanup. */
-export function destroyHost(): void {
+/**
+ * The real teardown. Only `closeRoom` calls this, never an effect cleanup.
+ *
+ * The cache is cleared **synchronously** even when the destroy is deferred. A
+ * deferred teardown that left `live` in place would hand the dying peer to
+ * whoever opened the next room inside the delay window — and then kill it
+ * under them, leaving a lobby showing a code nobody can reach.
+ */
+export function destroyHost(afterMs = 0): void {
   const entry = live;
   live = null;
-  entry?.peer?.destroy();
+  const peer = entry?.peer;
+  if (!peer) return;
+  if (afterMs <= 0) peer.destroy();
+  else window.setTimeout(() => peer.destroy(), afterMs);
 }
 
 function createHost(options: OpenHostOptions): Promise<HostPeer> {
@@ -205,60 +154,124 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
 
   return new Promise((resolve, jilt) => {
     let attempt = 0;
+    /** Counted apart from `attempt` so fighting for our own id can't bail out. */
+    let idClashes = 0;
 
     const tryOpen = (code: string): void => {
       attempt++;
       const peer = new Peer(roomPeerId(code));
       let settled = false;
+      let opened = false;
 
-      // Same hazard as the guest side: a quiet broker leaves this pending and
-      // the lobby stuck on "opening a room" with no way to tell why.
+      let onConnectCb: ((channel: Channel) => void) | null = null;
+      let onBrokerCb: ((state: BrokerState) => void) | null = null;
+      let brokerState: BrokerState = 'UP';
+
+      const loop = makeBrokerLoop({
+        reconnect: () => peer.reconnect(),
+        isDead: () => peer.destroyed,
+        isDisconnected: () => peer.disconnected,
+        setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+        clearTimeout: (id) => window.clearTimeout(id),
+        onState: (state) => {
+          brokerState = state;
+          onBrokerCb?.(state);
+        },
+      });
+
+      // A quiet broker leaves this pending and the lobby stuck on "opening a
+      // room" with nothing to say why.
       const timer = window.setTimeout(() => {
         if (settled) return;
         settled = true;
+        loop.stop();
         peer.destroy();
         jilt(new ConnectError('TIMEOUT', 'could not reach the room service'));
       }, CONNECT_TIMEOUT_MS);
 
       peer.on('open', () => {
-        settled = true;
         window.clearTimeout(timer);
-        // One handler, replaced on each mount: a StrictMode remount must not
-        // leave the previous mount's callback wired to the same peer, or every
-        // guest would be processed twice.
-        let onConnectCb: ((channel: Channel) => void) | null = null;
+        loop.up();
+        // A reconnect re-emits 'open'. Registering 'connection' again would
+        // wrap every guest twice and process every message twice — two votes
+        // from one tap. This guard is the only thing preventing that, and it
+        // matters precisely because reconnecting now works.
+        if (opened) return;
+        opened = true;
+        settled = true;
+
+        peer.on('disconnected', () => loop.down());
         peer.on('connection', (conn) => {
-          conn.on('open', () => onConnectCb?.(wrap(conn)));
+          conn.on('open', () => onConnectCb?.(wrap(conn as unknown as RawConn)));
         });
+
         resolve({
           code,
           onConnect: (cb) => {
             onConnectCb = cb;
           },
-          reconnect: () => {
-            if (peer.disconnected && !peer.destroyed) peer.reconnect();
+          onBroker: (cb) => {
+            onBrokerCb = cb;
+            cb(brokerState);
           },
-          destroy: () => peer.destroy(),
+          reconnect: () => {
+            // The guard stays: `reconnect()` throws both on a destroyed peer
+            // and on one that is not disconnected. Arming the loop as well
+            // covers iOS, where the socket's `close` is delivered on resume —
+            // after `visibilitychange` has already been and gone.
+            if (peer.disconnected && !peer.destroyed) {
+              try {
+                peer.reconnect();
+              } catch {
+                /* raced */
+              }
+            }
+            loop.down();
+          },
+          destroy: () => {
+            // Before `peer.destroy()`, which emits 'disconnected' on its way
+            // out and would otherwise arm the loop against a corpse.
+            loop.stop();
+            peer.destroy();
+          },
         });
       });
 
       peer.on('error', (err: Error & { type?: string }) => {
+        if (opened) {
+          // Post-open errors are recoverable signalling trouble, not a reason
+          // to tear the room down. `_abort` reports the same failure as both
+          // an error and a disconnect; the loop dedupes that.
+          loop.down();
+          return;
+        }
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
+        loop.stop();
         peer.destroy();
+
         if (err.type !== 'unavailable-id') {
           jilt(new ConnectError('NETWORK', String(err)));
           return;
         }
+
         // Somebody — very likely our own previous tab — still holds this id.
-        const keepFighting =
-          preferredCode === code && Date.now() - startedAt < retainMs;
-        if (keepFighting) {
+        // peerjs-server keeps an abandoned one for about a minute.
+        const resuming = preferredCode === code;
+        if (resuming && Date.now() - startedAt < retainMs) {
+          idClashes++;
           setTimeout(() => tryOpen(code), RETRY_STEP_MS);
           return;
         }
-        if (attempt >= 6) {
+        if (resuming) {
+          // Deliberately NOT falling back to a fresh code. Every guest is
+          // dialling the old one and the shared QR points at it; swapping the
+          // number silently would strand the whole room.
+          jilt(new ConnectError('CODE_LOST', 'the room code could not be reclaimed'));
+          return;
+        }
+        if (attempt - idClashes >= 6) {
           jilt(new ConnectError('NETWORK', 'could not open a room'));
           return;
         }
@@ -271,15 +284,12 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
 }
 
 /**
- * The guest's side of the handshake, with the same one-per-tab rule and for the
- * same reason: two StrictMode mounts would open two channels, the host would
- * see two different connections claiming one name, and the second would be
- * turned away as a duplicate.
+ * The guest's side of the handshake, with the same one-per-tab rule and for
+ * the same reason: two StrictMode mounts would open two channels, and the host
+ * would see two connections claiming one name.
  */
 let joined: { code: string; promise: Promise<GuestPeer>; peer: GuestPeer | null } | null =
   null;
-
-export type GuestPeer = { channel: Channel; destroy(): void };
 
 export function joinHost(code: string): Promise<GuestPeer> {
   if (joined && joined.code === code && joined.peer?.channel.isOpen() !== false) {
@@ -340,7 +350,7 @@ function createGuest(code: string): Promise<GuestPeer> {
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
-        resolve({ channel: wrap(conn), destroy: () => peer.destroy() });
+        resolve({ channel: wrap(conn as unknown as RawConn), destroy: () => peer.destroy() });
       });
       conn.on('error', (err) => fail('NETWORK', String(err)));
     });

@@ -3,19 +3,27 @@ import type { HostCommand } from '../protocol';
 import type { PlayerView } from '../view';
 
 /**
- * The host's way out when a phone dies mid-phase.
+ * The host's controls: overrides when a phone dies mid-phase, the way back to
+ * the lobby between games, and the way to close the room.
  *
- * Two rules earn their keep here:
+ * Three rules earn their keep here:
  *
- *  1. **The button is always on screen.** It used to render only when the phase
- *     had overrides to offer — and "close the room" lives inside the sheet it
- *     opens, so in the one phase with no overrides (the imposter's guess, where
- *     the only player who may act has just been voted out) the host had no
- *     control of any kind, and a refresh put them straight back on the same
- *     dead screen for the whole six-hour session TTL.
- *  2. **The overrides are held back ten seconds.** An escape hatch that is
- *     there the instant a phase opens gets tapped out of impatience, and a room
- *     that skips its own reveal is worse than one that waits.
+ *  1. **It lives in the header corner, not over the footer.** It used to be
+ *     fixed to the bottom of the screen, directly on top of the primary buttons
+ *     — so on every screen with a footer it covered the thing the host was
+ *     trying to tap. `ScreenHeader` already reserves this corner (`pe-14`); it
+ *     is where the single-device game puts its home button and where a guest
+ *     gets theirs. Overlap becomes impossible rather than something z-index has
+ *     to keep negotiating.
+ *  2. **The button is always there.** It used to render only when the phase had
+ *     overrides to offer — and "close the room" lives inside the sheet it opens,
+ *     so in the one phase with no overrides (the imposter's guess, where the
+ *     only player who may act has just been voted out) the host had no control
+ *     of any kind.
+ *  3. **Panic buttons are held back ten seconds; deliberate ones are not.** An
+ *     escape hatch that is there the instant a phase opens gets tapped out of
+ *     impatience. "Change the settings" is not an escape hatch, so it appears
+ *     immediately.
  */
 const GRACE_MS = 10_000;
 
@@ -43,36 +51,47 @@ export function HostStrip({
     return () => window.clearTimeout(id);
   }, [view.phase, view.roundNumber, view.key]);
 
-  const options = ripe ? commandsFor(view) : [];
+  // Overrides wait; deliberate actions do not.
+  const options = [...(ripe ? commandsFor(view) : []), ...alwaysFor(view)];
 
   return (
     <>
-      <div
-        className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-3"
-        style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="שליטת מארח"
+        className={`fixed z-40 grid h-11 w-11 place-items-center rounded-xl border
+          text-lg backdrop-blur transition active:scale-95 ${
+            stuck
+              ? 'border-gold/70 bg-gold/20 text-gold'
+              : 'border-ink-700 bg-ink-900/80 text-slate-400 hover:border-glow/60'
+          }`}
+        style={{
+          // The same logical corner the home button uses in the single-device
+          // game, which every `ScreenHeader` already keeps clear.
+          insetInlineEnd: 'max(0.75rem, env(safe-area-inset-right))',
+          top: 'max(0.75rem, env(safe-area-inset-top))',
+        }}
       >
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={`pointer-events-auto min-h-[36px] rounded-full border px-3 text-xs
-            font-semibold backdrop-blur transition ${
-              stuck
-                ? 'border-gold/60 bg-gold/15 text-gold'
-                : 'border-ink-700 bg-ink-900/80 text-slate-500'
-            }`}
-        >
-          {stuck ? 'מישהו מנותק — אפשר להמשיך' : 'שליטת מארח'}
-        </button>
-      </div>
+        ⚙
+        {stuck && (
+          <span
+            aria-hidden
+            className="absolute -top-0.5 -end-0.5 h-2.5 w-2.5 rounded-full bg-gold"
+          />
+        )}
+      </button>
 
       {open && (
         <div className="fixed inset-0 z-[70] grid place-items-end bg-ink-950/80 p-3 backdrop-blur-sm">
           <div className="card w-full animate-rise-in">
             <p className="pb-1 text-base font-bold text-slate-100">שליטת מארח</p>
             <p className="pb-4 text-xs leading-relaxed text-slate-500">
-              {options.length > 0
-                ? 'להשתמש רק כשמישהו מנותק או שהמשחק תקוע'
-                : 'תנו לקבוצה עוד רגע. אם המשחק תקוע, האפשרויות יופיעו כאן'}
+              {stuck
+                ? 'מישהו מנותק — אפשר להמשיך בלעדיו'
+                : options.length > 0
+                  ? 'להשתמש רק כשמישהו מנותק או שהמשחק תקוע'
+                  : 'תנו לקבוצה עוד רגע. אם המשחק תקוע, האפשרויות יופיעו כאן'}
             </p>
             <div className="flex flex-col gap-2">
               {options.map((option) => (
@@ -127,6 +146,23 @@ export function HostStrip({
 }
 
 type Option = { label: string; cmd: HostCommand };
+
+/**
+ * Deliberate actions, available the moment the screen opens.
+ *
+ * Separate from `commandsFor` because the ten-second wait is right for a panic
+ * button and wrong for "we want to change the settings before the next round" —
+ * a host tapping that has decided, not panicked.
+ */
+function alwaysFor(view: PlayerView): Option[] {
+  if (view.phase !== 'GAME_OVER') return [];
+  return [
+    {
+      label: 'לשנות הגדרות / לצרף שחקנים',
+      cmd: { t: 'REOPEN' },
+    },
+  ];
+}
 
 function commandsFor(view: PlayerView): Option[] {
   switch (view.phase) {

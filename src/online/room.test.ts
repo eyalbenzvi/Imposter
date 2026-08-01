@@ -23,38 +23,33 @@ describe('noticing that somebody has gone quiet', () => {
   const TIMEOUT = 10_000;
 
   it('names a connection that has stopped talking', () => {
-    const room = lobby(3);
-    const [, second, third] = room.seats;
     const seen = new Map([
-      [second!.connId!, NOW - 1_000],
-      [third!.connId!, NOW - 30_000],
+      ['c1', NOW - 1_000],
+      ['c2', NOW - 30_000],
     ]);
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([third!.connId]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual(['c2']);
   });
 
   /**
    * The window between a channel opening and its first message is the one time
-   * "no sighting" is normal. Sweeping then would drop players as they arrive.
+   * "no sighting" is normal — the caller stamps one on open. Reaping then would
+   * drop players as they arrive.
    */
   it('leaves a connection alone until it has been seen at least once', () => {
-    const room = lobby(3);
-    expect(staleConnIds(room, new Map(), NOW, TIMEOUT)).toEqual([]);
+    expect(staleConnIds(['c1', 'c2'], new Map(), NOW, TIMEOUT)).toEqual([]);
   });
 
-  it('never sweeps the host — it is the device the room runs on', () => {
-    const room = lobby(3);
-    const seen = new Map(room.seats.map((s) => [s.connId!, NOW - 60_000]));
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).not.toContain('host');
+  it('reaps a channel that holds no seat at all', () => {
+    // A guest refused entry, or one whose seat was taken over by a reconnect.
+    // Walking the seat list could never see either, and they accumulated.
+    const seen = new Map([['orphan', NOW - 60_000]]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual(['orphan']);
   });
 
-  it('ignores a seat that is already marked disconnected', () => {
-    const started = lobby(3);
-    const room = {
-      ...started,
-      seats: started.seats.map((s, i) => (i === 1 ? { ...s, connId: null } : s)),
-    };
-    const seen = new Map([[room.seats[2]!.connId!, NOW - 60_000]]);
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([room.seats[2]!.connId]);
+  it('is exactly at the boundary, not around it', () => {
+    const seen = new Map([['c1', NOW - TIMEOUT]]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual([]);
+    expect(staleConnIds(seen.keys(), seen, NOW + 1, TIMEOUT)).toEqual(['c1']);
   });
 });
 

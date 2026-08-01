@@ -193,12 +193,12 @@ export function handleJoin(
       // counting toward every threshold. Two tabs on one phone is a far rarer
       // problem, and it costs that phone a refresh rather than the room a
       // player.
-      const bad = validateJoin(room, msg.name, seat.seatId);
-      if (bad) return reject(room, bad);
+      // The name is deliberately NOT taken from the JOIN. A reconnect says
+      // "I am back", not "call me this" — and the name in a guest's JOIN comes
+      // from a prop captured at mount, so honouring it would silently revert
+      // every rename on the next blip. `RENAME` is the only way to change one.
       const seats = room.seats.map((s) =>
-        s.seatId === seat.seatId
-          ? { ...s, connId, name: room.locked ? s.name : normalize(msg.name.trim()) }
-          : s,
+        s.seatId === seat.seatId ? { ...s, connId } : s,
       );
       return { room: touch(room, { seats }), accepted: true, seatId: seat.seatId };
     }
@@ -219,6 +219,30 @@ export function handleJoin(
     room: touch(room, { seats: [...room.seats, seat] }),
     accepted: true,
     seatId: seat.seatId,
+  };
+}
+
+/**
+ * Change a seated player's display name.
+ *
+ * Only while the room is open: once the game starts the roster is frozen into
+ * `state.players` and the reducer owns those names. Validated through exactly
+ * the gate `START_GAME` will later apply, so a name accepted here can never be
+ * a name that makes the game refuse to start.
+ */
+export function renameSeat(room: Room, seatId: SeatId, name: string): Outcome {
+  if (room.locked) return reject(room, 'NOT_ALLOWED');
+  const seat = seatById(room, seatId);
+  if (!seat) return reject(room, 'NOT_ALLOWED');
+  const bad = validateJoin(room, name, seatId);
+  if (bad) return reject(room, bad);
+  const next = normalize(name.trim());
+  if (next === seat.name) return { room, accepted: true };
+  return {
+    room: touch(room, {
+      seats: room.seats.map((s) => (s.seatId === seatId ? { ...s, name: next } : s)),
+    }),
+    accepted: true,
   };
 }
 
@@ -381,18 +405,31 @@ export function handleIntent(
   msg: GuestMessage,
   env: Env,
 ): Outcome {
-  // Handled by the connection layer, not the rulebook.
-  if (msg.t === 'JOIN' || msg.t === 'LEAVE' || msg.t === 'PING') {
+  // Handled by the connection layer, not the rulebook. RENAME is among them:
+  // it is a lobby operation, and `handleIntent` refuses everything in SETUP and
+  // needs a player id that does not exist until the game starts.
+  if (
+    msg.t === 'JOIN' ||
+    msg.t === 'LEAVE' ||
+    msg.t === 'PING' ||
+    msg.t === 'RENAME'
+  ) {
     return reject(room, 'BAD_PAYLOAD');
   }
+
+  // The key is checked before anything else, and deliberately so. If the game
+  // has moved on, the tap refers to a screen that no longer exists, and nothing
+  // else about the message can be judged meaningfully against the current room
+  // anyway — the player, the phase and the turn have all had a chance to
+  // change. It is also the only refusal a guest can act on by itself: STALE is
+  // swallowed and answered with a fresh view, while every other reason paints a
+  // red banner. Judging phase first meant a tap left over from the last game
+  // came back as NOT_ALLOWED and put an error on a screen that was simply late.
+  if (msg.key !== String(room.epoch)) return reject(room, 'STALE');
 
   const playerId = playerIdOf(room, seatId);
   if (playerId === null) return reject(room, 'NOT_ALLOWED');
   if (room.state.phase === 'SETUP') return reject(room, 'NOT_ALLOWED');
-
-  // Everything the guest is looking at was minted at some epoch. If the game
-  // has moved since, the tap refers to a screen that no longer exists.
-  if (msg.key !== String(room.epoch)) return reject(room, 'STALE');
 
   const denied = authorise(room, playerId, msg);
   if (denied) return reject(room, denied);
@@ -537,9 +574,50 @@ export function hostCommand(room: Room, cmd: HostCommand, env: Env): Outcome {
       };
     }
 
+    case 'RENAME_SEAT':
+      return renameSeat(room, cmd.seatId, cmd.name);
+
+    case 'REOPEN':
+      return reopen(room, env);
+
     case 'FORCE_ADVANCE':
       return forceAdvance(room, env);
   }
+}
+
+/**
+ * Back to the lobby after a finished game.
+ *
+ * The only way to change settings between rounds: `UPDATE_SETTINGS` is legal
+ * in `SETUP` alone, and the room is locked from the moment play begins. It also
+ * lets somebody who arrived late finally join.
+ *
+ * Two things this must do beyond the obvious, both learned the hard way:
+ *
+ *  • **Drop seats that have nobody behind them.** A player who dropped out
+ *    mid-game left a seat parked with `connId: null`. Unlocking the room does
+ *    not give that seat a channel, so the sweep can never reap it — it would be
+ *    immortal, get frozen into the next `seatOrder`, be dealt a role, and count
+ *    toward every threshold. A game waiting on a phone that went home.
+ *  • **Move the epoch on.** A `READY` still in flight from the final screen
+ *    lands after the reopen. Without a new epoch it is `NOT_ALLOWED`, which
+ *    paints a red banner over the lobby; with one it is `STALE`, which the
+ *    guest swallows and corrects itself.
+ */
+function reopen(room: Room, env: Env): Outcome {
+  if (room.state.phase !== 'GAME_OVER') return reject(room, 'NOT_ALLOWED');
+  const out = commit(room, [{ type: 'BACK_TO_SETUP' }], env);
+  if (!out.accepted) return out;
+  return {
+    room: {
+      ...out.room,
+      locked: false,
+      seatOrder: null,
+      seats: out.room.seats.filter((s) => s.isHost || s.connId !== null),
+      version: out.room.version + 1,
+    },
+    accepted: true,
+  };
 }
 
 /** What a player who never typed a clue is recorded as having said. */

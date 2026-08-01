@@ -399,6 +399,8 @@ function GuestSide({
         <GuestLobbyScreen
           view={guest.view}
           onLeave={quit}
+          onRename={guest.rename}
+          renameError={guest.message}
         />
       ) : (
         <>

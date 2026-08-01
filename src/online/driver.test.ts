@@ -12,6 +12,7 @@ import {
   blockedOnDisconnected,
   handleIntent,
   handleJoin,
+  renameSeat,
   startGame,
 } from './driver';
 import { PROTOCOL_VERSION } from './protocol';
@@ -761,3 +762,185 @@ function ejectOne(room: import('./room').Room) {
   const target = played.state.players.find((p) => p.id !== 'p0')!.id;
   return voteOut(played, target);
 }
+
+
+describe('reopening the room between games', () => {
+  /**
+   * The only way to change settings between rounds. `UPDATE_SETTINGS` is legal
+   * in SETUP alone and the room is locked from the moment play begins, so
+   * "another round" could only ever replay the same setup.
+   */
+  function finished(count = 5) {
+    let room = revealed(started(count, { imposterGuessEnabled: false }));
+    room = speakRound(room);
+    room = toVoting(room);
+    room = voteOut(room, imposter(room));
+    room = allReady(room);
+    expect(room.state.phase).toBe('GAME_OVER');
+    return room;
+  }
+
+  it('goes back to the lobby with everyone still seated', () => {
+    const before = finished(5);
+    const room = expectOk(host(before, { t: 'REOPEN' }));
+    expect(room.state.phase).toBe('SETUP');
+    expect(room.locked).toBe(false);
+    expect(room.seatOrder).toBeNull();
+    expect(room.seats).toHaveLength(5);
+  });
+
+  it('keeps the settings, so they are there to be edited', () => {
+    const before = finished(5);
+    const room = expectOk(host(before, { t: 'REOPEN' }));
+    expect(room.state.settings).toEqual(before.state.settings);
+  });
+
+  /**
+   * A player who dropped out mid-game left a seat parked with no channel.
+   * Unlocking does not give it one, so the sweep can never reap it — it would
+   * be frozen into the next `seatOrder`, dealt a role, and counted in every
+   * threshold. A game waiting forever on a phone that went home.
+   */
+  it('drops seats with nobody behind them', () => {
+    const before = finished(5);
+    const gone = before.seats[3]!;
+    const withGhost = {
+      ...before,
+      seats: before.seats.map((s) =>
+        s.seatId === gone.seatId ? { ...s, connId: null } : s,
+      ),
+    };
+    const room = expectOk(host(withGhost, { t: 'REOPEN' }));
+    expect(room.seats).toHaveLength(4);
+    expect(room.seats.some((s) => s.seatId === gone.seatId)).toBe(false);
+  });
+
+  it('keeps the host even though its connection is a pseudo-one', () => {
+    const room = expectOk(host(finished(4), { t: 'REOPEN' }));
+    expect(room.seats[0]!.isHost).toBe(true);
+  });
+
+  /**
+   * A READY still in flight from the final screen lands after the reopen.
+   * Without a fresh epoch it is NOT_ALLOWED, which paints a red banner over the
+   * lobby; with one it is STALE, which the guest swallows silently.
+   */
+  it('moves the epoch on so an in-flight tap reads as stale, not as an error', () => {
+    const before = finished(5);
+    const staleKey = String(before.epoch);
+    const seat = seatIdOf(before, 'p2')!;
+    const room = expectOk(host(before, { t: 'REOPEN' }));
+    expect(room.epoch).toBeGreaterThan(before.epoch);
+    expect(handleIntent(room, seat, { t: 'READY', key: staleKey }, env()).reason).toBe(
+      'STALE',
+    );
+  });
+
+  it('clears the finished game out of the pending buckets', () => {
+    const room = expectOk(host(finished(5), { t: 'REOPEN' }));
+    expect(room.pending).toEqual({
+      reveal: [],
+      ready: [],
+      skip: [],
+      choice: {},
+      votes: {},
+    });
+  });
+
+  it('can start again, with a seat order that matches the new roster', () => {
+    const room = expectOk(host(finished(5), { t: 'REOPEN' }));
+    const next = expectOk(startGame(room, env('second-game')));
+    expect(next.state.phase).toBe('REVEAL');
+    expect(next.seatOrder).toHaveLength(next.state.players.length);
+    next.seats.forEach((seat, i) => expect(playerIdOf(next, seat.seatId)).toBe(`p${i}`));
+  });
+
+  it('lets a latecomer in, which a locked room could not', () => {
+    const room = expectOk(host(finished(4), { t: 'REOPEN' }));
+    const out = handleJoin(room, 'late', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: 'מאחר',
+    });
+    expect(out.accepted).toBe(true);
+    expect(out.room.seats).toHaveLength(5);
+  });
+
+  it('refuses mid-game — the roster is frozen while it runs', () => {
+    expect(host(revealed(started(4)), { t: 'REOPEN' }).reason).toBe('NOT_ALLOWED');
+  });
+});
+
+describe('changing a name', () => {
+  it('renames a seated player in the lobby', () => {
+    const room = lobby(4);
+    const seat = room.seats[2]!;
+    const out = expectOk(renameSeat(room, seat.seatId, 'רוני'));
+    expect(out.seats[2]!.name).toBe('רוני');
+  });
+
+  it('refuses once the game has started', () => {
+    const room = started(4);
+    expect(renameSeat(room, room.seats[2]!.seatId, 'רוני').reason).toBe('NOT_ALLOWED');
+  });
+
+  /** The same gate START_GAME will apply later, so the room stays startable. */
+  it('refuses a name that would make the game refuse to start', () => {
+    const room = lobby(4);
+    const mine = room.seats[2]!;
+    const other = room.seats[1]!;
+    expect(renameSeat(room, mine.seatId, other.name).reason).toBe('NAME_TAKEN');
+    // …including one that differs only by niqqud, which is how the reducer
+    // compares them.
+    expect(renameSeat(room, mine.seatId, 'בְּנִי').reason).toBe('NAME_TAKEN');
+    expect(renameSeat(room, mine.seatId, '   ').reason).toBe('NAME_EMPTY');
+    expect(renameSeat(room, mine.seatId, 'א'.repeat(15)).reason).toBe('NAME_LONG');
+  });
+
+  it('lets a player keep the name they already have', () => {
+    const room = lobby(4);
+    const seat = room.seats[2]!;
+    expect(renameSeat(room, seat.seatId, seat.name).accepted).toBe(true);
+  });
+
+  it('leaves a renamed lobby startable', () => {
+    let room = lobby(5);
+    room = expectOk(renameSeat(room, room.seats[1]!.seatId, 'רוני'));
+    room = expectOk(renameSeat(room, room.seats[3]!.seatId, 'שירה'));
+    const out = startGame(room, env());
+    expect(out.accepted).toBe(true);
+    expect(out.room.state.players.map((p) => p.name)).toContain('רוני');
+  });
+
+  /**
+   * A JOIN says "I am back", not "call me this". The name in a guest's JOIN is
+   * captured when their component mounts, so honouring it on a reconnect would
+   * silently revert every rename on the next network blip.
+   */
+  it('survives a reconnect that carries the old name', () => {
+    let room = lobby(4);
+    const seat = room.seats[2]!;
+    room = expectOk(renameSeat(room, seat.seatId, 'רוני'));
+
+    const out = handleJoin(room, 'reconnected', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: seat.name,
+      seatId: seat.seatId,
+    });
+
+    expect(out.accepted).toBe(true);
+    expect(out.room.seats[2]!.name).toBe('רוני');
+    expect(out.room.seats[2]!.connId).toBe('reconnected');
+  });
+
+  it('is not reachable through the intent gate', () => {
+    // It is a lobby operation; `handleIntent` refuses everything in SETUP and
+    // needs a player id that does not exist until the game starts.
+    const room = started(4);
+    const seat = room.seats[1]!.seatId;
+    expect(
+      handleIntent(room, seat, { t: 'RENAME', name: 'רוני' } as never, env()).reason,
+    ).toBe('BAD_PAYLOAD');
+  });
+});

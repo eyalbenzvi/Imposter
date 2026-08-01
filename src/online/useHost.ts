@@ -25,10 +25,12 @@ import {
   handleIntent,
   handleJoin,
   hostCommand,
+  renameSeat,
   startGame,
   type Env,
 } from './driver';
 import {
+  ConnectError,
   destroyHost,
   openHost,
   randomCode,
@@ -50,6 +52,7 @@ import {
 import {
   createRoom,
   emptyPending,
+  seatById,
   seatByConn,
   seatOrderIsSound,
   staleConnIds,
@@ -64,7 +67,17 @@ import {
 import { useKeepAwake } from '../ui/useKeepAwake';
 import { projectView, type PlayerView } from './view';
 
-export type HostStatus = 'OPENING' | 'OPEN' | 'ERROR';
+export type HostStatus =
+  | 'OPENING'
+  /** Open and reachable: existing players are fine and new ones can join. */
+  | 'OPEN'
+  /**
+   * The game is running, but the signalling socket is down — so nobody new can
+   * find the room. Existing data channels are unaffected, which is exactly why
+   * this needs saying out loud: everything looks fine from the host's chair.
+   */
+  | 'DEGRADED'
+  | 'ERROR';
 
 export type Host = {
   status: HostStatus;
@@ -128,6 +141,8 @@ export function useHost(hostName: string): Host {
   const channels = useRef(new Map<string, Channel>());
   /** connId → when we last heard anything at all from it. */
   const lastSeen = useRef(new Map<string, number>());
+  /** Detects the clock jumping because the tab was suspended. */
+  const lastSweepAt = useRef(Date.now());
 
   // ── sending ───────────────────────────────────────────────────────────────
 
@@ -139,6 +154,24 @@ export function useHost(hostName: string): Host {
 
   const sendTo = useCallback((channel: Channel, msg: HostMessage) => {
     channel.send(msg);
+  }, []);
+
+  /**
+   * Let a channel deliver what is already queued, then let it go.
+   *
+   * `close()` tears the RTCPeerConnection down synchronously and whatever is
+   * still in the send buffer goes with it — which is how a final `REJECTED` or
+   * `CLOSED` never reaches the person it was written for. `closeGracefully()`
+   * asks the far side to close and leaves this side up; the wait is what
+   * actually drains the buffer.
+   */
+  const retire = useCallback((channel: Channel, drainMs: number) => {
+    channel.closeGracefully();
+    window.setTimeout(() => {
+      channel.close();
+      channels.current.delete(channel.id);
+      lastSeen.current.delete(channel.id);
+    }, drainMs);
   }, []);
 
   const pushView = useCallback(
@@ -189,9 +222,12 @@ export function useHost(hostName: string): Host {
   // opening the online mode instead of the single-device game they wanted.
   const room = roomRef.current;
   const worthKeeping = room.locked || room.seats.length > 1;
+  // A rename moves neither the epoch nor the seat count, so without a name
+  // signature here it would survive until the host refreshed and then vanish.
+  const nameSignature = room.seats.map((s) => s.name).join('\u0000');
   useEffect(() => {
     if (worthKeeping) saveHostSession(roomRef.current!);
-  }, [worthKeeping, room.epoch, room.settings, room.seats.length]);
+  }, [worthKeeping, room.epoch, room.settings, room.seats.length, nameSignature]);
 
   // ── receiving ─────────────────────────────────────────────────────────────
 
@@ -207,6 +243,10 @@ export function useHost(hostName: string): Host {
       }
 
       if (msg.t === 'JOIN') {
+        // Read the seat's old channel BEFORE the takeover reassigns it.
+        const displaced =
+          msg.seatId !== undefined ? (seatById(room, msg.seatId)?.connId ?? null) : null;
+
         const out = handleJoin(room, channel.id, msg);
         if (!out.accepted || !out.seatId) {
           sendTo(channel, {
@@ -215,8 +255,22 @@ export function useHost(hostName: string): Host {
             key: null,
             on: 'JOIN',
           });
+          // Gracefully, so the rejection actually leaves the buffer: a bare
+          // close drops it, and the guest retries forever without ever being
+          // told why they were refused.
+          retire(channel, 400);
           return;
         }
+
+        // The seat may have been taken from a channel that is still perfectly
+        // alive — two tabs, or a phone that recovered on its own. It will never
+        // go silent, so it would never be swept; it would just sit there
+        // collecting `NOT_ALLOWED` for every tap.
+        if (displaced && displaced !== channel.id && displaced !== 'host') {
+          const old = channels.current.get(displaced);
+          if (old) retire(old, 400);
+        }
+
         commit(out.room);
         sendTo(channel, { t: 'WELCOME', v: PROTOCOL_VERSION, seatId: out.seatId });
         // Straight away, not on the next state change: a guest reconnecting
@@ -238,7 +292,26 @@ export function useHost(hostName: string): Host {
 
       const seat = seatByConn(room, channel.id);
       if (!seat) {
-        sendTo(channel, { t: 'REJECTED', reason: 'NOT_ALLOWED', key: msg.key, on: msg.t });
+        sendTo(channel, { t: 'REJECTED', reason: 'NOT_ALLOWED', key: null, on: msg.t });
+        return;
+      }
+
+      // Routed here rather than through `handleIntent`: renaming is a lobby
+      // operation, and the intent gate refuses everything in SETUP and needs a
+      // player id that does not exist until the game starts.
+      if (msg.t === 'RENAME') {
+        const out = renameSeat(room, seat.seatId, msg.name);
+        if (!out.accepted) {
+          sendTo(channel, {
+            t: 'REJECTED',
+            reason: out.reason ?? 'NOT_ALLOWED',
+            key: null,
+            on: 'RENAME',
+          });
+          return;
+        }
+        commit(out.room);
+        pushView(channel, seat.seatId);
         return;
       }
 
@@ -257,7 +330,7 @@ export function useHost(hostName: string): Host {
       }
       commit(out.room);
     },
-    [commit, pushView, sendTo],
+    [commit, pushView, retire, sendTo],
   );
 
   // ── the peer ──────────────────────────────────────────────────────────────
@@ -268,14 +341,12 @@ export function useHost(hostName: string): Host {
 
     void openHost({ preferredCode: saved?.code ?? roomRef.current!.code })
       .then((peer) => {
-        if (cancelled) {
-          // `destroyHost`, not `peer.destroy()`. The peer is a per-tab
-          // singleton, so destroying it directly would leave the module
-          // handing that dead object to every later caller — and the lobby
-          // would show a code that nobody can ever connect to.
-          destroyHost();
-          return;
-        }
+        // Deliberately no teardown. StrictMode's first mount is cancelled
+        // while the second is already awaiting this very promise, so
+        // destroying here would kill the peer the surviving mount goes on to
+        // use — leaving a lobby showing a code whose id has been released.
+        // `closeRoom` is the only teardown, exactly as the cleanup below says.
+        if (cancelled) return;
         peerRef.current = peer;
         setCode(peer.code);
         // The code is part of the room's identity: a retry that lands on a
@@ -285,6 +356,10 @@ export function useHost(hostName: string): Host {
           commit({ ...roomRef.current!, code: peer.code, version: roomRef.current!.version + 1 });
         }
         setStatus('OPEN');
+
+        peer.onBroker((state) => {
+          setStatus(state === 'UP' ? 'OPEN' : 'DEGRADED');
+        });
 
         peer.onConnect((channel) => {
           channels.current.set(channel.id, channel);
@@ -299,10 +374,14 @@ export function useHost(hostName: string): Host {
           });
         });
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         setStatus('ERROR');
-        setError('לא הצלחנו לפתוח חדר. בדקו את החיבור לרשת ונסו שוב');
+        setError(
+          err instanceof ConnectError && err.kind === 'CODE_LOST'
+            ? 'קוד החדר הקודם כבר לא זמין. פתחו חדר חדש והקריאו את המספר החדש'
+            : 'לא הצלחנו לפתוח חדר. בדקו את החיבור לרשת ונסו שוב',
+        );
       });
 
     return () => {
@@ -322,11 +401,13 @@ export function useHost(hostName: string): Host {
    *
    * `channel.onClose` only fires on a *graceful* close. A tab that is killed, a
    * phone that locks, a wifi that drops — none of them produce a close event on
-   * this side, so a player could vanish from the room and stay on the roster
-   * indefinitely. That is why removal used to look random: it worked for anyone
-   * who left by tapping a button, and failed for everybody else.
-   *
+   * this side, so a player could vanish and stay on the roster indefinitely.
    * Silence is the signal that always arrives.
+   *
+   * The sweep walks the channel table rather than the seat list, so it also
+   * reaps channels that hold no seat: one refused entry, one displaced by a
+   * reconnect. Walking seats could never see either, and they accumulated for
+   * the whole evening.
    */
   useEffect(() => {
     const beat = window.setInterval(() => {
@@ -336,10 +417,23 @@ export function useHost(hostName: string): Host {
     }, HEARTBEAT_MS);
 
     const sweep = window.setInterval(() => {
+      const now = Date.now();
+      const gap = now - lastSweepAt.current;
+      lastSweepAt.current = now;
+
+      // The interval did not run while the tab was suspended, so the first tick
+      // after waking sees every channel as ancient and would evict the entire
+      // room at once. A gap larger than the timeout means we were asleep, not
+      // that eleven people left simultaneously.
+      if (gap > SILENCE_TIMEOUT_MS) {
+        for (const connId of channels.current.keys()) lastSeen.current.set(connId, now);
+        return;
+      }
+
       const gone = staleConnIds(
-        roomRef.current!,
+        channels.current.keys(),
         lastSeen.current,
-        Date.now(),
+        now,
         SILENCE_TIMEOUT_MS,
       );
       if (gone.length === 0) return;
@@ -348,9 +442,10 @@ export function useHost(hostName: string): Host {
         channels.current.get(connId)?.close();
         channels.current.delete(connId);
         lastSeen.current.delete(connId);
+        // A no-op for a channel that holds no seat, which is the point.
         next = dropConnection(next, connId);
       }
-      commit(next);
+      if (next !== roomRef.current) commit(next);
     }, HEARTBEAT_MS);
 
     return () => {
@@ -367,6 +462,11 @@ export function useHost(hostName: string): Host {
   useEffect(() => {
     const onVisible = (): void => {
       if (document.visibilityState !== 'visible') return;
+      // Nobody went quiet while we were asleep; we just stopped listening.
+      // Without this the next sweep reads the whole room as silent.
+      const now = Date.now();
+      for (const connId of channels.current.keys()) lastSeen.current.set(connId, now);
+      lastSweepAt.current = now;
       peerRef.current?.reconnect();
       broadcast();
     };
@@ -444,11 +544,16 @@ export function useHost(hostName: string): Host {
   const closeRoom = useCallback(() => {
     for (const channel of channels.current.values()) {
       channel.send({ t: 'CLOSED', reason: 'HOST_LEFT' } satisfies HostMessage);
-      channel.close();
+      channel.closeGracefully();
     }
     channels.current.clear();
+    lastSeen.current.clear();
     peerRef.current = null;
-    destroyHost();
+    // The cache is cleared synchronously inside `destroyHost`; only the teardown
+    // waits, so that "the host closed the room" actually arrives instead of
+    // being dropped with the connection. Without the wait every guest gets a
+    // bare disconnect and burns their retry budget on a room that is gone.
+    destroyHost(400);
     clearHostSession();
   }, []);
 

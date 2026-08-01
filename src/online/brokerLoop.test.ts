@@ -1,0 +1,180 @@
+import { describe, expect, it, vi } from 'vitest';
+import { FIRST_DELAY_MS, MAX_DELAY_MS, makeBrokerLoop, nextDelay } from './brokerLoop';
+
+/**
+ * A hand-cranked clock, so the loop's timing can be asserted rather than waited
+ * for. Nothing here touches a real timer or a real Peer — the arithmetic was
+ * never the risky part, the machine around it was.
+ */
+function clock() {
+  let next = 1;
+  const timers = new Map<number, { fn: () => void; at: number }>();
+  let now = 0;
+  return {
+    now: () => now,
+    pending: () => timers.size,
+    setTimeout(fn: () => void, ms: number) {
+      const id = next++;
+      timers.set(id, { fn, at: now + ms });
+      return id;
+    },
+    clearTimeout(id: number) {
+      timers.delete(id);
+    },
+    /** Run every timer due at or before `now + ms`, in order. */
+    advance(ms: number) {
+      const until = now + ms;
+      for (;;) {
+        const due = [...timers.entries()]
+          .filter(([, t]) => t.at <= until)
+          .sort((a, b) => a[1].at - b[1].at)[0];
+        if (!due) break;
+        timers.delete(due[0]);
+        now = due[1].at;
+        due[1].fn();
+      }
+      now = until;
+    },
+  };
+}
+
+function setup(overrides: Partial<{ dead: boolean; disconnected: boolean }> = {}) {
+  const c = clock();
+  const state = { dead: false, disconnected: true, ...overrides };
+  const reconnect = vi.fn();
+  const onState = vi.fn();
+  const loop = makeBrokerLoop({
+    reconnect,
+    isDead: () => state.dead,
+    isDisconnected: () => state.disconnected,
+    setTimeout: c.setTimeout,
+    clearTimeout: c.clearTimeout,
+    onState,
+  });
+  return { c, state, reconnect, onState, loop };
+}
+
+describe('the broker recovery loop', () => {
+  it('retries after the first delay', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    expect(reconnect).not.toHaveBeenCalled();
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * PeerJS's `_abort` emits `'error'` and then `'disconnected'` for one
+   * failure, so this is reached twice as a matter of course. Two chains would
+   * double the traffic and race each other.
+   */
+  it('arms one timer however many times it is told the socket is down', () => {
+    const { c, loop } = setup();
+    loop.down();
+    loop.down();
+    loop.down();
+    expect(c.pending()).toBe(1);
+  });
+
+  it('backs off, and stops backing off at the ceiling', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    for (let i = 0; i < 8; i++) c.advance(MAX_DELAY_MS);
+    expect(reconnect.mock.calls.length).toBeGreaterThan(3);
+    expect(nextDelay(MAX_DELAY_MS)).toBe(MAX_DELAY_MS);
+  });
+
+  it('cancels and resets the backoff when the socket comes back', () => {
+    const { c, reconnect, onState, loop } = setup();
+    loop.down();
+    c.advance(FIRST_DELAY_MS * 4);
+    const before = reconnect.mock.calls.length;
+
+    loop.up();
+    expect(c.pending()).toBe(0);
+    c.advance(MAX_DELAY_MS);
+    expect(reconnect).toHaveBeenCalledTimes(before);
+    expect(onState).toHaveBeenLastCalledWith('UP');
+
+    // And the next outage starts from the short delay again, not the long one.
+    loop.down();
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect.mock.calls.length).toBe(before + 1);
+  });
+
+  /**
+   * `peer.destroy()` emits `'disconnected'` on its way out. Without `stop()`
+   * being final, closing the room would arm the loop against a corpse — and
+   * `reconnect()` on a destroyed peer throws.
+   */
+  it('stays stopped once stopped, even if told the socket dropped', () => {
+    const { c, reconnect, loop } = setup();
+    loop.stop();
+    loop.down();
+    expect(c.pending()).toBe(0);
+    c.advance(MAX_DELAY_MS);
+    expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  it('cancels a retry that was already armed when it stops', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    expect(c.pending()).toBe(1);
+    loop.stop();
+    expect(c.pending()).toBe(0);
+    c.advance(MAX_DELAY_MS);
+    expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The guards have to sit in the timer callback, not at the call site: at the
+   * moment `'disconnected'` fires, `peer.destroyed` is still false.
+   */
+  it('does not call reconnect on a peer that died after the timer was armed', () => {
+    const { c, state, reconnect, loop } = setup();
+    loop.down();
+    state.dead = true;
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  it('does not call reconnect on a peer that is no longer disconnected', () => {
+    // `reconnect()` throws on a connected peer just as it does on a dead one.
+    const { c, state, reconnect, loop } = setup();
+    loop.down();
+    state.disconnected = false;
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  it('survives a reconnect that throws and tries again', () => {
+    const { c, reconnect, loop } = setup();
+    reconnect.mockImplementation(() => {
+      throw new Error('not disconnected');
+    });
+    loop.down();
+    expect(() => c.advance(FIRST_DELAY_MS)).not.toThrow();
+    c.advance(MAX_DELAY_MS);
+    expect(reconnect.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('reports the state change exactly once per transition', () => {
+    const { onState, loop } = setup();
+    loop.down();
+    loop.down();
+    expect(onState.mock.calls.filter(([s]) => s === 'DOWN')).toHaveLength(1);
+    loop.up();
+    expect(onState.mock.calls.filter(([s]) => s === 'UP')).toHaveLength(1);
+  });
+
+  /** A code somebody else has taken fails identically forever. */
+  it('gives up rather than spinning at the ceiling for the rest of the evening', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    for (let i = 0; i < 40; i++) c.advance(MAX_DELAY_MS);
+    const settled = reconnect.mock.calls.length;
+    c.advance(MAX_DELAY_MS * 10);
+    expect(reconnect.mock.calls.length).toBe(settled);
+    expect(c.pending()).toBe(0);
+  });
+});
