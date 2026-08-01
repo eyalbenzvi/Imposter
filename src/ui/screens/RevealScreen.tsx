@@ -30,7 +30,6 @@ export function RevealScreen({ game }: { game: Game }) {
         <PassDevice
           key={player.id}
           name={player.name}
-          hint="המילה תוצג רק כל זמן שתחזיקו את האצבע על המסך, ופעם אחת בלבד"
           cta="גלה את המילה שלי"
           progress={`${state.revealIndex + 1} / ${state.revealOrder.length}`}
           onContinue={() => dispatch({ type: 'SHOW_ROLE' })}

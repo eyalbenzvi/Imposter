@@ -77,10 +77,6 @@ function SpeakingRound({ game }: { game: Game }) {
           >
             {player.name}
           </p>
-          <p className="max-w-[26ch] pt-1 text-base leading-relaxed text-slate-400">
-            אמרו <strong className="text-slate-200">מילה אחת</strong> שקשורה למילה
-            שקיבלתם — לא מפורשת מדי, לא עמומה מדי
-          </p>
         </div>
 
         {timer.remaining !== null && (

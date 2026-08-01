@@ -103,11 +103,9 @@ export function RevealCard({
       ? 'אַתָּה הַמִּתְחַזֶּה — וְזֶה רֶמֶז'
       : 'אַתָּה הַמִּתְחַזֶּה'
     : 'הַמִּלָּה שֶׁלְּךָ';
-  const subLine = isImposter
-    ? isClue
-      ? 'זה לא המילה — זה רמז אליה. נחשו והשתלבו'
-      : 'זו מילת התחליף — היעזרו בה כדי להשתלב'
-    : 'שמרו עליה. אמרו רק מילה אחת שקשורה אליה';
+  // Only the substitute word needs explaining; the role row already says the
+  // rest. The row itself always renders, empty or not — see the sub row below.
+  const subLine = isImposter && !isClue ? 'זו מילת התחליף — היעזרו בה כדי להשתלב' : null;
 
   return (
     <div className="flex min-h-0 w-full flex-1 animate-fade-in flex-col">
@@ -163,7 +161,10 @@ export function RevealCard({
             <WordHero word={view.word} tone={isImposter ? 'imposter' : 'neutral'} />
           </div>
 
-          {/* Sub row — always exactly two lines' worth of space. */}
+          {/* Sub row — always exactly two lines' worth of space, and always
+              rendered even when there is nothing to say: a role whose row
+              collapsed would give the panel a different height from the one
+              next to it. */}
           <p
             className={`min-h-[3rem] max-w-[26ch] text-center text-sm leading-relaxed ${
               !held
