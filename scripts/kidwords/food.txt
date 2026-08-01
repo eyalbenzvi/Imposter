@@ -55,7 +55,7 @@ matzah | מַצָּה | cracker | bread | challah | pita | slice
 
 # ── מתוקים ומלוחים ───────────────────────────────────────────────────────────
 cake | עוגה | cookie | birthday-cake | doughnut | icecream | chocolate
-birthday-cake | עוּגַת יוֹם הֻלֶּדֶת | cake | cookie | doughnut | icecream | whipped-cream
+birthday-cake | עוּגַת גְּבִינָה | cake | cookie | doughnut | icecream | whipped-cream
 cookie | עוגיה | cake | cracker | waffle | chocolate | candy
 cracker | קְרָקֶר | cookie | pretzel | bisli | snack | matzah
 waffle | ופל | cookie | crepe | pancake | icecream | chocolate

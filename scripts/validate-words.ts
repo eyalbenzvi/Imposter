@@ -13,6 +13,9 @@
  *   6. a missing or bad KNOWN-mode clue: not three of them, unpointed, repeated,
  *      containing the word itself, equal to one of the hints, or equal to another
  *      entry in the same category (that would make it a sibling, not a clue)
+ *   7. anything longer than two words — a word, a hint or a clue. A clue that
+ *      needs a sentence is describing the word rather than pointing at it, which
+ *      is how "מדביקים אותו וכשמורידים זה כואב" gave away פְּלַסְטֶר.
  *
  * Plus two consistency checks that keep the pointing honest:
  *   6. a hint that also exists as an entry must be spelled and pointed identically
@@ -40,6 +43,12 @@ type RawEntry = {
 };
 
 const CLUE_KINDS = ['pair', 'related', 'trait'] as const;
+const MAX_WORDS = 2;
+
+/** Word count ignoring niqqud, so maqaf-free two-word phrases count as two. */
+function wordCount(value: string): number {
+  return stripNiqqud(value).trim().split(/\s+/).filter(Boolean).length;
+}
 
 const errors: string[] = [];
 const notes: string[] = [];
@@ -170,6 +179,16 @@ for (const file of files) {
       categoryOfPlain.set(plain, entry.category);
     }
 
+    // ── 7. length ───────────────────────────────────────────────────────────
+    if (wordCount(entry.word) > MAX_WORDS) {
+      fail(label, where, `word "${entry.word}" is more than ${MAX_WORDS} words`);
+    }
+    entry.hints.forEach((hint, i) => {
+      if (wordCount(hint) > MAX_WORDS) {
+        fail(label, where, `hint #${i + 1} "${hint}" is more than ${MAX_WORDS} words`);
+      }
+    });
+
     // ── 3. niqqud present ───────────────────────────────────────────────────
     if (!hasNiqqud(entry.word)) {
       fail(label, where, `word "${entry.word}" has no niqqud`);
@@ -202,6 +221,13 @@ for (const file of files) {
         }
         if (!hasNiqqud(value)) {
           fail(label, where, `clue "${kind}" "${value}" has no niqqud`);
+        }
+        if (wordCount(value) > MAX_WORDS) {
+          fail(
+            label,
+            where,
+            `clue "${kind}" "${value}" is more than ${MAX_WORDS} words — that is a description, not a clue`,
+          );
         }
         const cluePlain = stripNiqqud(value).trim();
         // A clue that spells the word out is not a clue.

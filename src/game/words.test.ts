@@ -112,6 +112,22 @@ describe('word store', () => {
     }
   });
 
+  it('keeps every word, hint and clue to two words at most', () => {
+    // A clue that needs a sentence is describing the word, not pointing at it —
+    // which is how "מדביקים אותו וכשמורידים זה כואב" gave away פְּלַסְטֶר.
+    const words = (value: string) => stripNiqqud(value).trim().split(/\s+/).length;
+    for (const entry of WORDS) {
+      expect(words(entry.word), entry.word).toBeLessThanOrEqual(2);
+      for (const hint of entry.hints) {
+        expect(words(hint), `${entry.id}: ${hint}`).toBeLessThanOrEqual(2);
+      }
+      for (const kind of CLUE_KINDS) {
+        const clue = entry.clues![kind];
+        expect(words(clue), `${entry.id}.${kind}: ${clue}`).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
   it('looks up entries by id and rejects unknown ones', () => {
     const first = WORDS[0]!;
     expect(getWordEntry(first.id)).toBe(first);
