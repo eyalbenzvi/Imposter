@@ -4,7 +4,10 @@ on:
   push:
     # Build and test on either branch; see the deploy job for why only one of
     # them can actually publish.
-    branches: [main, claude/imposter-game-app-xajsxb]
+    branches:
+      - main
+      - claude/imposter-game-app-xajsxb
+      - claude/multi-device-game-plan-lhg70n
   # Lets you publish the current branch by hand from the Actions tab.
   workflow_dispatch:
 
