@@ -12,8 +12,11 @@ import { WordHero } from './WordHero';
  *    • In HIDDEN mode every player gets a byte-identical screen. The role row is
  *      rendered with `invisible` (visibility:hidden), so it still occupies its
  *      line and the layout cannot shift.
- *    • In KNOWN mode the wording differs, but the frame is the same: same rows,
- *      same font sizes, same paddings, same animation, same minimum hold.
+ *    • In KNOWN mode only the wording differs. Everything a bystander can read
+ *      without reading Hebrew off the screen is shared: same rows, same colours,
+ *      same font sizes, same paddings, same animation, same minimum hold. The
+ *      imposter's card used to be red, which handed the role to anyone glancing
+ *      over — nothing here may be keyed on the role except the words.
  *
  * 2. Each player must be able to trust that *only they* saw their own word.
  *    • The word is only on screen while a finger is held down. Let go — by
@@ -118,8 +121,8 @@ export function RevealCard({
         </span>
       </div>
 
-      {/* The panel is sized by its content, identically for every role —
-          nothing here may depend on `kind` except colour and wording. */}
+      {/* The panel is sized and coloured identically for every role — nothing
+          here may depend on `kind` except the wording. */}
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
           onPointerDown={(e) => {
@@ -135,21 +138,14 @@ export function RevealCard({
           role="button"
           tabIndex={0}
           aria-label="החזיקו כדי לראות את המילה"
-          className={`relative flex w-full cursor-pointer select-none touch-none flex-col items-center
-            justify-center gap-5 rounded-[2rem] border px-4 py-12 transition-colors ${
-              isImposter
-                ? 'border-danger/40 bg-danger/[0.06] shadow-2xl shadow-danger/10'
-                : 'border-glow/30 bg-glow/[0.05] shadow-2xl shadow-glow-deep/10'
-            }`}
+          className="relative flex w-full cursor-pointer select-none touch-none flex-col items-center
+            justify-center gap-5 rounded-[2rem] border border-glow/30 bg-glow/[0.05] px-4 py-12
+            shadow-2xl shadow-glow-deep/10"
         >
           {/* Role row — same line, same size for every role. */}
           <p
-            className={`niqqud text-center text-lg font-bold ${
-              !held || view.kind === 'PLAIN'
-                ? 'invisible'
-                : isImposter
-                  ? 'text-danger'
-                  : 'text-glow-soft'
+            className={`niqqud text-center text-lg font-bold text-glow-soft ${
+              !held || view.kind === 'PLAIN' ? 'invisible' : ''
             }`}
           >
             {view.kind === 'PLAIN' ? 'הַמִּלָּה שֶׁלְּךָ' : roleLine}
@@ -158,7 +154,7 @@ export function RevealCard({
           {/* The word keeps its exact box whether or not it is visible, so
               nothing shifts when the finger lands or lifts. */}
           <div className={held ? '' : 'invisible'}>
-            <WordHero word={view.word} tone={isImposter ? 'imposter' : 'neutral'} />
+            <WordHero word={view.word} />
           </div>
 
           {/* Sub row — always exactly two lines' worth of space, and always
@@ -166,13 +162,8 @@ export function RevealCard({
               collapsed would give the panel a different height from the one
               next to it. */}
           <p
-            className={`min-h-[3rem] max-w-[26ch] text-center text-sm leading-relaxed ${
-              !held
-                ? 'invisible'
-                : view.kind === 'PLAIN'
-                  ? 'text-slate-400'
-                  : 'text-slate-300'
-            }`}
+            className={`min-h-[3rem] max-w-[26ch] text-center text-sm leading-relaxed
+              text-slate-400 ${held ? '' : 'invisible'}`}
           >
             {view.kind === 'PLAIN'
               ? 'זכרו את המילה. בתורכם אמרו מילה אחת שקשורה אליה'
