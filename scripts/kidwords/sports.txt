@@ -1,17 +1,17 @@
 @category ספורט ומשחקים
 
 # ── משחקי כדור ───────────────────────────────────────────────────────────────
-soccer | כדורגל | basketball | handball | volleyball | goal | dodgeball
-basketball | כדורסל | soccer | volleyball | handball | hoop | dodgeball
-volleyball | כדורעף | basketball | handball | soccer | net | dodgeball
-handball | כדור יד | volleyball | basketball | soccer | dodgeball | goal
-dodgeball | מַחֲנַיִם | handball | volleyball | tag | soccer | tennis
+soccer | כדורגל | basketball | volleyball | goal | dodgeball | tennis
+basketball | כדורסל | soccer | volleyball | hoop | dodgeball | tennis
+volleyball | כדורעף | basketball | soccer | net | dodgeball | tennis
+handball | כדור יד | dodgeball | goal | tennis | badminton | baseball
+dodgeball | מַחֲנַיִם | handball | tag | tennis | badminton | baseball
 tennis | טניס | badminton | racket | net | ball | dodgeball
 pingpong | טניס שלחן | badminton | racket | net | ball | dodgeball
 badminton | בדמינטון | tennis | racket | net | ball | baseball
 baseball | ביסבול | soccer | basketball | golf | racket | badminton
 golf | גולף | baseball | tennis | ball | hoop | contest
-rugby | רגבי | soccer | handball | wrestling | goal | hockey
+rugby | רגבי | soccer | wrestling | goal | hockey | baseball
 hockey | הוקי | soccer | skating | net | goal | rugby
 ball | כדור | goal | net | racket | hockey | rugby
 racket | מחבט | ball | net | tennis | badminton | hockey
