@@ -39,6 +39,17 @@ describe('what to persist', () => {
     // The host still has us as 'רון'; we asked for a name already taken.
     expect(nameToPersist('רון', 'רוני')).toBe('רון');
   });
+
+  /**
+   * The host stores `normalize(name.trim())`, so what comes back can be a
+   * different string from what was asked for and still be an acceptance. What
+   * gets written is always the host's version, never ours.
+   */
+  it('writes the host’s spelling, not the one that was asked for', () => {
+    const asked = 'רוניְ'; // with a combining mark the host may reorder
+    const authoritative = 'רוני';
+    expect(nameToPersist(authoritative, asked)).toBe(authoritative);
+  });
 });
 
 describe('asking to be renamed on arrival', () => {

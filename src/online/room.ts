@@ -139,8 +139,23 @@ export function seatById(room: Room, seatId: SeatId): Seat | undefined {
   return room.seats.find((s) => s.seatId === seatId);
 }
 
+/**
+ * Which seat is behind this connection — never the host's.
+ *
+ * The host's seat carries the literal `connId: 'host'`, and `connId` is
+ * `channel.id`. PeerJS lets the *connecting* peer choose its own connection id
+ * and the answering side adopts it verbatim, so before this predicate a guest
+ * could open a channel calling itself `'host'` and every lookup here — the JOIN
+ * short-circuit, the intent router, `dropConnection` — resolved it to the
+ * host's seat. That handed over the host's reveal card and let the attacker
+ * play, rename and leave as them.
+ *
+ * `peer.ts` now mints connection ids locally, which closes the door properly.
+ * This stays as the second lock: the host's seat has no channel behind it by
+ * construction, so no string should ever reach it through here.
+ */
 export function seatByConn(room: Room, connId: string): Seat | undefined {
-  return room.seats.find((s) => s.connId === connId);
+  return room.seats.find((s) => !s.isHost && s.connId === connId);
 }
 
 /**

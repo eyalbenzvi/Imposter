@@ -93,6 +93,8 @@ export function useGuest(code: string, name: string): Guest {
    * flag for "a rename is in flight at all".
    */
   const priorName = useRef<string | null>(null);
+  /** Did the player ask for the rename in flight, or did we send it for them? */
+  const renameAsked = useRef(false);
   /** The name currently in the session — what the next reconnect will send. */
   const persisted = useRef<string | null>(null);
   /** Our seat, once the host has given us one — needed to re-save the session. */
@@ -123,6 +125,26 @@ export function useGuest(code: string, name: string): Guest {
     nameRef.current = name;
     priorName.current = null;
   }, [name]);
+
+  /**
+   * Introduce ourselves. Safe to repeat: the host keys a JOIN on the channel it
+   * arrived over, so a second one over a live channel is a no-op that answers
+   * with a fresh view.
+   */
+  const sendJoin = useCallback(
+    (channel: Channel) => {
+      const saved = loadGuestSession(code);
+      channel.send({
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: nameRef.current,
+        // Both or neither: the seat id alone is guessable and proves nothing,
+        // so the host ignores it without the token that came with it.
+        ...(saved?.token ? { seatId: saved.seatId, token: saved.token } : {}),
+      } satisfies GuestMessage);
+    },
+    [code],
+  );
 
   useEffect(() => {
     stopped.current = false;
@@ -187,16 +209,20 @@ export function useGuest(code: string, name: string): Guest {
             case 'WELCOME':
               seatIdRef.current = msg.seatId;
               tokenRef.current = msg.token;
-              // The name written here is provisional — what we asked to be
-              // called, which on a seat reclaim is not what the host has us
-              // down as. `VIEW` below corrects it from the host's own record.
-              // The token is the part that matters and is final.
-              persisted.current = nameRef.current;
+              // The seat and the token are what `WELCOME` is authoritative
+              // about, and they are written straight away — the token is how
+              // this device gets back in, and a drop before the first `VIEW`
+              // would otherwise cost it the seat.
+              //
+              // The *name* is deliberately not touched. The host ignores the
+              // name in a reclaiming JOIN, so what we asked to be called is
+              // not what it has us down as; writing it here would persist a
+              // name the host never agreed to. `VIEW` knows the answer.
               saveGuestSession({
                 code,
                 seatId: msg.seatId,
                 token: msg.token,
-                name: nameRef.current,
+                name: persisted.current ?? nameRef.current,
               });
               // From here on a failure means "the host hiccuped", not "there is
               // no such room" — and the two get very different patience.
@@ -227,21 +253,30 @@ export function useGuest(code: string, name: string): Guest {
                 );
                 if (ask !== null) {
                   priorName.current = theirs;
+                  // Nobody tapped anything to cause this one, so nobody should
+                  // be shown a refusal for it — the host can lock the room in
+                  // the gap between the view being sent and this arriving.
+                  renameAsked.current = false;
                   channel.send({ t: 'RENAME', name: ask } satisfies GuestMessage);
                   return;
                 }
               }
 
               if (priorName.current !== null) {
-                // A rename is still in flight. Only a view carrying the new
-                // name settles it — anything else is an unrelated broadcast
-                // that raced past it, and adopting that would roll the name
-                // backwards mid-request.
-                if (theirs !== nameRef.current) return;
+                // A rename is in flight. A view still carrying the *old* name
+                // is an unrelated broadcast that raced past it, and adopting
+                // that would roll the name backwards mid-request.
+                //
+                // Anything else settles it — deliberately not "the exact name
+                // we asked for". The host stores `normalize(name.trim())`, so
+                // an accepted rename can come back subtly different, and
+                // demanding an exact match left this flag set for good: the
+                // session then stopped being updated and every reconnect
+                // re-sent a rename nobody had asked for.
+                if (theirs === priorName.current) return;
                 priorName.current = null;
-              } else {
-                nameRef.current = theirs;
               }
+              nameRef.current = theirs;
 
               const write = nameToPersist(theirs, persisted.current);
               if (write !== null && seatId !== null) {
@@ -260,9 +295,16 @@ export function useGuest(code: string, name: string): Guest {
               // host has already sent a fresh view; say nothing.
               if (msg.reason === 'STALE') return;
               // A refused rename leaves us still called what we were called.
-              if (msg.on === 'RENAME' && priorName.current !== null) {
-                nameRef.current = priorName.current;
-                priorName.current = null;
+              if (msg.on === 'RENAME') {
+                if (priorName.current !== null) {
+                  nameRef.current = priorName.current;
+                  priorName.current = null;
+                }
+                // Silent unless the player actually asked. The rename sent on
+                // arrival can lose a race with the host tapping "start", and a
+                // red "הפעולה לא אפשרית כרגע" over the reveal screen of
+                // somebody who just reconnected is a bug report, not a message.
+                if (!renameAsked.current) return;
               }
               setReason(msg.reason);
               // Only a refusal the player can actually do something about ends
@@ -299,14 +341,7 @@ export function useGuest(code: string, name: string): Guest {
         });
 
         heardFrom.current = Date.now();
-        channel.send({
-          t: 'JOIN',
-          v: PROTOCOL_VERSION,
-          name: nameRef.current,
-          // Both or neither: the seat id alone is guessable and proves nothing,
-          // so the host ignores it without the token that came with it.
-          ...(saved?.token ? { seatId: saved.seatId, token: saved.token } : {}),
-        } satisfies GuestMessage);
+        sendJoin(channel);
       })
       .catch((err: unknown) => {
         if (cancelled || stopped.current) return;
@@ -360,6 +395,7 @@ export function useGuest(code: string, name: string): Guest {
     // otherwise reject each other for no reason. The host validates the name
     // through the very gate `START_GAME` will apply later.
     priorName.current = nameRef.current;
+    renameAsked.current = true;
     nameRef.current = next;
     channel.send({ t: 'RENAME', name: next } satisfies GuestMessage);
     // Nothing is written to storage here. The host may well refuse this — the
@@ -400,14 +436,26 @@ export function useGuest(code: string, name: string): Guest {
         return;
       }
       heardFrom.current = Date.now();
-      channel.send({ t: 'PING' } satisfies GuestMessage);
+      // Not just a PING. The `pagehide` below may have said `LEAVE` on the way
+      // out — the browser fires it for an ordinary background, not only for a
+      // close — and in the lobby that removes the seat outright. Nothing else
+      // would ever put it back: the channel is still open, so no reconnect is
+      // scheduled, and the host stops broadcasting to a player it no longer
+      // has. Saying hello again costs one message and fixes all three cases
+      // (seat intact, seat disconnected, seat gone).
+      sendJoin(channel);
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
+  }, [sendJoin]);
 
   useEffect(() => {
-    const bye = (): void => {
+    const bye = (event: Event): void => {
+      // `persisted` means the page is being frozen, not closed — it can come
+      // back, and on mobile it usually does. Announcing a departure for one is
+      // how a player who switched apps for ten seconds found the game had
+      // started without them.
+      if ((event as PageTransitionEvent).persisted) return;
       channelRef.current?.send({ t: 'LEAVE' } satisfies GuestMessage);
     };
     // `pagehide` is the one mobile Safari actually fires; `beforeunload` covers

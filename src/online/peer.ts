@@ -185,6 +185,8 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
     let attempt = 0;
     /** Counted apart from `attempt` so fighting for our own id can't bail out. */
     let idClashes = 0;
+    /** Makes every locally-minted connection id unique within this room. */
+    let connections = 0;
 
     const tryOpen = (code: string): void => {
       attempt++;
@@ -232,7 +234,11 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
 
         peer.on('disconnected', () => loop.down());
         peer.on('connection', (conn) => {
-          conn.on('open', () => onConnectCb?.(wrap(conn as unknown as RawConn)));
+          // The id is minted here, not taken from the connection. See `wrap`:
+          // the guest chooses `conn.connectionId`, and everything on the host
+          // side that asks "which player is this" keys off it.
+          const id = `conn-${++connections}-${Math.random().toString(36).slice(2)}`;
+          conn.on('open', () => onConnectCb?.(wrap(conn as unknown as RawConn, id)));
         });
 
         resolve({

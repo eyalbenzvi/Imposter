@@ -268,7 +268,7 @@ export function useHost(hostName: string): Host {
         // straight back, and the two spend the evening evicting each other a
         // second apart. `SEAT_TAKEN` is terminal on the guest side, which is
         // what actually ends the war.
-        if (out.displaced && out.displaced !== 'host') {
+        if (out.displaced) {
           const old = channels.current.get(out.displaced);
           if (old) {
             sendTo(old, { t: 'REJECTED', reason: 'SEAT_TAKEN', key: null, on: 'JOIN' });

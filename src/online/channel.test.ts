@@ -179,6 +179,25 @@ describe('graceful close', () => {
   });
 });
 
+describe('the channel id', () => {
+  it('uses the connection’s own id when nobody supplies one', () => {
+    expect(wrap(fakeConn()).id).toBe('c1');
+  });
+
+  /**
+   * On the host, `conn.connectionId` is chosen by the *guest*: PeerJS accepts
+   * `peer.connect(room, { connectionId })`, puts it in the offer, and the
+   * answering side adopts it verbatim. The host keys seats, the channel table
+   * and `lastSeen` off this id, so it has to be minted locally — a guest that
+   * named itself `'host'` landed on the host's own seat.
+   */
+  it('takes the id it is given, so the host can mint its own', () => {
+    const conn = fakeConn();
+    conn.connectionId = 'host';
+    expect(wrap(conn, 'conn-7-abc').id).toBe('conn-7-abc');
+  });
+});
+
 describe('messages', () => {
   it('passes objects through and parses strings', () => {
     const conn = fakeConn();

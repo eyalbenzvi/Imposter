@@ -85,6 +85,20 @@ describe('host session', () => {
     for (const seat of saved.seats.slice(1)) expect(seat.connId).toBeNull();
   });
 
+  /**
+   * A host refresh mid-game is the headline scenario the seat token has to
+   * survive. Lose it and every guest's reclaim fails the token check, falls
+   * through to `ROOM_LOCKED`, and the whole room is terminally locked out of a
+   * game it is standing in the room for.
+   */
+  it('keeps every seat token, which is what lets the room reconnect', () => {
+    const room = revealed(started(4));
+    saveHostSession(room);
+    const saved = loadHostSession()!;
+    expect(saved.seats.map((s) => s.token)).toEqual(room.seats.map((s) => s.token));
+    expect(new Set(saved.seats.map((s) => s.token)).size).toBe(room.seats.length);
+  });
+
   it('drops a session older than the TTL', () => {
     saveHostSession(revealed(started(4)));
     const raw = JSON.parse(localStorage.getItem('imposter/online/v1')!);

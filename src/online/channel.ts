@@ -56,7 +56,17 @@ export type RawConn = {
   close(options?: { flush?: boolean }): void;
 };
 
-export function wrap(conn: RawConn): Channel {
+/**
+ * @param id Overrides `conn.connectionId`, which the **connecting** side chose.
+ *
+ * PeerJS lets a caller pass `{ connectionId }` to `peer.connect()`, puts it in
+ * the offer, and the answering side adopts it verbatim. So on the host,
+ * `conn.connectionId` is a string the guest picked — and this app keys seats,
+ * the channel table and `lastSeen` on it. A guest who names itself `'host'`
+ * lands on the host's own seat. Anywhere the id decides *who somebody is*, it
+ * has to be minted locally.
+ */
+export function wrap(conn: RawConn, id: string = conn.connectionId): Channel {
   let onMessageCb: ((msg: unknown) => void) | null = null;
   let onCloseCb: (() => void) | null = null;
 
@@ -90,7 +100,7 @@ export function wrap(conn: RawConn): Channel {
   };
 
   return {
-    id: conn.connectionId,
+    id,
 
     send(msg) {
       if (silenced || fired || !conn.open) return;

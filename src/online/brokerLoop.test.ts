@@ -249,4 +249,22 @@ describe('the broker recovery loop', () => {
     c.advance(FIRST_DELAY_MS);
     expect(reconnect.mock.calls.length).toBe(settled + 1);
   });
+
+  /**
+   * …and it gets a whole fresh budget, not one grudging attempt. The budget is
+   * for an outage that will never end; a host coming back to the tab is a new
+   * situation and deserves to be treated as one.
+   */
+  it('starts the budget over rather than re-tripping the old one', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    for (let i = 0; i < 40; i++) c.advance(MAX_DELAY_MS);
+    const settled = reconnect.mock.calls.length;
+
+    loop.down();
+    c.advance(GIVE_UP_AFTER_MS / 2);
+    // Several attempts into the new outage, not one and then silence.
+    expect(reconnect.mock.calls.length).toBeGreaterThan(settled + 3);
+    expect(c.pending()).toBe(1);
+  });
 });

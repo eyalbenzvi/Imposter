@@ -74,6 +74,8 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
   let stopping = false;
   /** When the current outage started, or null while everything is fine. */
   let downSince: number | null = null;
+  /** Did we spend the whole budget? The next `down()` starts a new outage. */
+  let gaveUp = false;
 
   const cancel = (): void => {
     if (timer === null) return;
@@ -84,6 +86,7 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
   const recovered = (): void => {
     cancel();
     delay = FIRST_DELAY_MS;
+    gaveUp = false;
     if (downSince === null) return;
     downSince = null;
     io.onState('UP');
@@ -116,12 +119,16 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
       }
 
       if (downSince !== null && io.now() - downSince > GIVE_UP_AFTER_MS) {
-        // Stop chasing it, but leave the backoff short. The only thing that
-        // arms this loop again is the host returning to the tab, and making
-        // them wait a further twenty seconds for the first attempt — because
-        // the delay was parked at the ceiling when we gave up — is the wrong
-        // way round: a foregrounded tab is the most likely moment to succeed.
+        // Stop chasing it — but the next `down()` gets a whole fresh budget,
+        // starting from the short delay.
+        //
+        // The only thing that arms this loop again is the host coming back to
+        // the tab, which is the most likely moment for the socket to recover
+        // and so the wrong moment to hand out one grudging attempt twenty
+        // seconds from now. What the budget is for is an outage that will
+        // never end; a new one deserves to be treated as new.
         delay = FIRST_DELAY_MS;
+        gaveUp = true;
         return;
       }
       delay = nextDelay(delay);
@@ -132,7 +139,10 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
   return {
     down() {
       if (stopping) return;
-      if (downSince === null) {
+      if (gaveUp) {
+        gaveUp = false;
+        downSince = io.now();
+      } else if (downSince === null) {
         downSince = io.now();
         io.onState('DOWN');
       }

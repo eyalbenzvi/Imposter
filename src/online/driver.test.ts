@@ -332,11 +332,69 @@ describe('lobby', () => {
     expect(out.room.seats[2]).toEqual(victim);
   });
 
+  /**
+   * The second door into the host's seat, which the token did not close.
+   *
+   * `connId` is `channel.id`, and PeerJS lets the *connecting* peer choose its
+   * own connection id — `peer.connect(room, { connectionId: 'host' })` — which
+   * the answering side adopts verbatim. The host's seat carries the literal
+   * string `'host'`, so such a channel resolved to it through `seatByConn`,
+   * before the token check and before the locked check, and was welcomed onto
+   * the host's seat with the host's reveal card.
+   */
+  it('never resolves a channel that calls itself "host" to the host’s seat', () => {
+    const room = started(4);
+    const out = handleJoin(
+      room,
+      'host',
+      { t: 'JOIN', v: PROTOCOL_VERSION, name: 'תוקף' },
+      'attacker-token',
+    );
+    expect(out.seatId).not.toBe('s0');
+    // Locked room, and they hold no seat of their own: there is nowhere to put
+    // them at all.
+    expect(out.accepted).toBe(false);
+    expect(out.reason).toBe('ROOM_LOCKED');
+    expect(out.room.seats[0]).toEqual(room.seats[0]);
+  });
+
+  it('does not let a channel calling itself "host" act as the host', () => {
+    const room = started(4);
+    // The intent router resolves the sender through the very same lookup.
+    expect(seatByConn(room, 'host')).toBeUndefined();
+    // …and `LEAVE` cannot mark the host offline on their own device either.
+    expect(dropConnection(room, 'host')).toBe(room);
+    expect(room.seats[0]!.connId).toBe('host');
+  });
+
   it('gives every new seat a token of its own, and never repeats one', () => {
     const room = lobby(6);
     const tokens = room.seats.map((s) => s.token);
     expect(new Set(tokens).size).toBe(tokens.length);
     expect(tokens.every((t) => t.length > 0)).toBe(true);
+  });
+
+  it('quietly seats a wrong token as a newcomer while the lobby is open', () => {
+    // Not a rejection: an ordinary first-timer whose stale session points at
+    // somebody else's seat should just get one of their own, at the back.
+    const room = lobby(4);
+    const victim = room.seats[2]!;
+    const out = handleJoin(
+      room,
+      'newcomer',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'חדש',
+        seatId: victim.seatId,
+        token: 'not-the-right-one',
+      },
+      'their-own-token',
+    );
+    expect(out.accepted).toBe(true);
+    expect(out.seatId).toBe('s4');
+    expect(out.room.seats[2]).toEqual(victim);
+    expect(out.room.seats[4]!.token).toBe('their-own-token');
   });
 
   it('keeps the token a seat already had when its owner comes back', () => {
