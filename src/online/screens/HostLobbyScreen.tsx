@@ -62,9 +62,18 @@ export function HostLobbyScreen({
           )}
 
           {host.status === 'ERROR' && (
-            <p className="py-6 text-base text-danger">
-              {host.error ?? 'לא הצלחנו לפתוח חדר'}
-            </p>
+            <div className="py-4">
+              <p className="pb-3 text-base leading-relaxed text-danger">
+                {host.error ?? 'לא הצלחנו לפתוח חדר'}
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="btn-ghost w-full"
+              >
+                לנסות שוב
+              </button>
+            </div>
           )}
 
           {host.status === 'OPEN' && code && (

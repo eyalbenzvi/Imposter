@@ -18,7 +18,13 @@ import {
   type Intent,
   type RejectReason,
 } from './protocol';
-import { destroyGuest, joinHost, type Channel } from './peer';
+import {
+  ConnectError,
+  destroyGuest,
+  joinHost,
+  type Channel,
+  type ConnectFailure,
+} from './peer';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
 
@@ -27,6 +33,8 @@ export type GuestStatus =
   | 'JOINING'
   | 'PLAYING'
   | 'RECONNECTING'
+  /** Tried and could not get through. Always escapable — see `UNREACHABLE`. */
+  | 'UNREACHABLE'
   | 'REJECTED'
   | 'CLOSED';
 
@@ -36,12 +44,28 @@ export type Guest = {
   /** Intents, with the sync key filled in from the last view received. */
   send: (msg: Intent) => void;
   reason: RejectReason | null;
+  /** Why we could not get through, when `status` is UNREACHABLE. */
+  failure: ConnectFailure | null;
   message: string | null;
   retry: () => void;
   leave: () => void;
 };
 
 const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000];
+
+/**
+ * How many times to try before saying so.
+ *
+ * Retrying forever looks harmless and is not: a phone whose saved session
+ * points at a room that was closed hours ago will sit on "connecting…" until
+ * somebody force-quits the browser, and — because the session is what sends
+ * the app into the online mode on launch — it will do it again on every launch.
+ * After this many retries the player gets a screen with a way out. Kept low on
+ * purpose: two attempts and a short timeout means about thirteen seconds before
+ * somebody is told something useful, and a player staring at a phone counts
+ * every one of them.
+ */
+const MAX_ATTEMPTS_BEFORE_GIVING_UP = 1;
 
 /** Refusals the player has to act on. Everything else is worth retrying. */
 const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
@@ -57,6 +81,7 @@ export function useGuest(code: string, name: string): Guest {
   const [status, setStatus] = useState<GuestStatus>('CONNECTING');
   const [view, setView] = useState<PlayerView | null>(null);
   const [reason, setReason] = useState<RejectReason | null>(null);
+  const [failure, setFailure] = useState<ConnectFailure | null>(null);
 
   const channelRef = useRef<Channel | null>(null);
   const viewRef = useRef<PlayerView | null>(null);
@@ -69,8 +94,28 @@ export function useGuest(code: string, name: string): Guest {
     stopped.current = false;
     let cancelled = false;
 
-    const scheduleRetry = (): void => {
+    const giveUp = (why: ConnectFailure): void => {
+      stopped.current = true;
+      // A saved session is what sends the app into the online mode on launch,
+      // so a session pointing at a room that no longer exists would send this
+      // phone back to the same dead screen every single time it opened the
+      // game. Forget it; the player can still tap "try again" from here.
+      if (why === 'NO_ROOM') clearGuestSession();
+      setFailure(why);
+      setStatus('UNREACHABLE');
+    };
+
+    const scheduleRetry = (why: ConnectFailure): void => {
       if (cancelled || stopped.current) return;
+      // No amount of waiting conjures up a room that does not exist.
+      if (why === 'NO_ROOM') {
+        giveUp(why);
+        return;
+      }
+      if (attempt.current >= MAX_ATTEMPTS_BEFORE_GIVING_UP) {
+        giveUp(why);
+        return;
+      }
       const wait = BACKOFF_MS[Math.min(attempt.current, BACKOFF_MS.length - 1)]!;
       attempt.current++;
       retryTimer.current = window.setTimeout(() => {
@@ -132,7 +177,10 @@ export function useGuest(code: string, name: string): Guest {
           if (cancelled || stopped.current) return;
           channelRef.current = null;
           setStatus('RECONNECTING');
-          scheduleRetry();
+          // A channel that was open and then dropped is worth chasing: the host
+          // is probably still there. Start the count again from zero.
+          attempt.current = 0;
+          scheduleRetry('NETWORK');
         });
 
         const saved = loadGuestSession(code);
@@ -143,9 +191,9 @@ export function useGuest(code: string, name: string): Guest {
           ...(saved ? { seatId: saved.seatId } : {}),
         } satisfies GuestMessage);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled || stopped.current) return;
-        scheduleRetry();
+        scheduleRetry(err instanceof ConnectError ? err.kind : 'NETWORK');
       });
 
     return () => {
@@ -169,6 +217,7 @@ export function useGuest(code: string, name: string): Guest {
     stopped.current = false;
     attempt.current = 0;
     setReason(null);
+    setFailure(null);
     setNonce((n) => n + 1);
   }, []);
 
@@ -185,6 +234,7 @@ export function useGuest(code: string, name: string): Guest {
     view,
     send,
     reason,
+    failure,
     message: reason ? REJECT_TEXT[reason] : null,
     retry,
     leave,
