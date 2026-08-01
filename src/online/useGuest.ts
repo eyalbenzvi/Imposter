@@ -175,6 +175,9 @@ export function useGuest(code: string, name: string): Guest {
         },
         why,
         Date.now(),
+        // Drawn here rather than inside `nextRetry`, which is pure and tested
+        // as such. Every impurity in this layer lives on the React side.
+        Math.random(),
       );
 
       if (decision.action === 'GIVE_UP') {
@@ -361,11 +364,28 @@ export function useGuest(code: string, name: string): Guest {
    * stopped existing minutes ago.
    */
   useEffect(() => {
+    /** When this interval last ran, so a tick that was skipped is recognisable. */
+    let lastBeatAt = Date.now();
     const id = window.setInterval(() => {
+      const now = Date.now();
+      const gap = now - lastBeatAt;
+      lastBeatAt = now;
+
       const channel = channelRef.current;
       if (!channel?.isOpen()) return;
       channel.send({ t: 'PING' } satisfies GuestMessage);
-      if (Date.now() - heardFrom.current > SILENCE_TIMEOUT_MS) {
+
+      // The host has the same guard, for the same reason, and this side was
+      // missing it: while the tab was suspended no interval ran and no message
+      // was delivered, so the first tick after waking reads the silence as the
+      // host being gone — on a channel that is perfectly alive. One skipped
+      // tick's grace costs a single round of late death detection.
+      if (gap > HEARTBEAT_MS * 2) {
+        heardFrom.current = now;
+        return;
+      }
+
+      if (now - heardFrom.current > SILENCE_TIMEOUT_MS) {
         // `drop()`, not `close()`. Closing is the silent form — it tears the
         // channel down without telling anyone, so the reconnect this exists to
         // start would never happen and the screen would freeze for good.
@@ -400,6 +420,12 @@ export function useGuest(code: string, name: string): Guest {
   const retry = useCallback(() => {
     stopped.current = false;
     attempt.current = 0;
+    // A fresh clock, or the budget from the outage that produced this screen is
+    // already spent: `nextRetry` would answer GIVE_UP on the first failure and
+    // the button would be worth exactly one dial, however many times it is
+    // tapped. `outageSince` is only ever read as "how long has this gone on",
+    // and a deliberate tap starts a new one.
+    outageSince.current = Date.now();
     setReason(null);
     setFailure(null);
     setNonce((n) => n + 1);

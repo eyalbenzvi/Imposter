@@ -44,15 +44,26 @@ function clock() {
   };
 }
 
-function setup(overrides: Partial<{ dead: boolean; disconnected: boolean }> = {}) {
+function setup(
+  overrides: Partial<{ dead: boolean; disconnected: boolean; open: boolean }> = {},
+) {
   const c = clock();
-  const state = { dead: false, disconnected: true, ...overrides };
+  // `open` defaults to the mirror of `disconnected`, which is what a peer that
+  // is simply up or simply down looks like — so every test written before the
+  // two were told apart keeps meaning what it meant.
+  const state = {
+    dead: false,
+    disconnected: true,
+    open: !(overrides.disconnected ?? true),
+    ...overrides,
+  };
   const reconnect = vi.fn();
   const onState = vi.fn();
   const loop = makeBrokerLoop({
     reconnect,
     isDead: () => state.dead,
     isDisconnected: () => state.disconnected,
+    isOpen: () => state.open,
     now: c.now,
     setTimeout: c.setTimeout,
     clearTimeout: c.clearTimeout,
@@ -169,6 +180,7 @@ describe('the broker recovery loop', () => {
     expect(onState).toHaveBeenLastCalledWith('DOWN');
 
     state.disconnected = false;
+    state.open = true;
     c.advance(FIRST_DELAY_MS);
 
     expect(onState).toHaveBeenLastCalledWith('UP');
@@ -220,6 +232,78 @@ describe('the broker recovery loop', () => {
     expect(onState.mock.calls.filter(([s]) => s === 'DOWN')).toHaveLength(1);
     loop.up();
     expect(onState.mock.calls.filter(([s]) => s === 'UP')).toHaveLength(1);
+  });
+
+  /**
+   * The regression that made the loop useless against a broker that accepts
+   * nothing.
+   *
+   * `peer.reconnect()` clears the disconnected flag **synchronously**, before
+   * the WebSocket is even constructed. Reading that as "we are back" meant the
+   * loop declared victory a second or two into every attempt: the banner
+   * flickered on and off, the backoff never grew past its first step, and the
+   * give-up budget was reset before it could ever fire — so a host on bad wifi
+   * hammered the shared public broker for the rest of the evening.
+   *
+   * This io models peerjs honestly: `reconnect()` clears `disconnected` and
+   * leaves `open` false until the socket answers, which here it never does.
+   */
+  it('does not mistake a reconnect in flight for a recovery', () => {
+    const c = clock();
+    const state = { disconnected: true, open: false };
+    const reconnect = vi.fn(() => {
+      // Exactly what peerjs does, and the whole trap.
+      state.disconnected = false;
+    });
+    const onState = vi.fn();
+    const loop = makeBrokerLoop({
+      reconnect,
+      isDead: () => false,
+      isDisconnected: () => state.disconnected,
+      isOpen: () => state.open,
+      now: c.now,
+      setTimeout: c.setTimeout,
+      clearTimeout: c.clearTimeout,
+      onState,
+    });
+
+    loop.down();
+    // Five minutes of a socket that is never going to answer.
+    for (let i = 0; i < 30; i++) c.advance(MAX_DELAY_MS);
+
+    // One DOWN, and never a false UP.
+    expect(onState.mock.calls.map(([s]) => s)).toEqual(['DOWN']);
+    // And it concluded rather than spinning for the rest of the evening.
+    expect(c.pending()).toBe(0);
+    expect(reconnect.mock.calls.length).toBeLessThan(20);
+  });
+
+  it('still declares recovery the moment the socket is genuinely open', () => {
+    const c = clock();
+    const state = { disconnected: true, open: false };
+    const onState = vi.fn();
+    const loop = makeBrokerLoop({
+      reconnect: () => {
+        state.disconnected = false;
+      },
+      isDead: () => false,
+      isDisconnected: () => state.disconnected,
+      isOpen: () => state.open,
+      now: c.now,
+      setTimeout: c.setTimeout,
+      clearTimeout: c.clearTimeout,
+      onState,
+    });
+
+    loop.down();
+    c.advance(FIRST_DELAY_MS); // reconnect fires, socket still answering
+    expect(onState.mock.calls.map(([s]) => s)).toEqual(['DOWN']);
+
+    state.open = true; // the server said OPEN
+    c.advance(MAX_DELAY_MS);
+
+    expect(onState.mock.calls.map(([s]) => s)).toEqual(['DOWN', 'UP']);
+    expect(c.pending()).toBe(0);
   });
 
   /** A code somebody else has taken fails identically forever. */

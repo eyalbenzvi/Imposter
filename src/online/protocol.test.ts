@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { PROTOCOL_VERSION, parseGuestMessage, parseHostMessage } from './protocol';
+import {
+  HEARTBEAT_MS,
+  PROTOCOL_VERSION,
+  SILENCE_TIMEOUT_MS,
+  parseGuestMessage,
+  parseHostMessage,
+} from './protocol';
+import { RECONNECT_BUDGET_MS } from './retry';
 
 /**
  * Anything arriving off a data channel is untrusted — an older build, a
@@ -134,5 +141,35 @@ describe('parseHostMessage', () => {
     expect(
       parseHostMessage({ t: 'REJECTED', reason: 'INVENTED', key: null, on: 'JOIN' }),
     ).toBeNull();
+  });
+});
+
+/**
+ * The timing constants are not independent — several of the transport's
+ * guarantees are relationships between them, and a change to one in isolation
+ * has broken those relationships before.
+ */
+describe('the timing constants agree with each other', () => {
+  /**
+   * Both sides treat "the interval was late" as "we were asleep" and skip a
+   * round rather than reap. That guard is `HEARTBEAT_MS * 2`, so the silence
+   * timeout has to leave room for it — otherwise a single late tick is
+   * indistinguishable from a peer that has genuinely gone.
+   */
+  it('leaves room for a late tick before calling anyone silent', () => {
+    expect(SILENCE_TIMEOUT_MS).toBeGreaterThan(HEARTBEAT_MS * 2);
+  });
+
+  /** Several heartbeats must be missed, not one, before a peer is written off. */
+  it('needs more than one missed heartbeat to declare silence', () => {
+    expect(SILENCE_TIMEOUT_MS / HEARTBEAT_MS).toBeGreaterThanOrEqual(3);
+  });
+
+  /**
+   * A guest has to keep chasing for longer than the host takes to notice they
+   * are gone, or they give up before the host has even marked the seat free.
+   */
+  it('gives a guest longer to come back than the host takes to notice', () => {
+    expect(RECONNECT_BUDGET_MS).toBeGreaterThan(SILENCE_TIMEOUT_MS * 4);
   });
 });

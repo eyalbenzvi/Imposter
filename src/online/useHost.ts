@@ -445,9 +445,15 @@ export function useHost(hostName: string): Host {
 
       // The interval did not run while the tab was suspended, so the first tick
       // after waking sees every channel as ancient and would evict the entire
-      // room at once. A gap larger than the timeout means we were asleep, not
-      // that eleven people left simultaneously.
-      if (gap > SILENCE_TIMEOUT_MS) {
+      // room at once.
+      //
+      // The threshold is "the tick was late", not "the tick was later than the
+      // whole timeout". A healthy gap is one heartbeat; a gap of nine seconds —
+      // a long GC pause, a burst of re-renders, moderate timer throttling — is
+      // not a suspend by the old test, but no message was processed during it
+      // either, so every channel is nine seconds stale and whichever ones tip
+      // over get reaped together.
+      if (gap > HEARTBEAT_MS * 2) {
         for (const connId of channels.current.keys()) lastSeen.current.set(connId, now);
         return;
       }

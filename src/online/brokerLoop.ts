@@ -18,6 +18,10 @@
  *    that event naively and closing the room *arms* it against a corpse.
  *  • Inside the `'disconnected'` handler, `peer.destroyed` is still false. A
  *    guard there is worthless; it has to sit in the timer callback.
+ *  • `peer.reconnect()` clears the disconnected flag **synchronously**, before
+ *    the WebSocket is even constructed. So "not disconnected" does not mean
+ *    "connected" — for as long as the socket takes to answer, or to fail, the
+ *    peer reports neither. Only `peer.open` distinguishes the two.
  *  • PeerJS's `_abort` emits `'error'` and then `'disconnected'`, so a single
  *    failure arrives twice and would arm two overlapping chains.
  *
@@ -46,6 +50,13 @@ export type BrokerIo = {
   reconnect(): void;
   isDead(): boolean;
   isDisconnected(): boolean;
+  /**
+   * Is the signalling socket actually up?
+   *
+   * Distinct from `!isDisconnected()`, and the distinction is the whole reason
+   * this exists — see the note about `reconnect()` at the top of the file.
+   */
+  isOpen(): boolean;
   now(): number;
   setTimeout(fn: () => void, ms: number): number;
   clearTimeout(id: number): void;
@@ -102,20 +113,30 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
       // event fired, `destroyed` was still false.
       if (stopping || io.isDead()) return;
 
-      // Not disconnected means there is nothing to recover — either the socket
-      // came back by itself, or it never went. Either way this is the signal
-      // that things are fine, and waiting for an `'open'` that will never be
-      // emitted would leave the room marked degraded forever.
       if (!io.isDisconnected()) {
-        recovered();
-        return;
-      }
-
-      try {
-        io.reconnect();
-      } catch {
-        // Raced with a destroy, or PeerJS changed its mind about our state.
-        // The next tick re-evaluates from scratch.
+        // Genuinely back: the socket is up. Waiting for an `'open'` that a peer
+        // which was never really down will not emit would leave the room marked
+        // degraded for the rest of the evening, so concluding it here matters.
+        if (io.isOpen()) {
+          recovered();
+          return;
+        }
+        // Not disconnected, but not open either: a reconnect we asked for is
+        // still in flight. This is the state peerjs leaves us in for as long as
+        // the socket takes to answer — `reconnect()` clears the disconnected
+        // flag the instant it *starts* the socket. Treating that as recovery
+        // declared victory every couple of seconds against a broker that never
+        // answered: the banner flickered, the backoff never grew past its first
+        // step, and the give-up budget below was reset before it could ever
+        // fire. Fall through with the clock still running, but do not ask again
+        // — a second `reconnect()` here is a no-op inside peerjs anyway.
+      } else {
+        try {
+          io.reconnect();
+        } catch {
+          // Raced with a destroy, or PeerJS changed its mind about our state.
+          // The next tick re-evaluates from scratch.
+        }
       }
 
       if (downSince !== null && io.now() - downSince > GIVE_UP_AFTER_MS) {

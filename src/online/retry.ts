@@ -27,13 +27,30 @@ export const MAX_DIAL_ATTEMPTS = 1;
 /**
  * Once seated, keep chasing for this long.
  *
- * Sized against the two events it has to survive: peerjs-server holds an
- * abandoned id for about 60 seconds, and a host who reloads needs that plus
- * their own startup.
+ * Sized against the events it has to survive. A host who *reloads* is the easy
+ * one: peerjs-server holds their abandoned id for about sixty seconds and they
+ * reclaim it within three of its release. The one that sets the number is a
+ * host who takes a phone call or swipes the app away and comes back — far
+ * commoner at a party than a deliberate refresh, and easily two minutes.
+ *
+ * Nothing on the host's side is pushing back. A seat whose player has merely
+ * gone quiet is kept, not freed, for the whole six-hour session; this number is
+ * the only thing that ends the wait. And the guest is never trapped by it —
+ * every reconnecting screen has a way out.
  */
-export const RECONNECT_BUDGET_MS = 90_000;
+export const RECONNECT_BUDGET_MS = 150_000;
 
-export const BACKOFF_MS = [1_000, 2_000, 4_000, 6_000, 6_000, 6_000];
+/**
+ * How long to wait before each attempt.
+ *
+ * The tail is 10s rather than 6s because every attempt is a *fresh* peer: a
+ * new WebSocket to the shared public broker and a new id registration. Eleven
+ * guests knocked off together by a host app-switch would otherwise produce
+ * around ninety registrations in ninety seconds, all from one wifi's IP — a
+ * poor thing to aim at a free service, and one whose punishment (being rate
+ * limited) outlives the outage that caused it.
+ */
+export const BACKOFF_MS = [1_000, 2_000, 4_000, 6_000, 8_000, 10_000];
 
 export type RetryState = {
   /** Have we ever been given a seat in this room? */
@@ -44,6 +61,16 @@ export type RetryState = {
   since: number;
 };
 
+/**
+ * A number in [0, 1) that spreads simultaneous retries apart.
+ *
+ * Passed in rather than drawn here, because this module is pure and its tests
+ * depend on that. Without it every guest in the room backs off on the same
+ * schedule and they all knock at once, which is exactly the burst the longer
+ * tail above is trying to avoid.
+ */
+export type Jitter = number;
+
 export type RetryDecision =
   | { action: 'RETRY'; delayMs: number }
   | { action: 'GIVE_UP'; clearSession: boolean };
@@ -52,6 +79,7 @@ export function nextRetry(
   state: RetryState,
   why: ConnectFailure,
   now: number,
+  jitter: Jitter = 0.5,
 ): RetryDecision {
   if (state.seatedOnce) {
     // The classification is deliberately ignored. See the note above: a seated
@@ -62,7 +90,7 @@ export function nextRetry(
       // the room, and the room may well still be there.
       return { action: 'GIVE_UP', clearSession: false };
     }
-    return { action: 'RETRY', delayMs: delayFor(state.attempt) };
+    return { action: 'RETRY', delayMs: delayFor(state.attempt, jitter) };
   }
 
   // Never seated. No amount of waiting conjures up a room that does not exist.
@@ -71,9 +99,11 @@ export function nextRetry(
     // straight back to the same dead screen on every launch.
     return { action: 'GIVE_UP', clearSession: why === 'NO_ROOM' };
   }
-  return { action: 'RETRY', delayMs: delayFor(state.attempt) };
+  return { action: 'RETRY', delayMs: delayFor(state.attempt, jitter) };
 }
 
-function delayFor(attempt: number): number {
-  return BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)]!;
+/** The step for this attempt, spread across ±40% so a room does not knock in unison. */
+function delayFor(attempt: number, jitter: Jitter): number {
+  const base = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)]!;
+  return Math.round(base * (0.6 + jitter * 0.8));
 }

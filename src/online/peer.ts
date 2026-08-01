@@ -13,7 +13,9 @@
 import Peer from 'peerjs';
 import { makeBrokerLoop, type BrokerState } from './brokerLoop';
 import { wrap, type Channel, type RawConn } from './channel';
-import { PEER_PREFIX } from './protocol';
+import { ICE_CONFIG, guestPeerId, randomCode, roomPeerId } from './peerIds';
+
+export { ICE_CONFIG, guestPeerId, randomCode, roomPeerId } from './peerIds';
 
 export type { Channel } from './channel';
 
@@ -43,24 +45,38 @@ export class ConnectError extends Error {
  * Nothing in PeerJS times out on its own: a broker that accepts the socket and
  * then goes quiet, or an ICE negotiation that never completes, leaves the
  * promise pending for the lifetime of the tab.
+ *
+ * The two sides measure very different things, which is why the number is not
+ * shared. The host only has to reach the broker and be given its id. The guest
+ * has to do that *and* complete a full ICE negotiation — gathering, possibly a
+ * TURN allocation, connectivity checks, DTLS, SCTP — before its channel opens,
+ * and on a phone that has just woken its radio that alone can take ten seconds.
+ *
+ * Six seconds was too short for the guest for a second, less obvious reason:
+ * the broker reports "there is no such room" by expiring the queued offer,
+ * which takes about five seconds. The old timeout raced it, so a mistyped code
+ * often came back as "we could not connect" instead of "there is no such room"
+ * — and, because the classification decides it, left the dead session on disk.
+ *
+ * Nothing about a wrong code is made slower by the longer wait: it arrives as
+ * an explicit `peer-unavailable` error, not as a timeout.
  */
-const CONNECT_TIMEOUT_MS = 6_000;
-
-export function roomPeerId(code: string): string {
-  return `${PEER_PREFIX}${code}`;
-}
+const HOST_CONNECT_TIMEOUT_MS = 8_000;
+const GUEST_CONNECT_TIMEOUT_MS = 15_000;
 
 /**
- * Six digits: short enough to read across a room, long enough not to collide.
+ * How long an incoming connection may sit un-negotiated before we hang up.
  *
- * The peer id lives in a namespace shared with every other copy of this game on
- * the public broker, so a code is not just a convenience — two groups drawing
- * the same one means the second host cannot open their room and a guest who
- * types it lands in a stranger's game.
+ * A `DataConnection` whose ICE never completes is never wrapped, never
+ * tracked, and never closed by us — the browser takes 20–40 seconds to declare
+ * ICE failed. A guest retrying keeps two or three of those alive on the host's
+ * phone at once, each running its own STUN and TURN probing, on the one device
+ * the whole room depends on.
+ *
+ * Comfortably above the guest's own budget, so this can never hang up on a
+ * negotiation that was still going to succeed.
  */
-export function randomCode(): string {
-  return String(Math.floor(Math.random() * 900_000) + 100_000);
-}
+const INCOMING_OPEN_TIMEOUT_MS = 25_000;
 
 export type GuestPeer = { channel: Channel; destroy(): void };
 
@@ -190,7 +206,7 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
 
     const tryOpen = (code: string): void => {
       attempt++;
-      const peer = new Peer(roomPeerId(code));
+      const peer = new Peer(roomPeerId(code), { config: ICE_CONFIG });
       let settled = false;
       let opened = false;
 
@@ -202,6 +218,7 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
         reconnect: () => peer.reconnect(),
         isDead: () => peer.destroyed,
         isDisconnected: () => peer.disconnected,
+        isOpen: () => peer.open,
         now: () => Date.now(),
         setTimeout: (fn, ms) => window.setTimeout(fn, ms),
         clearTimeout: (id) => window.clearTimeout(id),
@@ -219,7 +236,7 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
         loop.stop();
         peer.destroy();
         jilt(new ConnectError('TIMEOUT', 'could not reach the room service'));
-      }, CONNECT_TIMEOUT_MS);
+      }, HOST_CONNECT_TIMEOUT_MS);
 
       peer.on('open', () => {
         window.clearTimeout(timer);
@@ -238,7 +255,24 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
           // the guest chooses `conn.connectionId`, and everything on the host
           // side that asks "which player is this" keys off it.
           const id = `conn-${++connections}-${Math.random().toString(36).slice(2)}`;
-          conn.on('open', () => onConnectCb?.(wrap(conn as unknown as RawConn, id)));
+          let negotiated = false;
+          const giveUp = window.setTimeout(() => {
+            if (negotiated) return;
+            // Never opened, so nothing downstream knows it exists and nothing
+            // will ever close it. Safe on a connection that never negotiated:
+            // `close()` on one that is not open tears down the negotiator and
+            // emits nothing.
+            try {
+              conn.close();
+            } catch {
+              /* already gone */
+            }
+          }, INCOMING_OPEN_TIMEOUT_MS);
+          conn.on('open', () => {
+            negotiated = true;
+            window.clearTimeout(giveUp);
+            onConnectCb?.(wrap(conn as unknown as RawConn, id));
+          });
         });
 
         resolve({
@@ -383,9 +417,8 @@ export function destroyGuest(): void {
 
 function createGuest(code: string): Promise<GuestPeer> {
   return new Promise((resolve, jilt) => {
-    // An undefined id makes the broker mint one; guests do not need a stable
-    // identity, their seat is the identity.
-    const peer = new Peer();
+    // An explicit id, so PeerJS skips its HTTPS id fetch — see `guestPeerId`.
+    const peer = new Peer(guestPeerId(), { config: ICE_CONFIG });
     let settled = false;
 
     const fail = (kind: ConnectFailure, message: string): void => {
@@ -398,7 +431,7 @@ function createGuest(code: string): Promise<GuestPeer> {
 
     const timer = window.setTimeout(
       () => fail('TIMEOUT', 'connection timed out'),
-      CONNECT_TIMEOUT_MS,
+      GUEST_CONNECT_TIMEOUT_MS,
     );
 
     peer.on('open', () => {

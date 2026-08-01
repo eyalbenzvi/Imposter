@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RECONNECT_BUDGET_MS, nextRetry, type RetryState } from './retry';
+import { BACKOFF_MS, RECONNECT_BUDGET_MS, nextRetry, type RetryState } from './retry';
 
 const NOW = 1_000_000;
 
@@ -99,13 +99,49 @@ describe('a reconnect by somebody who is already seated', () => {
 });
 
 describe('the backoff', () => {
+  /** No jitter, so the shape of the curve can be asserted exactly. */
+  const flat = (attempt: number): number => {
+    const out = nextRetry(seated({ attempt }), 'NETWORK', NOW, 0.5);
+    return out.action === 'RETRY' ? out.delayMs : -1;
+  };
+
   it('grows and then holds steady', () => {
-    const delays = [0, 1, 2, 3, 4, 9].map((attempt) => {
-      const out = nextRetry(seated({ attempt }), 'NETWORK', NOW);
+    const delays = [0, 1, 2, 3, 4, 5, 9].map(flat);
+    expect(delays[0]).toBeLessThan(delays[2]!);
+    // The tail holds: attempt 5 and attempt 9 wait the same.
+    expect(delays[6]).toBe(delays[5]);
+    expect(Math.max(...delays)).toBeLessThanOrEqual(10_000);
+  });
+
+  /**
+   * Every attempt is a *fresh* peer — a new WebSocket to the shared public
+   * broker and a new id registration. Eleven guests knocked off together by a
+   * host app-switch would otherwise all knock at the same instants, and the
+   * punishment for that (being rate limited) outlives the outage that caused it.
+   */
+  it('spreads simultaneous retries apart', () => {
+    const spread = [0, 0.25, 0.5, 0.75, 0.999].map((j) => {
+      const out = nextRetry(seated({ attempt: 3 }), 'NETWORK', NOW, j);
       return out.action === 'RETRY' ? out.delayMs : -1;
     });
-    expect(delays[0]).toBeLessThan(delays[2]!);
-    expect(delays[5]).toBe(delays[4]);
-    expect(Math.max(...delays)).toBeLessThanOrEqual(6_000);
+    expect(new Set(spread).size).toBe(spread.length);
+    // Never zero, and never more than the step itself by much.
+    expect(Math.min(...spread)).toBeGreaterThan(0);
+    expect(Math.max(...spread)).toBeLessThanOrEqual(BACKOFF_MS[3]! * 1.4);
+  });
+
+  it('defaults to the middle of the range, so a caller may ignore it', () => {
+    const out = nextRetry(seated(), 'NETWORK', NOW);
+    expect(out).toMatchObject({ action: 'RETRY', delayMs: BACKOFF_MS[0] });
+  });
+
+  /**
+   * The budget has to outlast the events it exists for, and a host taking a
+   * phone call is a far commoner party event than a deliberate refresh. The
+   * host keeps a silent seat indefinitely, so nothing on that side ends the
+   * wait — only this number does.
+   */
+  it('outlasts a host who took a phone call', () => {
+    expect(RECONNECT_BUDGET_MS).toBeGreaterThan(120_000);
   });
 });
