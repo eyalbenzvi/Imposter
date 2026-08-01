@@ -10,7 +10,9 @@
  *
  *   SAME     identical once the pointing is dropped
  *   TOKEN    they share a whole word — the "תחנת אוטובוס" case
- *   CONTAIN  one is spelled inside the other — כֶּלֶב inside כְּלַבְלַב
+ *   CONTAIN  one is spelled inside the other — כֶּלֶב inside כְּלַבְלַב, and
+ *            word-by-word, so קָטָן inside קַטְנוֹעַ counts even with a second
+ *            word attached
  *   ROOT     different words off one root — קַצֶּפֶת and הַקְצָפָה
  *
  * ROOT is a heuristic, not a morphological analysis: there is no root
@@ -129,11 +131,15 @@ export function overlap(a: string, b: string): Overlap | null {
   const rightTokens = tokens(right);
   if (leftTokens.some((t) => rightTokens.includes(t))) return 'TOKEN';
 
-  // Spelled inside the other. Guarded at three letters: two-letter words turn
-  // up inside unrelated ones by chance (פֶּה in שָׂפָה, דֹּב in דְּבַשׁ).
-  const [short, long] = left.length <= right.length ? [left, right] : [right, left];
-  if (short.replace(/ /g, '').length >= MIN_ROOT && long.includes(short)) {
-    return 'CONTAIN';
+  // Spelled inside the other, compared token against token so a two-word phrase
+  // cannot hide it: קָטָן sits inside קַטְנוֹעַ whether or not either side has a
+  // second word attached. Guarded at three letters, because two-letter words
+  // turn up inside unrelated ones by chance (פֶּה in שָׂפָה, דֹּב in דְּבַשׁ).
+  for (const a of leftTokens) {
+    for (const b of rightTokens) {
+      const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+      if (short.length >= MIN_ROOT && long.includes(short)) return 'CONTAIN';
+    }
   }
 
   const leftStems = new Set<string>();

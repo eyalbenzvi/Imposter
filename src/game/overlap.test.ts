@@ -58,6 +58,14 @@ describe('overlap', () => {
     expect(overlap('לֶחֶם', 'לַחְמָנִיָּה')).toBe('CONTAIN');
   });
 
+  it('sees inside a phrase, not just a bare word', () => {
+    // Compared token against token, so a second word cannot hide the overlap.
+    expect(overlap('קַטְנוֹעַ', 'קָטָן וְקַל')).toBe('CONTAIN');
+    expect(overlap('נַעֲלַיִם', 'נַעֲלֵי סְפּוֹרְט')).toBe('CONTAIN');
+    expect(overlap('כַּדּוּרֶגֶל', 'כַּדּוּר יָד')).toBe('CONTAIN');
+    expect(overlap('בַּקְבּוּק מַיִם', 'יָמִים רְצוּפִים')).toBe('CONTAIN');
+  });
+
   it('reports two words off one root', () => {
     expect(overlap('קַצֶּפֶת', 'הַקְצָפָה')).toBe('ROOT');
     expect(overlap('פֶּצַע', 'פְּצִיעָה')).toBe('ROOT');

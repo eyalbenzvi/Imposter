@@ -29,15 +29,15 @@ underwear | תחתונים | tanktop | socks | pajamas | swimsuit | shorts
 swimsuit | בגד ים | shorts | flipflops | underwear | tanktop | sunglasses
 
 # ── נעליים ───────────────────────────────────────────────────────────────────
-shoes | נעלים | sneakers | sandals | boots | socks | shoelace
-sneakers | נַעֲלֵי סְפּוֹרְט | shoes | sandals | boots | flipflops | shoelace
-sandals | סנדלים | flipflops | shoes | sneakers | boots | swimsuit
-boots | מגפים | shoes | sneakers | sandals | socks | flipflops
-flipflops | כפכפים | sandals | slippers | shoes | swimsuit | boots
+shoes | נעלים | sandals | boots | socks | shoelace | swimsuit
+sneakers | נַעֲלֵי סְפּוֹרְט | sandals | boots | flipflops | shoelace | swimsuit
+sandals | סנדלים | flipflops | shoes | boots | swimsuit | underwear
+boots | מגפים | shoes | sandals | socks | flipflops | heels
+flipflops | כפכפים | sandals | slippers | swimsuit | boots | heels
 slippers | נַעֲלֵי בַּיִת | flipflops | sandals | socks | robe | boots
-heels | עקבים | shoes | sandals | boots | dress | sneakers
-socks | גרבים | tights | shoes | slippers | underwear | heels
-shoelace | שרוך | shoes | sneakers | boots | button | ribbon
+heels | עקבים | shoes | sandals | boots | dress | socks
+socks | גרבים | tights | shoes | underwear | heels | shoelace
+shoelace | שרוך | shoes | boots | button | ribbon | socks
 
 # ── על הראש ובידיים ──────────────────────────────────────────────────────────
 hat | כובע | kippah | kerchief | crown | scarf | shoelace
@@ -47,10 +47,10 @@ kerchief | מטפחת | scarf | hat | kippah | ribbon | gloves
 scarf | צעיף | gloves | coat | kerchief | hat | sweater
 gloves | כפפות | scarf | socks | coat | hat | boots
 crown | כֶּתֶר | hat | mask | costume | necklace | ring
-mask | מַסֵּכָה | costume | crown | sunglasses | hat | glasses
+mask | מַסֵּכָה | costume | crown | sunglasses | hat | gloves
 costume | תחפשת | mask | crown | uniform | dress | hat
-glasses | משקפים | sunglasses | mask | earring | necklace | wristwatch
-sunglasses | משקפי שמש | glasses | cap | swimsuit | mask | wristwatch
+glasses | משקפים | mask | earring | necklace | wristwatch | costume
+sunglasses | משקפי שמש | cap | swimsuit | mask | wristwatch | costume
 wristwatch | שָׁעוֹן יָד | glasses | bracelet | ring | necklace | earring
 
 # ── תכשיטים ואביזרים ─────────────────────────────────────────────────────────

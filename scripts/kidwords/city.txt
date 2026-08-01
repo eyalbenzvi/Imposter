@@ -24,7 +24,7 @@ lightrail | רכבת קלה | wagon | bus | station | cablecar | wheelchair
 wagon | קרון | train | cart | station | cablecar | elevator
 cablecar | רכבל | train | elevator | escalator | wagon | plane
 elevator | מעלית | escalator | cablecar | wheelchair | level | tower
-escalator | דרגנוע | elevator | cablecar | level | mall | wheelchair
+escalator | דַּרְגָּנוֹעַ | elevator | cablecar | level | mall | wheelchair
 plane | מטוס | helicopter | hotairballoon | airport | ship | ticket
 helicopter | מסוק | plane | hotairballoon | airport | firetruck | ambulance
 hotairballoon | כדור פורח | plane | helicopter | ship | airport | route
@@ -32,7 +32,7 @@ hotairballoon | כדור פורח | plane | helicopter | ship | airport | route
 # ── על המים ──────────────────────────────────────────────────────────────────
 ship | ספינה | boat | ferry | yacht | submarine | port
 boat | סירה | ship | yacht | ferry | submarine | port
-yacht | יכטה | boat | ship | ferry | submarine | port
+yacht | יַכְטָה | boat | ship | ferry | submarine | port
 ferry | מעברת | ship | boat | yacht | submarine | port
 submarine | צוללת | ship | boat | ferry | yacht | tank
 
@@ -40,9 +40,9 @@ submarine | צוללת | ship | boat | ferry | yacht | tank
 wheel | גלגל | tire | steeringwheel | pedal | brake | engine
 tire | צמיג | wheel | brake | pedal | steeringwheel | engine
 steeringwheel | הגה | pedal | brake | wheel | seatbelt | engine
-pedal | דושה | brake | steeringwheel | wheel | bicycle | tire
+pedal | דַּוְשָׁה | brake | steeringwheel | wheel | bicycle | tire
 brake | בלם | pedal | steeringwheel | tire | wheel | engine
-engine | מנוע | car-battery | fuel | wheel | brake | carhorn
+engine | מָנוֹעַ | car-battery | fuel | wheel | brake | carhorn
 car-battery | מצבר | engine | fuel | carhorn | headlight | brake
 fuel | דלק | engine | car-battery | headlight | carhorn | brake
 headlight | פנס | carhorn | engine | car-battery | seatbelt | tire
@@ -59,7 +59,7 @@ crosswalk | מעבר חציה | trafficlight | sidewalk | road | roadsign | lane
 trafficlight | רמזור | crosswalk | roadsign | road | square | street
 roadsign | תַּמְרוּר | trafficlight | crosswalk | road | route | lane
 bridge | גשר | tunnel | road | interchange | route | tower
-interchange | מְחָלֶף | bridge | tunnel | road | lane | route
+interchange | מֶחְלָף | bridge | tunnel | road | lane | route
 tunnel | מנהרה | bridge | road | route | lane | station
 trafficjam | פקק תנועה | road | lane | trafficlight | trip | bus
 street | רחוב | square | sidewalk | road | neighborhood | bench
@@ -108,9 +108,9 @@ culturehall | הֵיכָל תַּרְבּוּת | theater | cinema | museum | cl
 cinema | קולנוע | theater | mall | museum | clubhouse | culturehall
 clubhouse | מועדון | cinema | theater | culturehall | park | playground
 hotel | בית מלון | restaurant | pool | mall | airport | clubhouse
-synagogue | בית כנסת | church | mosque | cityhall | library | tower
-church | כנסיה | synagogue | mosque | tower | museum | cityhall
-mosque | מסגד | synagogue | church | tower | museum | cityhall
+synagogue | בית כנסת | museum | mosque | cityhall | library | tower
+church | כנסיה | library | mosque | tower | museum | cityhall
+mosque | מסגד | synagogue | library | tower | museum | cityhall
 tower | מגדל | building | bridge | church | level | elevator
 building | בִּנְיָן | tower | apartment | house | level | neighborhood
 house | בַּיִת | apartment | building | neighborhood | village | tower
