@@ -11,8 +11,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  HEARTBEAT_MS,
   PROTOCOL_VERSION,
   REJECT_TEXT,
+  SILENCE_TIMEOUT_MS,
   parseHostMessage,
   type GuestMessage,
   type Intent,
@@ -84,6 +86,8 @@ export function useGuest(code: string, name: string): Guest {
   const [failure, setFailure] = useState<ConnectFailure | null>(null);
 
   const channelRef = useRef<Channel | null>(null);
+  /** When the host last said anything. See the heartbeat effect below. */
+  const heardFrom = useRef(0);
   const viewRef = useRef<PlayerView | null>(null);
   const attempt = useRef(0);
   const retryTimer = useRef<number | null>(null);
@@ -137,7 +141,10 @@ export function useGuest(code: string, name: string): Guest {
         channel.onMessage((raw) => {
           const msg = parseHostMessage(raw);
           if (!msg) return;
+          heardFrom.current = Date.now();
           switch (msg.t) {
+            case 'PING':
+              return;
             case 'WELCOME':
               saveGuestSession({ code, seatId: msg.seatId, name });
               setStatus('PLAYING');
@@ -183,6 +190,7 @@ export function useGuest(code: string, name: string): Guest {
           scheduleRetry('NETWORK');
         });
 
+        heardFrom.current = Date.now();
         const saved = loadGuestSession(code);
         channel.send({
           t: 'JOIN',
@@ -206,6 +214,28 @@ export function useGuest(code: string, name: string): Guest {
     };
   }, [code, name, nonce]);
 
+  /**
+   * Say "still here", and notice when the host stops saying it.
+   *
+   * The guest has the mirror image of the host's problem: a host whose tab is
+   * killed or whose phone locks leaves this data channel looking perfectly
+   * open, so without listening for silence a player can sit in a room that
+   * stopped existing minutes ago.
+   */
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const channel = channelRef.current;
+      if (!channel?.isOpen()) return;
+      channel.send({ t: 'PING' } satisfies GuestMessage);
+      if (Date.now() - heardFrom.current > SILENCE_TIMEOUT_MS) {
+        // Drop it ourselves rather than wait for an event that is not coming;
+        // closing fires `onClose`, which starts the reconnect.
+        channel.close();
+      }
+    }, HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   const send = useCallback<Guest['send']>((msg) => {
     const channel = channelRef.current;
     const key = viewRef.current?.key;
@@ -219,6 +249,20 @@ export function useGuest(code: string, name: string): Guest {
     setReason(null);
     setFailure(null);
     setNonce((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    const bye = (): void => {
+      channelRef.current?.send({ t: 'LEAVE' } satisfies GuestMessage);
+    };
+    // `pagehide` is the one mobile Safari actually fires; `beforeunload` covers
+    // the rest. Best-effort — the heartbeat is what makes it correct.
+    window.addEventListener('pagehide', bye);
+    window.addEventListener('beforeunload', bye);
+    return () => {
+      window.removeEventListener('pagehide', bye);
+      window.removeEventListener('beforeunload', bye);
+    };
   }, []);
 
   const leave = useCallback(() => {

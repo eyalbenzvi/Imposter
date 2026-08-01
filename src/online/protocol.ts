@@ -40,6 +40,8 @@ export type ChoiceOption = 'VOTE' | 'ANOTHER_ROUND';
 export type GuestMessage =
   | { t: 'JOIN'; v: number; name: string; seatId?: SeatId }
   | { t: 'LEAVE' }
+  /** Heartbeat. Carries nothing; arriving at all is the whole message. */
+  | { t: 'PING' }
   | { t: 'READY'; key: string }
   | { t: 'CHOOSE'; key: string; option: ChoiceOption }
   | { t: 'VOTE'; key: string; target: PlayerId }
@@ -67,6 +69,7 @@ export type Intent =
 
 export type HostMessage =
   | { t: 'WELCOME'; v: number; seatId: SeatId }
+  | { t: 'PING' }
   | { t: 'VIEW'; view: PlayerView }
   | {
       t: 'REJECTED';
@@ -102,9 +105,23 @@ export type HostCommand =
   | { t: 'DROP_SEAT'; seatId: SeatId }
   | { t: 'FORCE_ADVANCE' };
 
+/**
+ * How often each side says "still here", and how long silence has to last
+ * before the other side believes it.
+ *
+ * A data channel does not reliably tell you the peer has gone. A closed tab, a
+ * locked phone or a dropped wifi produce no `close` event at all on the far
+ * side — sometimes ICE notices minutes later, sometimes never. Without this,
+ * whether a player vanished from the lobby came down to whether they happened
+ * to leave gracefully.
+ */
+export const HEARTBEAT_MS = 3_000;
+export const SILENCE_TIMEOUT_MS = 10_000;
+
 const GUEST_TYPES: ReadonlySet<string> = new Set<GuestMessageType>([
   'JOIN',
   'LEAVE',
+  'PING',
   'READY',
   'CHOOSE',
   'VOTE',
@@ -138,6 +155,8 @@ export function parseGuestMessage(raw: unknown): GuestMessage | null {
       };
     case 'LEAVE':
       return { t: 'LEAVE' };
+    case 'PING':
+      return { t: 'PING' };
     case 'READY':
     case 'NEXT_TURN':
     case 'SKIP_CLUES':
@@ -186,6 +205,8 @@ export function parseHostMessage(raw: unknown): HostMessage | null {
         : null;
     case 'CLOSED':
       return { t: 'CLOSED', reason: 'HOST_LEFT' };
+    case 'PING':
+      return { t: 'PING' };
     default:
       return null;
   }
