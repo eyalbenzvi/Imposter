@@ -6,9 +6,96 @@ import {
   playerIdOf,
   seatIdOf,
   seatOrderIsSound,
+  staleConnIds,
   validateJoin,
 } from './room';
+import { dropConnection } from './driver';
 import { lobby, revealed, speakRound, started, toVoting, voteOut } from './testUtils';
+
+/**
+ * A data channel does not reliably report that the far side is gone: a killed
+ * tab, a locked phone or a dropped wifi produce no close event here at all.
+ * Removal used to depend entirely on that event, which is why it worked for
+ * anyone who left by tapping a button and failed for everybody else.
+ */
+describe('noticing that somebody has gone quiet', () => {
+  const NOW = 1_000_000;
+  const TIMEOUT = 10_000;
+
+  it('names a connection that has stopped talking', () => {
+    const room = lobby(3);
+    const [, second, third] = room.seats;
+    const seen = new Map([
+      [second!.connId!, NOW - 1_000],
+      [third!.connId!, NOW - 30_000],
+    ]);
+    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([third!.connId]);
+  });
+
+  /**
+   * The window between a channel opening and its first message is the one time
+   * "no sighting" is normal. Sweeping then would drop players as they arrive.
+   */
+  it('leaves a connection alone until it has been seen at least once', () => {
+    const room = lobby(3);
+    expect(staleConnIds(room, new Map(), NOW, TIMEOUT)).toEqual([]);
+  });
+
+  it('never sweeps the host — it is the device the room runs on', () => {
+    const room = lobby(3);
+    const seen = new Map(room.seats.map((s) => [s.connId!, NOW - 60_000]));
+    expect(staleConnIds(room, seen, NOW, TIMEOUT)).not.toContain('host');
+  });
+
+  it('ignores a seat that is already marked disconnected', () => {
+    const started = lobby(3);
+    const room = {
+      ...started,
+      seats: started.seats.map((s, i) => (i === 1 ? { ...s, connId: null } : s)),
+    };
+    const seen = new Map([[room.seats[2]!.connId!, NOW - 60_000]]);
+    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([room.seats[2]!.connId]);
+  });
+});
+
+describe('what a disconnect does, before and after the game starts', () => {
+  /** In the lobby a departure is just a departure — no ghosts on the roster. */
+  it('removes the seat entirely while the room is still open', () => {
+    const room = lobby(4);
+    const gone = room.seats[2]!;
+    const after = dropConnection(room, gone.connId!);
+    expect(after.seats).toHaveLength(3);
+    expect(after.seats.some((s) => s.seatId === gone.seatId)).toBe(false);
+    expect(after.version).toBeGreaterThan(room.version);
+  });
+
+  /**
+   * Once the game is running the seat has a player id frozen against it, so it
+   * has to stay — it is only marked absent, and the player can come back to it.
+   */
+  it('only marks the seat absent once the game has started', () => {
+    const room = started(5);
+    const gone = room.seats[3]!;
+    const after = dropConnection(room, gone.connId!);
+    expect(after.seats).toHaveLength(5);
+    expect(after.seats[3]!.connId).toBeNull();
+    expect(seatOrderIsSound(after)).toBe(true);
+    expect(playerIdOf(after, gone.seatId)).toBe('p3');
+  });
+
+  it('keeps the host seated whatever happens to its channel', () => {
+    const room = lobby(3);
+    const after = dropConnection(room, 'host');
+    expect(after.seats[0]!.isHost).toBe(true);
+    expect(after.seats).toHaveLength(3);
+  });
+
+  it('does nothing for a connection that holds no seat', () => {
+    const room = lobby(3);
+    // A channel that was already replaced by a reconnect lands here.
+    expect(dropConnection(room, 'ghost-channel')).toBe(room);
+  });
+});
 
 /**
  * `seatOrder` is the only thing standing between a restored session and a leak:

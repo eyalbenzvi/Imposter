@@ -36,8 +36,10 @@ import {
   type HostPeer,
 } from './peer';
 import {
+  HEARTBEAT_MS,
   PROTOCOL_VERSION,
   REJECT_TEXT,
+  SILENCE_TIMEOUT_MS,
   parseGuestMessage,
   type GuestMessage,
   type HostCommand,
@@ -50,6 +52,7 @@ import {
   emptyPending,
   seatByConn,
   seatOrderIsSound,
+  staleConnIds,
   type Room,
   type Seat,
 } from './room';
@@ -123,6 +126,8 @@ export function useHost(hostName: string): Host {
   const peerRef = useRef<HostPeer | null>(null);
   /** connId → channel, for everyone currently attached. */
   const channels = useRef(new Map<string, Channel>());
+  /** connId → when we last heard anything at all from it. */
+  const lastSeen = useRef(new Map<string, number>());
 
   // ── sending ───────────────────────────────────────────────────────────────
 
@@ -194,6 +199,8 @@ export function useHost(hostName: string): Host {
     (channel: Channel, raw: unknown) => {
       const msg = parseGuestMessage(raw);
       const room = roomRef.current!;
+      // Any message at all is proof of life, including one we go on to reject.
+      lastSeen.current.set(channel.id, Date.now());
       if (!msg) {
         sendTo(channel, { t: 'REJECTED', reason: 'BAD_PAYLOAD', key: null, on: 'JOIN' });
         return;
@@ -219,6 +226,10 @@ export function useHost(hostName: string): Host {
         pushView(channel, out.seatId);
         return;
       }
+
+      // A heartbeat is only ever "still here" — recording the sighting above
+      // is the entire handling.
+      if (msg.t === 'PING') return;
 
       if (msg.t === 'LEAVE') {
         commit(dropConnection(room, channel.id));
@@ -277,9 +288,13 @@ export function useHost(hostName: string): Host {
 
         peer.onConnect((channel) => {
           channels.current.set(channel.id, channel);
+          // Counted as seen the moment it opens, so the sweep below cannot
+          // reap a channel that simply has not spoken yet.
+          lastSeen.current.set(channel.id, Date.now());
           channel.onMessage((raw) => onMessage(channel, raw));
           channel.onClose(() => {
             channels.current.delete(channel.id);
+            lastSeen.current.delete(channel.id);
             commit(dropConnection(roomRef.current!, channel.id));
           });
         });
@@ -301,6 +316,48 @@ export function useHost(hostName: string): Host {
     // Mount once: the room's identity does not change under it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Heartbeat, and the sweep that acts on its absence.
+   *
+   * `channel.onClose` only fires on a *graceful* close. A tab that is killed, a
+   * phone that locks, a wifi that drops — none of them produce a close event on
+   * this side, so a player could vanish from the room and stay on the roster
+   * indefinitely. That is why removal used to look random: it worked for anyone
+   * who left by tapping a button, and failed for everybody else.
+   *
+   * Silence is the signal that always arrives.
+   */
+  useEffect(() => {
+    const beat = window.setInterval(() => {
+      for (const channel of channels.current.values()) {
+        if (channel.isOpen()) channel.send({ t: 'PING' } satisfies HostMessage);
+      }
+    }, HEARTBEAT_MS);
+
+    const sweep = window.setInterval(() => {
+      const gone = staleConnIds(
+        roomRef.current!,
+        lastSeen.current,
+        Date.now(),
+        SILENCE_TIMEOUT_MS,
+      );
+      if (gone.length === 0) return;
+      let next = roomRef.current!;
+      for (const connId of gone) {
+        channels.current.get(connId)?.close();
+        channels.current.delete(connId);
+        lastSeen.current.delete(connId);
+        next = dropConnection(next, connId);
+      }
+      commit(next);
+    }, HEARTBEAT_MS);
+
+    return () => {
+      window.clearInterval(beat);
+      window.clearInterval(sweep);
+    };
+  }, [commit]);
 
   // Keep the screen on, and pick the pieces back up when the host returns from
   // another app — iOS suspends a backgrounded tab and drops its channels.

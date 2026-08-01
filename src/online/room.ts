@@ -194,6 +194,33 @@ export function validateJoin(
   return null;
 }
 
+/**
+ * Connections that have stopped saying anything.
+ *
+ * The host cannot wait to be told a guest has gone: a tab closed, a phone
+ * locked or a wifi dropped all leave the data channel looking open on this
+ * side. Silence is the only signal that arrives every time, so it is the one
+ * the room acts on.
+ *
+ * A connection with no recorded sighting at all is treated as seen just now by
+ * the caller, not as stale — a seat must never be swept in the window between
+ * the channel opening and its first message.
+ */
+export function staleConnIds(
+  room: Room,
+  lastSeen: ReadonlyMap<string, number>,
+  now: number,
+  timeoutMs: number,
+): string[] {
+  const stale: string[] = [];
+  for (const seat of room.seats) {
+    if (seat.isHost || seat.connId === null) continue;
+    const seen = lastSeen.get(seat.connId);
+    if (seen !== undefined && now - seen > timeoutMs) stale.push(seat.connId);
+  }
+  return stale;
+}
+
 /** A fresh seat id that can't clash with one already handed out. */
 export function nextSeatId(room: Room): SeatId {
   let n = room.seats.length;

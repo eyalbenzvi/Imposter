@@ -381,7 +381,10 @@ export function handleIntent(
   msg: GuestMessage,
   env: Env,
 ): Outcome {
-  if (msg.t === 'JOIN' || msg.t === 'LEAVE') return reject(room, 'BAD_PAYLOAD');
+  // Handled by the connection layer, not the rulebook.
+  if (msg.t === 'JOIN' || msg.t === 'LEAVE' || msg.t === 'PING') {
+    return reject(room, 'BAD_PAYLOAD');
+  }
 
   const playerId = playerIdOf(room, seatId);
   if (playerId === null) return reject(room, 'NOT_ALLOWED');
