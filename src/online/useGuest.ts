@@ -28,7 +28,14 @@ import {
   type ConnectFailure,
 } from './peer';
 import { useKeepAwake } from '../ui/useKeepAwake';
-import { nameToPersist, renameOnArrival } from './guestName';
+import {
+  initialName,
+  onReconnect,
+  onRename,
+  onRenameRefused,
+  onView,
+  type NameState,
+} from './guestName';
 import { nextRetry } from './retry';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
@@ -73,6 +80,24 @@ const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
   'SEAT_TAKEN',
 ]);
 
+/**
+ * Terminal refusals that also mean the seat in our session no longer exists.
+ *
+ * A session is what sends the app straight back into the online mode on the
+ * next launch, so keeping one that names a seat we were just told we cannot
+ * have lands this phone on the same rejection screen every time it opens the
+ * game, for the full six hours the session lives.
+ *
+ * `SEAT_TAKEN` is deliberately absent: the seat is real and is ours, another
+ * device is simply using it. `BAD_VERSION` too — that is a refresh away from
+ * working, and the seat is still there.
+ */
+const FORGET_SESSION: ReadonlySet<RejectReason> = new Set<RejectReason>([
+  'ROOM_LOCKED',
+  'ROOM_FULL',
+  'NAME_TAKEN',
+]);
+
 export function useGuest(code: string, name: string): Guest {
   const [status, setStatus] = useState<GuestStatus>('CONNECTING');
   const [view, setView] = useState<PlayerView | null>(null);
@@ -81,22 +106,13 @@ export function useGuest(code: string, name: string): Guest {
 
   const channelRef = useRef<Channel | null>(null);
   /**
-   * The name we intend to be known by.
+   * Everything about what this device is called — see `guestName.ts`.
    *
    * A ref rather than the `name` prop, because the prop is captured when the
-   * join screen hands over and never moves again — so after a rename every
+   * join screen hands over and never moves again: after a rename, every
    * reconnect would introduce the player by the name they had abandoned.
    */
-  const nameRef = useRef(name);
-  /**
-   * The name to fall back to if a rename in flight comes back refused, and the
-   * flag for "a rename is in flight at all".
-   */
-  const priorName = useRef<string | null>(null);
-  /** Did the player ask for the rename in flight, or did we send it for them? */
-  const renameAsked = useRef(false);
-  /** The name currently in the session — what the next reconnect will send. */
-  const persisted = useRef<string | null>(null);
+  const naming = useRef<NameState>(initialName(name, null));
   /** Our seat, once the host has given us one — needed to re-save the session. */
   const seatIdRef = useRef<string | null>(null);
   /** The secret that proves the seat is ours. Issued once, in `WELCOME`. */
@@ -122,8 +138,7 @@ export function useGuest(code: string, name: string): Guest {
   // the room again, which outranks anything remembered from last time.
   // Declared above the connect effect so it has already run when the JOIN goes.
   useEffect(() => {
-    nameRef.current = name;
-    priorName.current = null;
+    naming.current = initialName(name, naming.current.persisted);
   }, [name]);
 
   /**
@@ -137,7 +152,7 @@ export function useGuest(code: string, name: string): Guest {
       channel.send({
         t: 'JOIN',
         v: PROTOCOL_VERSION,
-        name: nameRef.current,
+        name: naming.current.intended,
         // Both or neither: the seat id alone is guessable and proves nothing,
         // so the host ignores it without the token that came with it.
         ...(saved?.token ? { seatId: saved.seatId, token: saved.token } : {}),
@@ -148,10 +163,6 @@ export function useGuest(code: string, name: string): Guest {
 
   useEffect(() => {
     stopped.current = false;
-    // A rename that was in flight when the channel dropped is simply lost —
-    // the host either applied it or did not, and its next `VIEW` says which.
-    // Leaving the flag set would freeze the persist path for good.
-    priorName.current = null;
     let cancelled = false;
 
     const scheduleRetry = (why: ConnectFailure): void => {
@@ -194,10 +205,10 @@ export function useGuest(code: string, name: string): Guest {
         attempt.current = 0;
         setStatus('JOINING');
 
+        // A rename in flight when the channel dropped is simply lost: the host
+        // either applied it or did not, and its next `VIEW` says which.
         const saved = loadGuestSession(code);
-        persisted.current = saved?.name ?? null;
-        /** Cleared once asked, so the request is made on arrival and not again. */
-        let arriving = saved !== null;
+        naming.current = onReconnect(naming.current, saved?.name ?? null);
 
         channel.onMessage((raw) => {
           const msg = parseHostMessage(raw);
@@ -222,7 +233,7 @@ export function useGuest(code: string, name: string): Guest {
                 code,
                 seatId: msg.seatId,
                 token: msg.token,
-                name: persisted.current ?? nameRef.current,
+                name: naming.current.persisted ?? naming.current.intended,
               });
               // From here on a failure means "the host hiccuped", not "there is
               // no such room" — and the two get very different patience.
@@ -239,53 +250,23 @@ export function useGuest(code: string, name: string): Guest {
               setReason(null);
 
               // The host's copy of our name is the only authority on it, and
-              // this is where it arrives. See `guestName.ts` for why the two
-              // decisions below are made against different values.
-              const theirs = msg.view.you.name;
-              const seatId = seatIdRef.current;
-
-              if (arriving) {
-                arriving = false;
-                const ask = renameOnArrival(
-                  nameRef.current,
-                  theirs,
-                  msg.view.phase === 'SETUP',
-                );
-                if (ask !== null) {
-                  priorName.current = theirs;
-                  // Nobody tapped anything to cause this one, so nobody should
-                  // be shown a refusal for it — the host can lock the room in
-                  // the gap between the view being sent and this arriving.
-                  renameAsked.current = false;
-                  channel.send({ t: 'RENAME', name: ask } satisfies GuestMessage);
-                  return;
-                }
+              // this is where it arrives. Every decision that follows from it
+              // lives in `guestName.ts`.
+              const out = onView(
+                naming.current,
+                msg.view.you.name,
+                msg.view.phase === 'SETUP',
+              );
+              naming.current = out.state;
+              if (out.rename !== undefined) {
+                channel.send({ t: 'RENAME', name: out.rename } satisfies GuestMessage);
               }
-
-              if (priorName.current !== null) {
-                // A rename is in flight. A view still carrying the *old* name
-                // is an unrelated broadcast that raced past it, and adopting
-                // that would roll the name backwards mid-request.
-                //
-                // Anything else settles it — deliberately not "the exact name
-                // we asked for". The host stores `normalize(name.trim())`, so
-                // an accepted rename can come back subtly different, and
-                // demanding an exact match left this flag set for good: the
-                // session then stopped being updated and every reconnect
-                // re-sent a rename nobody had asked for.
-                if (theirs === priorName.current) return;
-                priorName.current = null;
-              }
-              nameRef.current = theirs;
-
-              const write = nameToPersist(theirs, persisted.current);
-              if (write !== null && seatId !== null) {
-                persisted.current = write;
+              if (out.persist !== undefined && seatIdRef.current !== null) {
                 saveGuestSession({
                   code,
-                  seatId,
+                  seatId: seatIdRef.current,
                   token: tokenRef.current ?? undefined,
-                  name: write,
+                  name: out.persist,
                 });
               }
               return;
@@ -294,17 +275,13 @@ export function useGuest(code: string, name: string): Guest {
               // A screen that fell behind, not a mistake the player made. The
               // host has already sent a fresh view; say nothing.
               if (msg.reason === 'STALE') return;
-              // A refused rename leaves us still called what we were called.
+              // A refused rename leaves us still called what we were called,
+              // and is only worth saying out loud sometimes — see
+              // `onRenameRefused`.
               if (msg.on === 'RENAME') {
-                if (priorName.current !== null) {
-                  nameRef.current = priorName.current;
-                  priorName.current = null;
-                }
-                // Silent unless the player actually asked. The rename sent on
-                // arrival can lose a race with the host tapping "start", and a
-                // red "הפעולה לא אפשרית כרגע" over the reveal screen of
-                // somebody who just reconnected is a bug report, not a message.
-                if (!renameAsked.current) return;
+                const out = onRenameRefused(naming.current, msg.reason);
+                naming.current = out.state;
+                if (!out.surface) return;
               }
               setReason(msg.reason);
               // Only a refusal the player can actually do something about ends
@@ -317,6 +294,7 @@ export function useGuest(code: string, name: string): Guest {
                 // pinging forever — which keeps the host's `lastSeen` fresh and
                 // makes this channel permanently un-sweepable on their side.
                 channelRef.current = null;
+                if (FORGET_SESSION.has(msg.reason)) clearGuestSession();
                 setStatus('REJECTED');
               }
               return;
@@ -394,10 +372,9 @@ export function useGuest(code: string, name: string): Guest {
     // Deliberately no sync key: two players renaming in the same tick would
     // otherwise reject each other for no reason. The host validates the name
     // through the very gate `START_GAME` will apply later.
-    priorName.current = nameRef.current;
-    renameAsked.current = true;
-    nameRef.current = next;
-    channel.send({ t: 'RENAME', name: next } satisfies GuestMessage);
+    const out = onRename(naming.current, next);
+    naming.current = out.state;
+    channel.send({ t: 'RENAME', name: out.rename! } satisfies GuestMessage);
     // Nothing is written to storage here. The host may well refuse this — the
     // name may be taken, or the roster already frozen — and a stored name it
     // never accepted would be re-sent by every reconnect from now on. The

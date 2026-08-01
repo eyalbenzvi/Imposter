@@ -100,6 +100,34 @@ describe('lobby', () => {
   });
 
   /**
+   * Every time a guest's phone comes back to the foreground it re-sends `JOIN`
+   * over the channel it already has — that is what repairs a seat lost while
+   * it was asleep. On the far commoner path where nothing was lost, it must
+   * cost nothing at all: the same room object back, so `version` does not move
+   * and the whole room is not re-broadcast on every player's tab switch.
+   */
+  it('is free when a returning phone says hello over the channel it already had', () => {
+    const room = lobby(4);
+    const seat = room.seats[2]!;
+    const out = handleJoin(
+      room,
+      seat.connId!,
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+        token: seat.token,
+      },
+      'unused',
+    );
+    expect(out.accepted).toBe(true);
+    expect(out.seatId).toBe(seat.seatId);
+    expect(out.room).toBe(room);
+    expect(out.room.version).toBe(room.version);
+  });
+
+  /**
    * The reconnect race: a phone retries after a second, while the host only
    * learns the old channel died when peerjs times the connection out. Refusing
    * the new channel would lock a player out of a game they are standing in the
@@ -416,6 +444,20 @@ describe('lobby', () => {
     );
     expect(out.accepted).toBe(true);
     expect(out.room.seats[1]!.token).toBe(seat.token);
+  });
+
+  /**
+   * `authorise` measures the trimmed clue, so the raw string is not what was
+   * approved. It is also what would be broadcast to every guest on every
+   * version bump and serialized into the host's session on every save.
+   */
+  it('stores the clue that was actually validated, not the raw payload', () => {
+    const room = revealed(started(4, { clueMode: 'TYPE' }));
+    const who = currentCluePlayer(room.state)!;
+    const out = expectOk(
+      asPlayer(room, who, { t: 'CLUE', text: `  חתול${' '.repeat(500)}` }),
+    );
+    expect(out.state.clues[who]).toBe('חתול');
   });
 
   it('locks the room once the game starts', () => {

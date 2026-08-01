@@ -277,13 +277,33 @@ export function renameSeat(room: Room, seatId: SeatId, name: string): Outcome {
   };
 }
 
-/** A channel dropped. The seat stays — the player may well be back. */
-export function dropConnection(room: Room, connId: string): Room {
+/**
+ * A channel is gone. Whether the seat goes with it depends on *why*.
+ *
+ * `LEFT` is somebody saying so: the Leave button, or the tab actually closing.
+ * In the lobby that frees the seat, which is what keeps a roster from filling
+ * with people who went home.
+ *
+ * `SILENT` is only an absence of heartbeats, and the two are not the same
+ * thing. A phone that locks or a tab that is backgrounded stops sending for
+ * ten seconds and then comes back — and deleting a lobby seat for that made
+ * the player vanish from the host's screen entirely: not greyed out, not
+ * "מנותק", gone, with nothing to tell the host to wait. If the host started
+ * the game in that window, the returning player got `ROOM_LOCKED`, which is
+ * terminal. A silent seat stays and shows as disconnected, with an × beside
+ * it for the case where they really have gone home.
+ */
+export type DropReason = 'LEFT' | 'SILENT';
+
+export function dropConnection(
+  room: Room,
+  connId: string,
+  why: DropReason = 'SILENT',
+): Room {
   const seat = seatByConn(room, connId);
   if (!seat) return room;
-  // Before the game starts a departure is just a departure: drop the seat, so
-  // the lobby doesn't fill up with ghosts. The host's own seat always stays.
-  if (!room.locked && !seat.isHost) {
+  // The host's own seat always stays.
+  if (why === 'LEFT' && !room.locked && !seat.isHost) {
     return touch(room, { seats: room.seats.filter((s) => s.seatId !== seat.seatId) });
   }
   return touch(room, {
@@ -543,7 +563,12 @@ function applyIntent(
       return commit(room, [{ type: 'NEXT_CLUE_TURN' }], env);
 
     case 'CLUE':
-      return commit(room, [{ type: 'SUBMIT_CLUE', playerId, text: msg.text }], env);
+      // Trimmed here, not left to the reducer. `authorise` checked the length
+      // of the trimmed text, so forwarding the raw string means the thing that
+      // was validated and the thing that is stored are different values — and
+      // what is stored gets broadcast to every guest on every version bump and
+      // serialized into the host's session on every save.
+      return commit(room, [{ type: 'SUBMIT_CLUE', playerId, text: msg.text.trim() }], env);
 
     case 'GUESS':
       return commit(room, [{ type: 'SUBMIT_GUESS', wordId: msg.wordId }], env);

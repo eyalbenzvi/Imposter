@@ -55,13 +55,33 @@ describe('noticing that somebody has gone quiet', () => {
 
 describe('what a disconnect does, before and after the game starts', () => {
   /** In the lobby a departure is just a departure — no ghosts on the roster. */
-  it('removes the seat entirely while the room is still open', () => {
+  it('removes the seat entirely when somebody actually leaves an open room', () => {
     const room = lobby(4);
     const gone = room.seats[2]!;
-    const after = dropConnection(room, gone.connId!);
+    const after = dropConnection(room, gone.connId!, 'LEFT');
     expect(after.seats).toHaveLength(3);
     expect(after.seats.some((s) => s.seatId === gone.seatId)).toBe(false);
     expect(after.version).toBeGreaterThan(room.version);
+  });
+
+  /**
+   * Silence is not a departure, and treating it as one was how a player who
+   * glanced at a notification vanished from the lobby with no trace.
+   *
+   * A backgrounded phone stops sending heartbeats for ten seconds and then
+   * comes back. Deleting the seat left nothing on the host's screen to say
+   * anybody was missing — not greyed out, not "מנותק", gone — so nothing told
+   * the host to wait, and starting the game in that window met the returning
+   * player with `ROOM_LOCKED`, which is terminal.
+   */
+  it('only marks the seat absent when a lobby player merely went quiet', () => {
+    const room = lobby(4);
+    const quiet = room.seats[2]!;
+    const after = dropConnection(room, quiet.connId!);
+    expect(after.seats).toHaveLength(4);
+    expect(after.seats[2]!.connId).toBeNull();
+    // And the seat keeps its token, so the phone can reclaim it on return.
+    expect(after.seats[2]!.token).toBe(quiet.token);
   });
 
   /**
@@ -80,9 +100,14 @@ describe('what a disconnect does, before and after the game starts', () => {
 
   it('keeps the host seated whatever happens to its channel', () => {
     const room = lobby(3);
-    const after = dropConnection(room, 'host');
-    expect(after.seats[0]!.isHost).toBe(true);
-    expect(after.seats).toHaveLength(3);
+    // `'host'` is a string a guest can name its own connection, so this must
+    // not reach the host's seat by either reason.
+    for (const why of ['LEFT', 'SILENT'] as const) {
+      const after = dropConnection(room, 'host', why);
+      expect(after.seats[0]!.isHost).toBe(true);
+      expect(after.seats[0]!.connId).toBe('host');
+      expect(after.seats).toHaveLength(3);
+    }
   });
 
   it('does nothing for a connection that holds no seat', () => {

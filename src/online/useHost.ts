@@ -299,7 +299,8 @@ export function useHost(hostName: string): Host {
       if (msg.t === 'PING') return;
 
       if (msg.t === 'LEAVE') {
-        commit(dropConnection(room, channel.id));
+        // The only path that frees a lobby seat: somebody said they were going.
+        commit(dropConnection(room, channel.id, 'LEFT'));
         return;
       }
 
@@ -388,6 +389,9 @@ export function useHost(hostName: string): Host {
           channel.onClose(() => {
             channels.current.delete(channel.id);
             lastSeen.current.delete(channel.id);
+            // Not `LEFT`: peerjs emits `close` for an ordinary network drop
+            // just as it does for a graceful goodbye, and a phone that lost
+            // wifi has not left the room. A real departure arrives as `LEAVE`.
             commit(dropConnection(roomRef.current!, channel.id));
           });
         });
