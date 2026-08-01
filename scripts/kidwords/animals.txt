@@ -100,7 +100,7 @@ tadpole | רֹאשָׁן | frog | toad | fish | lizard | worm
 ant | נמלה | bee | beetle | ladybug | fly | grasshopper
 bee | דבורה | ant | butterfly | fly | beehive | ladybug
 butterfly | פרפר | bee | ladybug | beetle | grasshopper | fly
-ladybug | פָּרַת מֹשֶׁה רַבֵּנוּ | beetle | butterfly | bee | ant | fly
+ladybug | פָּרַת מֹשֶׁה | beetle | butterfly | bee | ant | fly
 beetle | חִפּוּשִׁית | ladybug | ant | cricket | grasshopper | spider
 mosquito | יַתּוּשׁ | fly | bee | ant | spider | beetle
 fly | זְבוּב | mosquito | bee | ant | beetle | butterfly
