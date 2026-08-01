@@ -95,7 +95,17 @@ export type RejectReason =
   | 'BAD_VERSION'
   | 'NOT_ALLOWED'
   | 'STALE'
-  | 'BAD_PAYLOAD';
+  | 'BAD_PAYLOAD'
+  /**
+   * Somebody else reconnected to this seat, and took it.
+   *
+   * Terminal on purpose. A seat is taken over rather than defended (see
+   * `handleJoin`), which means whenever two channels claim one seat, one of
+   * them has to stop — and if the loser retries, it takes the seat straight
+   * back and the two spend the evening evicting each other, one second apart,
+   * with both screens flickering. Whoever arrived first stands down.
+   */
+  | 'SEAT_TAKEN';
 
 /**
  * What the host can do to unstick a room — see `driver.hostCommand`.
@@ -208,7 +218,11 @@ export function parseHostMessage(raw: unknown): HostMessage | null {
         ? { t: 'VIEW', view: msg.view as PlayerView }
         : null;
     case 'REJECTED':
-      return typeof msg.reason === 'string'
+      // Checked against the real set rather than cast. A host on a newer build
+      // can name a reason this one has never heard of, and an unchecked cast
+      // put it straight into `REJECT_TEXT[reason]` — undefined — so the player
+      // got a refusal screen with no text on it at all.
+      return typeof msg.reason === 'string' && msg.reason in REJECT_TEXT
         ? {
             t: 'REJECTED',
             reason: msg.reason as RejectReason,
@@ -236,4 +250,5 @@ export const REJECT_TEXT: Record<RejectReason, string> = {
   NOT_ALLOWED: 'הפעולה לא אפשרית כרגע',
   STALE: 'המשחק התקדם בינתיים',
   BAD_PAYLOAD: 'הודעה לא תקינה',
+  SEAT_TAKEN: 'התחברת למקום הזה ממכשיר אחר',
 };

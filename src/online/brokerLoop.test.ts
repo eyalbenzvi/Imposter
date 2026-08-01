@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FIRST_DELAY_MS, MAX_DELAY_MS, makeBrokerLoop, nextDelay } from './brokerLoop';
+import {
+  FIRST_DELAY_MS,
+  GIVE_UP_AFTER_MS,
+  MAX_DELAY_MS,
+  makeBrokerLoop,
+  nextDelay,
+} from './brokerLoop';
 
 /**
  * A hand-cranked clock, so the loop's timing can be asserted rather than waited
@@ -47,6 +53,7 @@ function setup(overrides: Partial<{ dead: boolean; disconnected: boolean }> = {}
     reconnect,
     isDead: () => state.dead,
     isDisconnected: () => state.disconnected,
+    now: c.now,
     setTimeout: c.setTimeout,
     clearTimeout: c.clearTimeout,
     onState,
@@ -145,6 +152,54 @@ describe('the broker recovery loop', () => {
     state.disconnected = false;
     c.advance(FIRST_DELAY_MS);
     expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The loop has to be able to conclude on its own that everything is fine.
+   *
+   * Callers arm it defensively — on a tab resume, on any post-open error —
+   * without knowing whether the socket is actually down. When the only route
+   * back to `UP` was an `'open'` event, a peer that was never really down never
+   * emitted one, and the host spent the rest of the evening on the degraded
+   * banner with the room code hidden behind it.
+   */
+  it('finds its own way back to UP when the socket turns out to be fine', () => {
+    const { c, state, onState, loop } = setup();
+    loop.down();
+    expect(onState).toHaveBeenLastCalledWith('DOWN');
+
+    state.disconnected = false;
+    c.advance(FIRST_DELAY_MS);
+
+    expect(onState).toHaveBeenLastCalledWith('UP');
+    expect(c.pending()).toBe(0);
+  });
+
+  it('says nothing when it was never down in the first place', () => {
+    const { c, state, onState, loop } = setup({ disconnected: false });
+    loop.up();
+    c.advance(MAX_DELAY_MS);
+    expect(onState).not.toHaveBeenCalled();
+    expect(state.disconnected).toBe(false);
+  });
+
+  /**
+   * The give-up clock measures the outage, not the sum of the waits that were
+   * *about to* happen. Accumulating the next delay before comparing retired the
+   * loop nine seconds early, and — worse — did it on a budget that drifted with
+   * every ceiling-length wait.
+   */
+  it('keeps trying for the whole budget, on the real clock', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    // Two thirds of the way through: still going.
+    c.advance(GIVE_UP_AFTER_MS * (2 / 3));
+    const midway = reconnect.mock.calls.length;
+    expect(c.pending()).toBe(1);
+
+    c.advance(GIVE_UP_AFTER_MS);
+    expect(reconnect.mock.calls.length).toBeGreaterThan(midway);
+    expect(c.pending()).toBe(0);
   });
 
   it('survives a reconnect that throws and tries again', () => {

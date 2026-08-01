@@ -9,7 +9,7 @@
  *
  * It is a separate file, with every effect injected, because the arithmetic was
  * never the hard part. `min(1000 * 2^n, 20s)` has never been wrong. What is
- * hard is the machine around it, and all four of the ways a naive version goes
+ * hard is the machine around it, and all of the ways a naive version goes
  * wrong come straight out of how PeerJS behaves:
  *
  *  • `peer.reconnect()` THROWS on a destroyed peer, and throws again on one
@@ -20,18 +20,24 @@
  *    guard there is worthless; it has to sit in the timer callback.
  *  • PeerJS's `_abort` emits `'error'` and then `'disconnected'`, so a single
  *    failure arrives twice and would arm two overlapping chains.
+ *
+ * And one that is ours rather than PeerJS's: the loop must be able to conclude
+ * that things are **fine again** on its own. A caller can arm it defensively
+ * without knowing whether anything is actually wrong, and if the only route
+ * back to `UP` were an `'open'` event, a peer that was never really down would
+ * be marked degraded for the rest of the evening.
  */
 
 export type BrokerState = 'UP' | 'DOWN';
 
 export type BrokerLoop = {
-  /** The socket went away. Arms the retry, unless one is already armed. */
+  /** The socket may have gone. Arms a retry, unless one is already armed. */
   down(): void;
-  /** The socket is back. Cancels the retry and resets the backoff. */
+  /** The socket is definitely back. Cancels the retry and resets the backoff. */
   up(): void;
   /** Permanent teardown. Cancels, and every later `down()` is a no-op. */
   stop(): void;
-  /** Testing/diagnostics: is a retry currently scheduled? */
+  /** Testing and diagnostics: is a retry currently scheduled? */
   armed(): boolean;
 };
 
@@ -40,6 +46,7 @@ export type BrokerIo = {
   reconnect(): void;
   isDead(): boolean;
   isDisconnected(): boolean;
+  now(): number;
   setTimeout(fn: () => void, ms: number): number;
   clearTimeout(id: number): void;
   onState(state: BrokerState): void;
@@ -65,12 +72,21 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
   let timer: number | null = null;
   let delay = FIRST_DELAY_MS;
   let stopping = false;
+  /** When the current outage started, or null while everything is fine. */
   let downSince: number | null = null;
 
   const cancel = (): void => {
     if (timer === null) return;
     io.clearTimeout(timer);
     timer = null;
+  };
+
+  const recovered = (): void => {
+    cancel();
+    delay = FIRST_DELAY_MS;
+    if (downSince === null) return;
+    downSince = null;
+    io.onState('UP');
   };
 
   const arm = (): void => {
@@ -82,46 +98,41 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
       // Both guards live here rather than at the call site: at the moment the
       // event fired, `destroyed` was still false.
       if (stopping || io.isDead()) return;
-      if (io.isDisconnected()) {
-        try {
-          io.reconnect();
-        } catch {
-          // Raced with a destroy, or PeerJS changed its mind about our state.
-          // Either way the next tick re-evaluates from scratch.
-        }
+
+      // Not disconnected means there is nothing to recover — either the socket
+      // came back by itself, or it never went. Either way this is the signal
+      // that things are fine, and waiting for an `'open'` that will never be
+      // emitted would leave the room marked degraded forever.
+      if (!io.isDisconnected()) {
+        recovered();
+        return;
       }
+
+      try {
+        io.reconnect();
+      } catch {
+        // Raced with a destroy, or PeerJS changed its mind about our state.
+        // The next tick re-evaluates from scratch.
+      }
+
+      if (downSince !== null && io.now() - downSince > GIVE_UP_AFTER_MS) return;
       delay = nextDelay(delay);
-      if (downSince !== null && elapsed() > GIVE_UP_AFTER_MS) return;
       arm();
     }, delay);
-  };
-
-  // The clock only exists inside `setTimeout`, so elapsed time is counted in
-  // delays rather than read from a wall clock we were not given.
-  let spent = 0;
-  const elapsed = (): number => {
-    spent += delay;
-    return spent;
   };
 
   return {
     down() {
       if (stopping) return;
       if (downSince === null) {
-        downSince = 1;
-        spent = 0;
+        downSince = io.now();
         io.onState('DOWN');
       }
       arm();
     },
 
     up() {
-      cancel();
-      delay = FIRST_DELAY_MS;
-      spent = 0;
-      const wasDown = downSince !== null;
-      downSince = null;
-      if (wasDown || !stopping) io.onState('UP');
+      recovered();
     },
 
     stop() {

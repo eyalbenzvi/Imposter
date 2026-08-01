@@ -134,6 +134,82 @@ describe('lobby', () => {
     expect(out.room.seats[2]!.name).toBe(seat.name);
   });
 
+  /**
+   * `seatId` is guest-supplied and the host's seat is always `s0`, so this is a
+   * one-line message away for anybody who can reach the room. The host's seat
+   * has no channel behind it — it belongs to the tab running the game — so
+   * there is no legitimate reconnect to it, and honouring one handed a stranger
+   * the host's projected view: their role, and in REVEAL, the word.
+   */
+  it('never hands the host seat to a guest that asks for it', () => {
+    const room = started(4);
+    const hostSeat = room.seats[0]!;
+    const out = handleJoin(room, 'attacker', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: 'תוקף',
+      seatId: hostSeat.seatId,
+    });
+    expect(out.accepted).toBe(false);
+    expect(out.seatId).toBeUndefined();
+    expect(out.room.seats[0]!.connId).toBe('host');
+  });
+
+  it('does not let a guest squat the host seat in an open lobby either', () => {
+    const room = lobby(3);
+    const out = handleJoin(room, 'attacker', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: 'תוקף',
+      seatId: room.seats[0]!.seatId,
+    });
+    // Unlocked, so they are welcome — as a new seat of their own, at the back.
+    expect(out.accepted).toBe(true);
+    expect(out.seatId).not.toBe(room.seats[0]!.seatId);
+    expect(out.room.seats[0]!.connId).toBe('host');
+    expect(out.room.seats[0]!.name).toBe(room.seats[0]!.name);
+  });
+
+  /**
+   * Two channels, one seat. The takeover is deliberate (see the reconnect race
+   * above), but the loser has to be told — hanging up in silence looks like an
+   * ordinary drop, so it reconnects, takes the seat straight back, and the two
+   * evict each other one second apart for the rest of the evening.
+   */
+  it('names the channel it took the seat from, so the caller can say goodbye', () => {
+    const room = lobby(3);
+    const seat = room.seats[1]!;
+    const out = handleJoin(room, 'the-new-one', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: seat.name,
+      seatId: seat.seatId,
+    });
+    expect(out.displaced).toBe(seat.connId);
+  });
+
+  it('names nobody when the seat was already free, or already ours', () => {
+    const room = lobby(3);
+    const seat = room.seats[1]!;
+    const freed = { ...room, seats: room.seats.map((s) => (s === seat ? { ...s, connId: null } : s)) };
+    expect(
+      handleJoin(freed, 'fresh', {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+      }).displaced,
+    ).toBeUndefined();
+    expect(
+      handleJoin(room, seat.connId!, {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+      }).displaced,
+    ).toBeUndefined();
+  });
+
   it('locks the room once the game starts', () => {
     const room = started(4);
     expect(room.locked).toBe(true);

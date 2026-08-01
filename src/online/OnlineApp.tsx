@@ -197,7 +197,9 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
     );
   }
 
-  if (!host.view) {
+  // `ERROR` belongs here too, not only a missing view: the room failed to open
+  // at all, so whatever is on screen is a game nobody else is in.
+  if (!host.view || host.status === 'ERROR') {
     return (
       <Screen>
         <ScreenBody>
@@ -221,9 +223,16 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
         onCommand={host.command}
         onClose={close}
       />
-      {host.status !== 'OPEN' && (
-        <ConnectionBanner tone="bad">
-          החיבור לחדר אבד — השאירו את המשחק פתוח על המסך
+      {/*
+        Only DEGRADED, and worded for what it actually is. The players already
+        in the room are connected directly to this phone and are entirely
+        unaffected — it is the *room code* that has stopped being routable. The
+        old banner fired on OPENING too, so every host saw "the connection to
+        the room was lost" for the first second of a perfectly healthy game.
+      */}
+      {host.status === 'DEGRADED' && (
+        <ConnectionBanner tone="warn">
+          אין חיבור לשירות החדרים — המשחק ממשיך כרגיל, אבל אי אפשר לצרף שחקנים חדשים
         </ConnectionBanner>
       )}
     </>

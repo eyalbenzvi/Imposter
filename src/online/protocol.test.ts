@@ -20,6 +20,10 @@ describe('parseGuestMessage', () => {
       { t: 'NEXT_TURN', key: '7' },
       { t: 'SKIP_CLUES', key: '7' },
       { t: 'GUESS', key: '7', wordId: 'pizza' },
+      // Keyless on purpose: two players renaming in the same tick would
+      // otherwise reject each other over a sync key neither of them moved.
+      { t: 'RENAME', name: 'דנה' },
+      { t: 'PING' },
     ];
     for (const msg of good) {
       expect(parseGuestMessage(msg), JSON.stringify(msg)).not.toBeNull();
@@ -47,6 +51,8 @@ describe('parseGuestMessage', () => {
       { t: 'JOIN', v: '1', name: 'דנה' },
       { t: 'JOIN', v: 1, name: 5 },
       { t: 'JOIN', v: 1, name: 'דנה', seatId: 9 },
+      { t: 'RENAME' },
+      { t: 'RENAME', name: 5 },
     ];
     for (const msg of bad) {
       expect(parseGuestMessage(msg), JSON.stringify(msg)).toBeNull();
@@ -88,11 +94,26 @@ describe('parseHostMessage', () => {
       parseHostMessage({ t: 'REJECTED', reason: 'STALE', key: '4', on: 'VOTE' }),
     ).not.toBeNull();
     expect(parseHostMessage({ t: 'CLOSED', reason: 'HOST_LEFT' })).not.toBeNull();
+    expect(parseHostMessage({ t: 'PING' })).not.toBeNull();
+    // The one that ends a reconnect war — it has to survive the wire, or the
+    // displaced guest reads it as an ordinary drop and dials straight back.
+    expect(
+      parseHostMessage({ t: 'REJECTED', reason: 'SEAT_TAKEN', key: null, on: 'JOIN' }),
+    ).toEqual({ t: 'REJECTED', reason: 'SEAT_TAKEN', key: null, on: 'JOIN' });
   });
 
   it('rejects the rest', () => {
     for (const msg of [null, 3, {}, { t: 'VIEW' }, { t: 'WELCOME', v: 1 }]) {
       expect(parseHostMessage(msg), JSON.stringify(msg)).toBeNull();
     }
+  });
+
+  it('refuses a rejection reason it has no words for', () => {
+    // Dropped rather than passed through: `REJECT_TEXT[reason]` would be
+    // undefined, and the player would be shown a refusal screen with nothing
+    // written on it.
+    expect(
+      parseHostMessage({ t: 'REJECTED', reason: 'INVENTED', key: null, on: 'JOIN' }),
+    ).toBeNull();
   });
 });

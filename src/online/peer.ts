@@ -101,6 +101,27 @@ const RETAIN_MS = 75_000;
 const RETRY_STEP_MS = 3_000;
 
 /**
+ * PeerJS error types that mean *the signalling socket*, as opposed to the ones
+ * that mean *one guest's handshake*.
+ *
+ * The distinction only matters after the room is open, and there it matters a
+ * lot: everything PeerJS can go wrong with arrives on the same `'error'`
+ * event, and the room is only degraded for the subset below.
+ */
+const BROKER_ERRORS = new Set([
+  'network',
+  'socket-error',
+  'socket-closed',
+  'server-error',
+  'disconnected',
+  'unavailable-id',
+]);
+
+function isBrokerError(type: string | undefined): boolean {
+  return type !== undefined && BROKER_ERRORS.has(type);
+}
+
+/**
  * At most one host peer per tab, ever.
  *
  * React's StrictMode mounts every effect, tears it down and mounts it again.
@@ -110,19 +131,22 @@ const RETRY_STEP_MS = 3_000;
  * peer back to both mounts is both correct and simpler than trying to sequence
  * the teardown.
  */
-let live: { promise: Promise<HostPeer>; peer: HostPeer | null } | null = null;
+type HostEntry = { promise: Promise<HostPeer>; peer: HostPeer | null; dead: boolean };
+
+let live: HostEntry | null = null;
 
 export function openHost(options: OpenHostOptions = {}): Promise<HostPeer> {
   if (live) return live.promise;
   const promise = createHost(options);
-  const entry: { promise: Promise<HostPeer>; peer: HostPeer | null } = {
-    promise,
-    peer: null,
-  };
+  const entry: HostEntry = { promise, peer: null, dead: false };
   live = entry;
   promise.then(
     (peer) => {
       entry.peer = peer;
+      // Closed while we were still opening. The broker holds the id either
+      // way, so the only question is whether anything is still listening on
+      // it — and nobody is.
+      if (entry.dead) peer.destroy();
     },
     () => {
       if (live === entry) live = null;
@@ -142,7 +166,12 @@ export function openHost(options: OpenHostOptions = {}): Promise<HostPeer> {
 export function destroyHost(afterMs = 0): void {
   const entry = live;
   live = null;
-  const peer = entry?.peer;
+  if (!entry) return;
+  // Marked before the null check on `peer`: a room closed during the six
+  // seconds it takes to open leaves a live Peer holding a broker socket and
+  // the room's id, with nothing on either end of it.
+  entry.dead = true;
+  const peer = entry.peer;
   if (!peer) return;
   if (afterMs <= 0) peer.destroy();
   else window.setTimeout(() => peer.destroy(), afterMs);
@@ -171,6 +200,7 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
         reconnect: () => peer.reconnect(),
         isDead: () => peer.destroyed,
         isDisconnected: () => peer.disconnected,
+        now: () => Date.now(),
         setTimeout: (fn, ms) => window.setTimeout(fn, ms),
         clearTimeout: (id) => window.clearTimeout(id),
         onState: (state) => {
@@ -215,17 +245,22 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
             cb(brokerState);
           },
           reconnect: () => {
-            // The guard stays: `reconnect()` throws both on a destroyed peer
-            // and on one that is not disconnected. Arming the loop as well
-            // covers iOS, where the socket's `close` is delivered on resume —
-            // after `visibilitychange` has already been and gone.
-            if (peer.disconnected && !peer.destroyed) {
-              try {
-                peer.reconnect();
-              } catch {
-                /* raced */
-              }
+            // Nothing happens to a healthy peer. This is called on every tab
+            // resume, and an unconditional `loop.down()` here meant every
+            // return from a locked phone lit the "reconnecting" banner and
+            // hid the room code — for a socket that was never down.
+            //
+            // `reconnect()` throws both on a destroyed peer and on one that is
+            // not disconnected, so the guard is load-bearing twice over.
+            if (!peer.disconnected || peer.destroyed) return;
+            try {
+              peer.reconnect();
+            } catch {
+              /* raced */
             }
+            // iOS delivers the socket's `close` on resume, after
+            // `visibilitychange` has been and gone; arming the loop is what
+            // covers the gap if that `reconnect()` does not take.
             loop.down();
           },
           destroy: () => {
@@ -242,7 +277,13 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
           // Post-open errors are recoverable signalling trouble, not a reason
           // to tear the room down. `_abort` reports the same failure as both
           // an error and a disconnect; the loop dedupes that.
-          loop.down();
+          //
+          // But only the socket-shaped ones. `peer-unavailable`,
+          // `webrtc` and friends fire for a single guest's failed handshake
+          // and say nothing about the broker — treating those as an outage
+          // put the whole room on the degraded banner because one phone in
+          // the corner could not negotiate ICE.
+          if (isBrokerError(err.type)) loop.down();
           return;
         }
         if (settled) return;
@@ -288,8 +329,14 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
  * the same reason: two StrictMode mounts would open two channels, and the host
  * would see two connections claiming one name.
  */
-let joined: { code: string; promise: Promise<GuestPeer>; peer: GuestPeer | null } | null =
-  null;
+type GuestEntry = {
+  code: string;
+  promise: Promise<GuestPeer>;
+  peer: GuestPeer | null;
+  dead: boolean;
+};
+
+let joined: GuestEntry | null = null;
 
 export function joinHost(code: string): Promise<GuestPeer> {
   if (joined && joined.code === code && joined.peer?.channel.isOpen() !== false) {
@@ -298,18 +345,16 @@ export function joinHost(code: string): Promise<GuestPeer> {
   // Whatever we are replacing has to go. Every reconnect lands here, and an
   // orphaned Peer keeps a broker websocket open plus a closure that will call
   // setState on an unmounted tree — across a long evening on a flaky phone that
-  // adds up.
-  joined?.peer?.destroy();
+  // adds up. `dead` covers the one still mid-dial, which has no `peer` to kill
+  // yet and would otherwise survive as a second connection to the same host.
+  retire(joined);
   const promise = createGuest(code);
-  const entry: { code: string; promise: Promise<GuestPeer>; peer: GuestPeer | null } = {
-    code,
-    promise,
-    peer: null,
-  };
+  const entry: GuestEntry = { code, promise, peer: null, dead: false };
   joined = entry;
   promise.then(
     (peer) => {
       entry.peer = peer;
+      if (entry.dead) peer.destroy();
     },
     () => {
       if (joined === entry) joined = null;
@@ -318,10 +363,16 @@ export function joinHost(code: string): Promise<GuestPeer> {
   return promise;
 }
 
+function retire(entry: GuestEntry | null): void {
+  if (!entry) return;
+  entry.dead = true;
+  entry.peer?.destroy();
+}
+
 export function destroyGuest(): void {
   const entry = joined;
   joined = null;
-  entry?.peer?.destroy();
+  retire(entry);
 }
 
 function createGuest(code: string): Promise<GuestPeer> {

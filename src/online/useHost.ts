@@ -52,7 +52,6 @@ import {
 import {
   createRoom,
   emptyPending,
-  seatById,
   seatByConn,
   seatOrderIsSound,
   staleConnIds,
@@ -243,10 +242,6 @@ export function useHost(hostName: string): Host {
       }
 
       if (msg.t === 'JOIN') {
-        // Read the seat's old channel BEFORE the takeover reassigns it.
-        const displaced =
-          msg.seatId !== undefined ? (seatById(room, msg.seatId)?.connId ?? null) : null;
-
         const out = handleJoin(room, channel.id, msg);
         if (!out.accepted || !out.seatId) {
           sendTo(channel, {
@@ -266,9 +261,18 @@ export function useHost(hostName: string): Host {
         // alive — two tabs, or a phone that recovered on its own. It will never
         // go silent, so it would never be swept; it would just sit there
         // collecting `NOT_ALLOWED` for every tap.
-        if (displaced && displaced !== channel.id && displaced !== 'host') {
-          const old = channels.current.get(displaced);
-          if (old) retire(old, 400);
+        //
+        // It is told why before it goes. Hanging up in silence looks to the
+        // other end like an ordinary drop, so it reconnects, takes the seat
+        // straight back, and the two spend the evening evicting each other a
+        // second apart. `SEAT_TAKEN` is terminal on the guest side, which is
+        // what actually ends the war.
+        if (out.displaced && out.displaced !== 'host') {
+          const old = channels.current.get(out.displaced);
+          if (old) {
+            sendTo(old, { t: 'REJECTED', reason: 'SEAT_TAKEN', key: null, on: 'JOIN' });
+            retire(old, 400);
+          }
         }
 
         commit(out.room);

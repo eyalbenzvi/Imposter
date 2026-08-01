@@ -75,7 +75,16 @@ export type Outcome = {
   reason?: RejectReason;
 };
 
-export type JoinOutcome = Outcome & { seatId?: SeatId };
+export type JoinOutcome = Outcome & {
+  seatId?: SeatId;
+  /**
+   * The connection that was holding this seat and no longer does.
+   *
+   * The caller owes it a terminal `SEAT_TAKEN` before hanging up, or it goes on
+   * retrying and the two channels take turns evicting each other.
+   */
+  displaced?: string;
+};
 
 const reject = (room: Room, reason: RejectReason): Outcome => ({
   room,
@@ -181,7 +190,12 @@ export function handleJoin(
   // Reconnecting to a seat we already hold.
   if (msg.seatId !== undefined) {
     const seat = seatById(room, msg.seatId);
-    if (seat) {
+    // The host's seat is never reachable over the wire. It belongs to the tab
+    // running this code and has no channel behind it, so there is no such
+    // thing as the host reconnecting to it — but `seatId` is guest-supplied,
+    // and a JOIN naming it would otherwise hand a stranger the host's seat,
+    // and with it the host's projected view: their role, and the word.
+    if (seat && !seat.isHost) {
       // The new channel takes the seat even when the old one still looks live.
       //
       // Refusing would be the cautious-looking choice and it is the wrong one:
@@ -200,7 +214,14 @@ export function handleJoin(
       const seats = room.seats.map((s) =>
         s.seatId === seat.seatId ? { ...s, connId } : s,
       );
-      return { room: touch(room, { seats }), accepted: true, seatId: seat.seatId };
+      const displaced =
+        seat.connId !== null && seat.connId !== connId ? seat.connId : undefined;
+      return {
+        room: touch(room, { seats }),
+        accepted: true,
+        seatId: seat.seatId,
+        displaced,
+      };
     }
     // Unknown seat id in a locked room: a stale session from an older game.
     if (room.locked) return reject(room, 'ROOM_LOCKED');
