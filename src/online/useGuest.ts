@@ -27,6 +27,7 @@ import {
   type Channel,
   type ConnectFailure,
 } from './peer';
+import { useKeepAwake } from '../ui/useKeepAwake';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
 
@@ -93,6 +94,11 @@ export function useGuest(code: string, name: string): Guest {
   const retryTimer = useRef<number | null>(null);
   const stopped = useRef(false);
   const [nonce, setNonce] = useState(0);
+
+  // A guest's phone locking does not take the room down, but it does take the
+  // player out of it: they miss their turn, and the room waits on somebody
+  // who is looking at a lock screen.
+  useKeepAwake(status !== 'UNREACHABLE' && status !== 'CLOSED' && status !== 'REJECTED');
 
   useEffect(() => {
     stopped.current = false;

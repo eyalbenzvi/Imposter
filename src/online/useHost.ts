@@ -61,8 +61,8 @@ import {
   loadHostSession,
   saveHostSession,
 } from './storage';
+import { useKeepAwake } from '../ui/useKeepAwake';
 import { projectView, type PlayerView } from './view';
-import { keepScreenAwake } from './wakeLock';
 
 export type HostStatus = 'OPENING' | 'OPEN' | 'ERROR';
 
@@ -359,20 +359,19 @@ export function useHost(hostName: string): Host {
     };
   }, [commit]);
 
-  // Keep the screen on, and pick the pieces back up when the host returns from
-  // another app — iOS suspends a backgrounded tab and drops its channels.
+  // The host's phone must not lock: it is the device the room runs on.
+  useKeepAwake(true);
+
+  // And pick the pieces back up when the host returns from another app — iOS
+  // suspends a backgrounded tab and drops its channels.
   useEffect(() => {
-    const stopWakeLock = keepScreenAwake();
     const onVisible = (): void => {
       if (document.visibilityState !== 'visible') return;
       peerRef.current?.reconnect();
       broadcast();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      stopWakeLock();
-    };
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [broadcast]);
 
   // ── the host's own controls ───────────────────────────────────────────────
