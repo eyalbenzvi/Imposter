@@ -231,7 +231,12 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
         the room was lost" for the first second of a perfectly healthy game.
       */}
       {host.status === 'DEGRADED' && (
-        <ConnectionBanner tone="warn">
+        // Top, not bottom. This one stays up for the whole outage — that is the
+        // point of it — and the bottom of a game screen is where the host's own
+        // "continue" button lives. A banner saying the game carries on as
+        // normal, sitting on the control you would carry on with, is worse than
+        // no banner.
+        <ConnectionBanner tone="warn" place="top">
           אין חיבור לשירות החדרים — המשחק ממשיך כרגיל, אבל אי אפשר לצרף שחקנים חדשים
         </ConnectionBanner>
       )}

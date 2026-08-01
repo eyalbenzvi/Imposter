@@ -156,13 +156,27 @@ describe('the broker recovery loop', () => {
     expect(reconnect).not.toHaveBeenCalled();
   });
 
-  it('does not call reconnect on a peer that is no longer disconnected', () => {
+  it('does not call reconnect on a peer that is connected', () => {
     // `reconnect()` throws on a connected peer just as it does on a dead one.
+    // Both flags, deliberately: `disconnected: false` alone is the *in-flight*
+    // state, which is a different branch and has its own tests below.
     const { c, state, reconnect, loop } = setup();
     loop.down();
     state.disconnected = false;
+    state.open = true;
     c.advance(FIRST_DELAY_MS);
     expect(reconnect).not.toHaveBeenCalled();
+  });
+
+  it('does not call reconnect while one is already in flight', () => {
+    const { c, state, reconnect, loop } = setup();
+    loop.down();
+    state.disconnected = false;
+    state.open = false;
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect).not.toHaveBeenCalled();
+    // …and it keeps watching rather than concluding either way.
+    expect(c.pending()).toBe(1);
   });
 
   /**
@@ -275,7 +289,10 @@ describe('the broker recovery loop', () => {
     expect(onState.mock.calls.map(([s]) => s)).toEqual(['DOWN']);
     // And it concluded rather than spinning for the rest of the evening.
     expect(c.pending()).toBe(0);
-    expect(reconnect.mock.calls.length).toBeLessThan(20);
+    // Exactly one: the first attempt clears `disconnected`, and from then on
+    // the loop correctly reads the state as "still trying" rather than asking
+    // again. A regression here would show up as a count in the dozens.
+    expect(reconnect).toHaveBeenCalledTimes(1);
   });
 
   it('still declares recovery the moment the socket is genuinely open', () => {

@@ -21,7 +21,14 @@
 
 import type { ConnectFailure } from './peer';
 
-/** A first dial gets one retry — about thirteen seconds, then an answer. */
+/**
+ * A first dial gets one retry, then an answer.
+ *
+ * Two dials at `GUEST_CONNECT_TIMEOUT_MS` plus a backoff is about half a
+ * minute of "מתחברים לחדר" — long, but the screen has a cancel button and the
+ * common failure does not wait for it: a wrong code comes back from the broker
+ * as `peer-unavailable` in a few seconds and is terminal on the spot.
+ */
 export const MAX_DIAL_ATTEMPTS = 1;
 
 /**

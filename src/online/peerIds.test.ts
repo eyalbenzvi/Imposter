@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM_CODE_LENGTH } from './protocol';
 import {
+  GUEST_CONNECT_TIMEOUT_MS,
+  HOST_CONNECT_TIMEOUT_MS,
   ICE_CONFIG,
+  INCOMING_OPEN_TIMEOUT_MS,
   PEER_ID_PATTERN,
   guestPeerId,
   randomCode,
@@ -104,5 +107,35 @@ describe('the ICE configuration', () => {
         expect(url, url).toMatch(/^(stun|turn|turns):[A-Za-z0-9.-]+:\d+(\?transport=(tcp|udp))?$/);
       }
     }
+  });
+});
+
+describe('the connection timeouts', () => {
+  /**
+   * The host hangs up on an incoming connection that never negotiates. If that
+   * clock were shorter than the guest's own, it would be cutting off attempts
+   * that were still going to succeed — and the guest would see an ordinary
+   * failure with no way to tell that the host had hung up on it.
+   */
+  it('never hangs up before the guest has given up itself', () => {
+    expect(INCOMING_OPEN_TIMEOUT_MS).toBeGreaterThan(GUEST_CONNECT_TIMEOUT_MS);
+  });
+
+  /**
+   * The guest needs longer than the host: the host only has to reach the
+   * broker, the guest has to reach it *and* complete a whole ICE negotiation.
+   */
+  it('gives the guest longer than the host, because it does more', () => {
+    expect(GUEST_CONNECT_TIMEOUT_MS).toBeGreaterThan(HOST_CONNECT_TIMEOUT_MS);
+  });
+
+  /**
+   * The broker answers "there is no such room" by expiring the queued offer,
+   * which takes around five seconds. A shorter budget races that and reports a
+   * mistyped code as "we could not connect" — which is not only wrong, it is
+   * classified differently and leaves the dead session on disk.
+   */
+  it('outlasts the broker’s own answer for a room that is not there', () => {
+    expect(GUEST_CONNECT_TIMEOUT_MS).toBeGreaterThan(10_000);
   });
 });

@@ -22,6 +22,46 @@ import { PEER_PREFIX } from './protocol';
 export const PEER_ID_PATTERN = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
 
 /**
+ * How long to wait before calling a connection attempt failed.
+ *
+ * Nothing in PeerJS times out on its own: a broker that accepts the socket and
+ * then goes quiet, or an ICE negotiation that never completes, leaves the
+ * promise pending for the lifetime of the tab.
+ *
+ * The two sides measure very different things, which is why the number is not
+ * shared. The host only has to reach the broker and be given its id. The guest
+ * has to do that *and* complete a full ICE negotiation — gathering, possibly a
+ * TURN allocation, connectivity checks, DTLS, SCTP — before its channel opens,
+ * and on a phone that has just woken its radio that alone can take ten seconds.
+ *
+ * Six seconds was too short for the guest for a second, less obvious reason:
+ * the broker reports "there is no such room" by expiring the queued offer,
+ * which takes about five seconds. The old timeout raced it, so a mistyped code
+ * often came back as "we could not connect" instead of "there is no such room"
+ * — and, because the classification decides it, left the dead session on disk.
+ *
+ * Nothing about a wrong code is made slower by the longer wait: it arrives as
+ * an explicit `peer-unavailable` error, not as a timeout.
+ */
+export const HOST_CONNECT_TIMEOUT_MS = 8_000;
+export const GUEST_CONNECT_TIMEOUT_MS = 15_000;
+
+/**
+ * How long an incoming connection may sit un-negotiated before we hang up.
+ *
+ * A `DataConnection` whose ICE never completes is never wrapped, never tracked,
+ * and never closed by us — the browser takes 20–40 seconds to declare ICE
+ * failed. A guest retrying keeps two or three of those alive on the host's
+ * phone at once, each running its own STUN and TURN probing, on the one device
+ * the whole room depends on.
+ *
+ * Must stay above the guest's own budget, so this can never hang up on a
+ * negotiation that was still going to succeed. Pinned by a test, which is most
+ * of why these three constants live here rather than beside their use.
+ */
+export const INCOMING_OPEN_TIMEOUT_MS = 25_000;
+
+/**
  * ICE servers, pinned rather than inherited.
  *
  * Reproduces PeerJS's own default — including `sdpSemantics`, because supplying

@@ -4,10 +4,23 @@
  */
 export function ConnectionBanner({
   tone = 'warn',
+  place = 'bottom',
   children,
   action,
 }: {
   tone?: 'warn' | 'bad';
+  /**
+   * Which end of the screen to sit at.
+   *
+   * `bottom` is the default and the right choice for a banner that appears
+   * briefly, or on a screen whose buttons are unusable anyway. `top` is for one
+   * that stays up while the player still has to act: every game screen keeps
+   * its primary button in `ScreenFooter`, whose last row ends at the same
+   * `0.75rem` inset this banner starts at — so a long-lived bottom banner
+   * covers almost all of a 52px button. That is exactly what a "carry on
+   * playing" message must not do.
+   */
+  place?: 'top' | 'bottom';
   children: React.ReactNode;
   action?: { label: string; onClick: () => void };
 }) {
@@ -16,11 +29,24 @@ export function ConnectionBanner({
       ? 'border-danger/50 bg-ink-900/95'
       : 'border-gold/50 bg-ink-900/95';
 
+  const edge = 'max(0.75rem, env(safe-area-inset-bottom))';
+  const anchored =
+    place === 'top'
+      ? {
+          top: 'max(0.75rem, env(safe-area-inset-top))',
+          // Clear of the host's gear button, which is fixed in this corner.
+          insetInlineEnd: 'calc(max(0.75rem, env(safe-area-inset-right)) + 3.25rem)',
+          insetInlineStart: '0.75rem',
+        }
+      : { bottom: edge };
+
   return (
     <div
       role="status"
-      className={`fixed inset-x-3 z-50 animate-rise-in rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur ${ring}`}
-      style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      className={`fixed z-50 animate-rise-in rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur ${
+        place === 'top' ? '' : 'inset-x-3'
+      } ${ring}`}
+      style={anchored}
     >
       <p className="text-sm text-slate-200">{children}</p>
       {action && (
