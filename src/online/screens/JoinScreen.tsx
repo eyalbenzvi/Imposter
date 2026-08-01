@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../../ui/components/Screen';
+import { Screen, ScreenFooter, ScreenHeader } from '../../ui/components/Screen';
 import { useFreshBuild } from '../../ui/useFreshBuild';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { MAX_NAME_LENGTH, ROOM_CODE_LENGTH } from '../protocol';
@@ -33,7 +33,12 @@ export function JoinScreen({
     <Screen scrollable>
       <ScreenHeader eyebrow="כל אחד בטלפון שלו" title="הצטרפות לחדר" />
 
-      <ScreenBody className="justify-start gap-6 pt-4">
+      {/* A plain flow container, not `ScreenBody`. `ScreenBody` is `flex-1`
+          with no overflow of its own, which is right for a fixed-height game
+          screen and wrong for a form: when the phone keyboard halves the
+          viewport its content spills over the footer, and the buttons end up
+          drawn on top of the inputs. */}
+      <div className="flex flex-col gap-6 pb-4 pt-4">
         <div className="w-full">
           <label
             htmlFor="room-code"
@@ -93,7 +98,7 @@ export function JoinScreen({
             {error}
           </p>
         )}
-      </ScreenBody>
+      </div>
 
       <ScreenFooter>
         <button

@@ -22,6 +22,36 @@ export type Channel = {
   isOpen(): boolean;
 };
 
+/**
+ * Why a connection attempt failed, in the only three flavours that change what
+ * a player should be told or what the app should do next.
+ *
+ * PeerJS reports "there is no such peer" and "the broker is not answering" as
+ * ordinary errors, and without telling them apart the app can only shrug and
+ * retry — which is precisely what left a phone re-dialling a room that had
+ * been closed hours earlier, forever, with nothing on screen to say so.
+ */
+export type ConnectFailure = 'NO_ROOM' | 'TIMEOUT' | 'NETWORK';
+
+export class ConnectError extends Error {
+  readonly kind: ConnectFailure;
+  constructor(kind: ConnectFailure, message: string) {
+    super(message);
+    this.name = 'ConnectError';
+    this.kind = kind;
+  }
+}
+
+/**
+ * How long to wait before calling it.
+ *
+ * Nothing in PeerJS times out on its own: a broker that accepts the socket and
+ * then goes quiet, or an ICE negotiation that never completes, leaves the
+ * promise pending for the lifetime of the tab. Every hang reported so far was
+ * this.
+ */
+const CONNECT_TIMEOUT_MS = 6_000;
+
 export function roomPeerId(code: string): string {
   return `${PEER_PREFIX}${code}`;
 }
@@ -181,8 +211,18 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
       const peer = new Peer(roomPeerId(code));
       let settled = false;
 
+      // Same hazard as the guest side: a quiet broker leaves this pending and
+      // the lobby stuck on "opening a room" with no way to tell why.
+      const timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        peer.destroy();
+        jilt(new ConnectError('TIMEOUT', 'could not reach the room service'));
+      }, CONNECT_TIMEOUT_MS);
+
       peer.on('open', () => {
         settled = true;
+        window.clearTimeout(timer);
         // One handler, replaced on each mount: a StrictMode remount must not
         // leave the previous mount's callback wired to the same peer, or every
         // guest would be processed twice.
@@ -205,9 +245,10 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
       peer.on('error', (err: Error & { type?: string }) => {
         if (settled) return;
         settled = true;
+        window.clearTimeout(timer);
         peer.destroy();
         if (err.type !== 'unavailable-id') {
-          jilt(err);
+          jilt(new ConnectError('NETWORK', String(err)));
           return;
         }
         // Somebody — very likely our own previous tab — still holds this id.
@@ -218,7 +259,7 @@ function createHost(options: OpenHostOptions): Promise<HostPeer> {
           return;
         }
         if (attempt >= 6) {
-          jilt(new Error('could not open a room'));
+          jilt(new ConnectError('NETWORK', 'could not open a room'));
           return;
         }
         tryOpen(randomCode());
@@ -280,25 +321,35 @@ function createGuest(code: string): Promise<GuestPeer> {
     const peer = new Peer();
     let settled = false;
 
+    const fail = (kind: ConnectFailure, message: string): void => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      peer.destroy();
+      jilt(new ConnectError(kind, message));
+    };
+
+    const timer = window.setTimeout(
+      () => fail('TIMEOUT', 'connection timed out'),
+      CONNECT_TIMEOUT_MS,
+    );
+
     peer.on('open', () => {
       const conn = peer.connect(roomPeerId(code), { reliable: true });
       conn.on('open', () => {
-        settled = true;
-        resolve({ channel: wrap(conn), destroy: () => peer.destroy() });
-      });
-      conn.on('error', (err) => {
         if (settled) return;
         settled = true;
-        peer.destroy();
-        jilt(err);
+        window.clearTimeout(timer);
+        resolve({ channel: wrap(conn), destroy: () => peer.destroy() });
       });
+      conn.on('error', (err) => fail('NETWORK', String(err)));
     });
 
-    peer.on('error', (err) => {
-      if (settled) return;
-      settled = true;
-      peer.destroy();
-      jilt(err);
+    peer.on('error', (err: Error & { type?: string }) => {
+      // The broker answering "nobody is listening on that id" is the single
+      // most useful thing it ever says: the code is wrong, or the room is gone.
+      // Retrying it is pointless and telling the player to wait is a lie.
+      fail(err.type === 'peer-unavailable' ? 'NO_ROOM' : 'NETWORK', String(err));
     });
   });
 }

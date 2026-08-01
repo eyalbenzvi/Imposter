@@ -111,7 +111,8 @@ function RolePicker({
           <p className="pt-1 text-sm text-slate-400">כל אחד בטלפון שלו</p>
         </header>
 
-        <ScreenBody className="justify-start gap-5">
+        {/* Flow layout, not `ScreenBody` — see the note in `JoinScreen`. */}
+        <div className="flex flex-col gap-5 pb-4">
           <div className="w-full">
             <label
               htmlFor="host-name"
@@ -154,7 +155,7 @@ function RolePicker({
           >
             הצטרפו לחדר קיים
           </button>
-        </ScreenBody>
+        </div>
 
         <ScreenFooter>
           <button type="button" onClick={onExit} className="btn-ghost w-full">
@@ -314,32 +315,81 @@ function GuestSide({
     );
   }
 
-  const banner =
-    guest.status === 'CONNECTING' ? (
-      <ConnectionBanner>מתחברים לחדר {code}…</ConnectionBanner>
-    ) : guest.status === 'RECONNECTING' ? (
-      <ConnectionBanner tone="bad">
-        החיבור אבד — מנסים להתחבר מחדש
-      </ConnectionBanner>
-    ) : null;
-
-  if (!guest.view) {
+  /**
+   * Could not get through.
+   *
+   * This screen is the whole reason the guest side counts its attempts. A
+   * saved session is what sends the app straight into the online mode on
+   * launch, so a phone that once joined a room keeps re-dialling it — and with
+   * nothing but a "connecting…" line and a status banner sitting on top of the
+   * cancel button, there was no way out at all short of clearing site data.
+   */
+  if (guest.status === 'UNREACHABLE') {
+    const noRoom = guest.failure === 'NO_ROOM';
     return (
-      <>
-        <Screen>
-          <ScreenBody>
-            <p className="text-center text-base text-slate-400">
-              מתחברים לחדר <span className="num tabular-nums">{code}</span>…
-            </p>
-          </ScreenBody>
-          <ScreenFooter>
-            <button type="button" onClick={quit} className="btn-ghost w-full">
-              ביטול
-            </button>
-          </ScreenFooter>
-        </Screen>
-        {banner}
-      </>
+      <Screen scrollable>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center">
+          <p
+            className="niqqud font-display font-black text-slate-50"
+            style={{ fontSize: 'clamp(1.6rem, 8vw, 2.2rem)' }}
+          >
+            {noRoom ? 'אין חדר עם הקוד הזה' : 'לא הצלחנו להתחבר'}
+          </p>
+          <p className="max-w-[30ch] text-base leading-relaxed text-slate-400">
+            {noRoom
+              ? `אף אחד לא מחזיק חדר עם הקוד ${code}. ייתכן שהמארח סגר אותו, או שיש טעות בקוד.`
+              : 'החיבור לא נוצר. בדקו שיש רשת, ושהמארח עדיין עם המשחק פתוח על המסך.'}
+          </p>
+        </div>
+
+        <ScreenFooter>
+          <button
+            type="button"
+            onClick={guest.retry}
+            className="btn-primary w-full text-xl"
+          >
+            לנסות שוב
+          </button>
+          <button
+            type="button"
+            onClick={() => onRejoin(null)}
+            className="btn-ghost w-full"
+          >
+            להזין קוד אחר
+          </button>
+          <button type="button" onClick={quit} className="btn-ghost w-full">
+            חזרה למשחק במכשיר אחד
+          </button>
+        </ScreenFooter>
+      </Screen>
+    );
+  }
+
+  /**
+   * Still trying. The status lives in the body rather than in a fixed banner:
+   * a banner pinned to the bottom of the screen covered the only button on it.
+   */
+  if (!guest.view) {
+    const reconnecting = guest.status === 'RECONNECTING';
+    return (
+      <Screen scrollable>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
+          <p className="text-base text-slate-300">
+            {reconnecting ? 'החיבור אבד — מתחברים מחדש' : 'מתחברים לחדר'}
+          </p>
+          <p dir="ltr" className="num font-display text-3xl tabular-nums text-slate-100">
+            {code}
+          </p>
+          <p className="max-w-[28ch] pt-1 text-sm leading-relaxed text-slate-500">
+            המשחק רץ מהמכשיר של המארח — הוא צריך להיות פתוח על המסך
+          </p>
+        </div>
+        <ScreenFooter>
+          <button type="button" onClick={quit} className="btn-ghost w-full">
+            ביטול
+          </button>
+        </ScreenFooter>
+      </Screen>
     );
   }
 
@@ -348,10 +398,7 @@ function GuestSide({
       {guest.view.phase === 'SETUP' ? (
         <GuestLobbyScreen
           view={guest.view}
-          onLeave={() => {
-            guest.leave();
-            onExit();
-          }}
+          onLeave={quit}
         />
       ) : (
         <>
@@ -359,7 +406,9 @@ function GuestSide({
           <LeaveButton onLeave={quit} />
         </>
       )}
-      {banner}
+      {guest.status === 'RECONNECTING' && (
+        <ConnectionBanner tone="bad">החיבור אבד — מתחברים מחדש</ConnectionBanner>
+      )}
       {guest.message && guest.status === 'PLAYING' && (
         <ConnectionBanner tone="bad">{guest.message}</ConnectionBanner>
       )}

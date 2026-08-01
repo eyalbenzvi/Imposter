@@ -258,7 +258,11 @@ export function useHost(hostName: string): Host {
     void openHost({ preferredCode: saved?.code ?? roomRef.current!.code })
       .then((peer) => {
         if (cancelled) {
-          peer.destroy();
+          // `destroyHost`, not `peer.destroy()`. The peer is a per-tab
+          // singleton, so destroying it directly would leave the module
+          // handing that dead object to every later caller — and the lobby
+          // would show a code that nobody can ever connect to.
+          destroyHost();
           return;
         }
         peerRef.current = peer;
