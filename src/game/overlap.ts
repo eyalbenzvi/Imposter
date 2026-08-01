@@ -53,10 +53,16 @@ const MIN_ROOT = 3;
  * Everything below compares these, never the pointed original.
  */
 export function skeleton(value: string): string {
-  // Maqaf and the quote marks are turned into breaks *before* the pointing is
-  // dropped: maqaf sits inside the niqqud block, so stripping first would glue
-  // בֵּית־סֵפֶר into one token and hide the word it shares with בַּיִת.
-  return stripNiqqud(value.replace(/[־'"״׳]/g, ' '))
+  // Maqaf becomes a break *before* the pointing is dropped, because it sits
+  // inside the niqqud block: strip first and בֵּית־סֵפֶר glues into one token,
+  // hiding the word it shares with בַּיִת.
+  //
+  // Geresh is the opposite case and must NOT break. In Hebrew it modifies the
+  // letter it follows — ג', ז', צ' are single sounds — so splitting there would
+  // leave a bare ג token that every other ג' word matches, and read גִּ'ינְס and
+  // גִּ'ירָפָה as sharing a word.
+  return stripNiqqud(value.replace(/[־]/g, ' '))
+    .replace(/['"״׳]/g, '')
     .replace(/[ךםןףץ]/g, (c) => FINALS[c]!)
     .replace(/\s+/g, ' ')
     .trim();

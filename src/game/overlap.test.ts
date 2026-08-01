@@ -8,9 +8,16 @@ describe('skeleton', () => {
     expect(skeleton('אָרוֹן')).toBe('ארונ');
   });
 
-  it('treats maqaf and quote marks as a word break', () => {
+  it('breaks on maqaf, which the pointing would otherwise swallow', () => {
     expect(skeleton('בֵּית־סֵפֶר')).toBe('בית ספר');
     expect(skeleton('  תַּחֲנַת   אוֹטוֹבּוּס ')).toBe('תחנת אוטובוס');
+  });
+
+  it('does not break on geresh — it modifies a letter, it is not a space', () => {
+    expect(skeleton("גִּ'ינְס")).toBe('גינס');
+    expect(skeleton("גִּ'ירָפָה")).toBe('גירפה');
+    // Splitting there would leave a bare ג that every other ג' word matches.
+    expect(overlap("גִּ'ינְס", "גִּ'ירָפָה")).toBeNull();
   });
 });
 

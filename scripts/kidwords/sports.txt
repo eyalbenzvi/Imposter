@@ -81,8 +81,8 @@ draw | תֵּיקוּ | win | loss | contest | team | goal
 supporter | אוֹהֵד | crowd | team | nationalteam | hall | league
 crowd | קָהָל | supporter | hall | team | contest | whistleblow
 hall | אוּלָם | crowd | supporter | contest | team | gymnastics
-whistle | מַשְׁרוֹקִית | whistleblow | stopwatch | goal | training | team
-whistleblow | שְׁרִיקָה | whistle | goal | training | crowd | contest
+whistle | מַשְׁרוֹקִית | contest | stopwatch | goal | training | team
+whistleblow | שְׁרִיקָה | team | goal | training | crowd | contest
 stopwatch | סְטוֹפֶּר | whistle | record | running | marathon | training
 
 # ── משחקי שולחן ──────────────────────────────────────────────────────────────

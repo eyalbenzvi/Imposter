@@ -18,7 +18,7 @@ mud | בץ | soil | puddle | sand | dust | rain
 dust | אָבָק | sand | soil | smoke | mud | stone
 desert | מדבר | sand | plain | wadi | heat | dryness
 forest | יער | field | grove | desert | mountain | valley
-grove | חֹרְשָׁה | forest | field | path | valley | hill
+grove | חֻרְשָׁה | forest | field | path | valley | hill
 pole | קֹטֶב | glacier | snow | cold | continent | grove
 field | שדה | forest | plain | valley | soil | grove
 path | שְׁבִיל | field | forest | slope | wadi | view
@@ -37,7 +37,7 @@ foam | קֶצֶף | sea-wave | current | sea | drop | dew
 current | זֶרֶם | sea-wave | river | stream | foam | waterfall
 river | נהר | stream | lake | waterfall | current | spring
 stream | נחל | river | spring | waterfall | wadi | lake
-waterfall | מפל | river | stream | spring | current | cliff
+waterfall | מַפָּל | river | stream | spring | current | cliff
 spring | מעין | well | stream | river | waterfall | puddle
 well | באר | spring | puddle | lake | river | stream
 lake | אגם | sea | river | bay | ocean | stream
@@ -64,7 +64,7 @@ dew | טל | frost | drop | drizzle | fog | rain
 wind | רוח | gust | storm | tempest | cloud | tornado
 gust | משב | wind | storm | tempest | tornado | cloud
 storm | סופה | tempest | wind | hurricane | tornado | rain
-tempest | סערה | storm | wind | hurricane | tornado | gust
+tempest | סְעָרָה | storm | wind | hurricane | tornado | gust
 hurricane | הוריקן | tornado | storm | tempest | wind | flood
 tornado | טורנדו | hurricane | storm | tempest | gust | wind
 cloud | ענן | fog | rain | sky | sun | tornado
