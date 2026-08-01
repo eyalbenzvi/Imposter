@@ -106,7 +106,7 @@ getRevealView(state, playerId): RevealView
 ```ts
 type Action =
   // SETUP
-  | { type: 'SET_PLAYERS'; names: string[] }
+  | { type: 'SET_PLAYERS'; names: string[] }     // שמות חוזרים נחסמים ב-START_GAME
   | { type: 'UPDATE_SETTINGS'; patch: Partial<Settings> }
   | { type: 'START_GAME'; seed: string }        // בוחר מילה, רמז מ-5, מתחזים, סדר תורות
 
@@ -142,7 +142,7 @@ type Action =
 
 | מ- | Action | ל- | תנאי |
 |---|---|---|---|
-| SETUP | `START_GAME` | REVEAL | 3–12 שחקנים, `1 ≤ imposterCount < aliveCitizens` |
+| SETUP | `START_GAME` | REVEAL | 3–12 שחקנים, **שם אחר לכל אחד**, `1 ≤ imposterCount < aliveCitizens` |
 | REVEAL | `SHOW_ROLE` | REVEAL | `revealShown=true` |
 | REVEAL | `HIDE_ROLE` | REVEAL | יש עוד שחקנים חיים לחשוף |
 | REVEAL | `HIDE_ROLE` | CLUES | השחקן האחרון סיים |

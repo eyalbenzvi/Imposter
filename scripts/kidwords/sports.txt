@@ -1,25 +1,25 @@
 @category ספורט ומשחקים
 
 # ── משחקי כדור ───────────────────────────────────────────────────────────────
-soccer | כדורגל | basketball | handball | volleyball | goal | ball
-basketball | כדורסל | soccer | volleyball | handball | hoop | ball
-volleyball | כדורעף | basketball | handball | soccer | net | ball
+soccer | כדורגל | basketball | handball | volleyball | goal | dodgeball
+basketball | כדורסל | soccer | volleyball | handball | hoop | dodgeball
+volleyball | כדורעף | basketball | handball | soccer | net | dodgeball
 handball | כדור יד | volleyball | basketball | soccer | dodgeball | goal
-dodgeball | מַחֲנַיִם | handball | volleyball | ball | tag | soccer
-tennis | טניס | pingpong | badminton | racket | net | ball
-pingpong | טניס שלחן | tennis | badminton | racket | net | ball
-badminton | בדמינטון | tennis | pingpong | racket | net | ball
-baseball | ביסבול | soccer | basketball | golf | ball | racket
+dodgeball | מַחֲנַיִם | handball | volleyball | tag | soccer | tennis
+tennis | טניס | badminton | racket | net | ball | dodgeball
+pingpong | טניס שלחן | badminton | racket | net | ball | dodgeball
+badminton | בדמינטון | tennis | racket | net | ball | baseball
+baseball | ביסבול | soccer | basketball | golf | racket | badminton
 golf | גולף | baseball | tennis | ball | hoop | contest
-rugby | רגבי | soccer | handball | wrestling | ball | goal
-hockey | הוקי | soccer | skating | ball | net | goal
-ball | כדור | goal | net | racket | soccer | basketball
-racket | מחבט | ball | net | tennis | pingpong | badminton
-net | רשת | ball | goal | racket | volleyball | tennis
-goal | גול | goalkeeper | net | ball | soccer | kick
-goalkeeper | שוער | goal | net | ball | soccer | handball
-kick | בְּעִיטָה | pass | jump | ball | goal | soccer
-pass | מְסִירָה | kick | ball | jump | basketball | soccer
+rugby | רגבי | soccer | handball | wrestling | goal | hockey
+hockey | הוקי | soccer | skating | net | goal | rugby
+ball | כדור | goal | net | racket | hockey | rugby
+racket | מחבט | ball | net | tennis | badminton | hockey
+net | רשת | ball | goal | racket | tennis | goalkeeper
+goal | גול | goalkeeper | net | ball | kick | racket
+goalkeeper | שוער | goal | net | ball | kick | pass
+kick | בְּעִיטָה | pass | jump | ball | goal | goalkeeper
+pass | מְסִירָה | kick | ball | jump | goalkeeper | swimming
 jump | קְפִיצָה | kick | pass | trampoline | hoop | climbing
 
 # ── במים ─────────────────────────────────────────────────────────────────────
@@ -54,13 +54,13 @@ archery | קליעה | fencing | contest | ball | racket | medal
 
 # ── על גלגלים ובשלג ──────────────────────────────────────────────────────────
 ski | סקי | snowboard | skating | surfing | climbing | helmet
-snowboard | סנובורד | ski | skateboard | skating | surfing | helmet
-skating | החלקה | rollerblades | ski | snowboard | skateboard | hockey
+snowboard | סנובורד | ski | skating | surfing | helmet | archery
+skating | החלקה | rollerblades | ski | snowboard | hockey | archery
 skateboard | סקייטבורד | rollerblades | snowboard | skating | surfing | helmet
-rollerblades | גלגליות | skateboard | skating | ski | helmet | shinguards
+rollerblades | גלגליות | skateboard | skating | helmet | shinguards | climbing
 climbing | טפוס | ladder | jump | walking | riding | helmet
 riding | רכיבה | climbing | walking | helmet | training | contest
-helmet | קסדה | shinguards | skateboard | rollerblades | riding | ski
+helmet | קסדה | shinguards | skateboard | rollerblades | riding | climbing
 shinguards | מְגִנֵּי שׁוֹקַיִם | helmet | soccer | goalkeeper | rollerblades | skateboard
 
 # ── תחרויות ──────────────────────────────────────────────────────────────────
@@ -105,8 +105,8 @@ balloon | בַּלּוֹן | kite | toy | teddy | doll | hoop
 kite | עֲפִיפוֹן | balloon | toy | jumprope | hoop | drone
 robot | רוֹבּוֹט | drone | lego | toy | game | doll
 drone | רַחְפָן | robot | kite | toy | game | balloon
-jumprope | חֶבֶל קְפִיצָה | hoop | hopscotch | marbles | jump | tag
-hoop | חִשּׁוּק | jumprope | balloon | basketball | hopscotch | jump
+jumprope | חֶבֶל קְפִיצָה | hoop | hopscotch | marbles | tag | drone
+hoop | חִשּׁוּק | jumprope | balloon | basketball | hopscotch | slide
 
 # ── בחצר המשחקים ─────────────────────────────────────────────────────────────
 slide | מַגְלֵשָׁה | swing | trampoline | sandbox | ladder | hopscotch

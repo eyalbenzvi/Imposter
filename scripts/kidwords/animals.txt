@@ -12,22 +12,22 @@ goat | עז | kidgoat | sheep | cow | lamb | donkey
 kidgoat | גְּדִי | goat | lamb | calf | sheep | foal
 pig | חזיר | cow | sheep | goat | donkey | horse
 bull | שׁוֹר | cow | horse | calf | goat | pig
-rooster | תרנגול | hen | chick | duck | goose | turkey
-hen | תַּרְנְגֹלֶת | rooster | chick | duck | goose | turkey
-chick | אֶפְרוֹחַ | hen | rooster | duck | goose | calf
-duck | ברוז | goose | rooster | swan | hen | chick
-goose | אוז | duck | rooster | swan | hen | turkey
-turkey | תַּרְנְגוֹל הֹדוּ | rooster | hen | duck | goose | peacock
+rooster | תרנגול | chick | duck | goose | bull | pig
+hen | תַּרְנְגֹלֶת | chick | duck | goose | bull | pig
+chick | אֶפְרוֹחַ | hen | duck | goose | calf | bull
+duck | ברוז | goose | rooster | swan | chick | dog
+goose | אוז | duck | rooster | swan | chick | dog
+turkey | תַּרְנְגוֹל הֹדוּ | duck | goose | peacock | dog | chick
 
 # ── חיות מחמד ────────────────────────────────────────────────────────────────
-dog | כלב | cat | puppy | rabbit | kitten | parrot
-puppy | כְּלַבְלַב | dog | kitten | cat | cub | rabbit
-cat | חתול | dog | kitten | rabbit | puppy | mouse
-kitten | חֲתַלְתּוּל | cat | puppy | dog | cub | rabbit
+dog | כלב | cat | rabbit | kitten | parrot | turkey
+puppy | כְּלַבְלַב | kitten | cat | cub | rabbit | turkey
+cat | חתול | dog | kitten | rabbit | mouse | turkey
+kitten | חֲתַלְתּוּל | cat | puppy | cub | rabbit | hyrax
 rabbit | ארנב | hyrax | cat | dog | mouse | squirrel
 hyrax | שָׁפָן | rabbit | mouse | squirrel | hedgehog | cat
 mouse | עכבר | rabbit | squirrel | hyrax | cat | hedgehog
-goldfish | דַּג זָהָב | fish | parrot | cat | dog | turtle
+goldfish | דַּג זָהָב | parrot | cat | dog | turtle | mouse
 parrot | תכי | dove | peacock | dog | cat | owl
 
 # ── חיות בר ──────────────────────────────────────────────────────────────────
@@ -66,14 +66,14 @@ hoopoe | דּוּכִיפַת | sparrow | dove | crow | peacock | wagtail
 eagle | נשר | falcon | owl | crow | seagull | stork
 falcon | בַּז | eagle | owl | crow | seagull | dove
 owl | ינשוף | eagle | falcon | bat | crow | dove
-peacock | טוס | parrot | rooster | swan | hoopoe | turkey
+peacock | טוס | parrot | rooster | swan | hoopoe | owl
 penguin | פינגוין | seal | swan | duck | seagull | goose
 stork | חסידה | swan | seagull | eagle | dove | crow
 swan | ברבור | stork | duck | goose | penguin | seagull
 seagull | שַׁחַף | dove | crow | stork | penguin | sparrow
 
 # ── בים ──────────────────────────────────────────────────────────────────────
-fish | דָּג | goldfish | shark | dolphin | seahorse | crab
+fish | דָּג | shark | dolphin | seahorse | crab | seagull
 shark | כריש | dolphin | whale | fish | octopus | seal
 dolphin | דולפין | whale | shark | seal | fish | octopus
 whale | לויתן | dolphin | shark | seal | octopus | fish
@@ -81,10 +81,10 @@ seal | כֶּלֶב יָם | dolphin | whale | penguin | shark | otter
 otter | לוּטְרָה | seal | dolphin | penguin | fish | whale
 octopus | תמנון | crab | jellyfish | starfish | fish | shark
 crab | סרטן | octopus | starfish | jellyfish | seashell | fish
-starfish | כּוֹכַב יָם | seashell | crab | jellyfish | octopus | seahorse
-jellyfish | מֶדוּזָה | octopus | starfish | crab | seahorse | fish
-seashell | צִדְפָּה | starfish | crab | seahorse | snail | octopus
-seahorse | סוּסוֹן יָם | fish | starfish | seashell | jellyfish | crab
+starfish | כּוֹכַב יָם | seashell | crab | jellyfish | octopus | otter
+jellyfish | מֶדוּזָה | octopus | starfish | crab | fish | seashell
+seashell | צִדְפָּה | starfish | crab | snail | octopus | jellyfish
+seahorse | סוּסוֹן יָם | fish | seashell | jellyfish | crab | snake
 
 # ── זוחלים ───────────────────────────────────────────────────────────────────
 snake | נחש | lizard | crocodile | turtle | chameleon | scorpion

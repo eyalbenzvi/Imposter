@@ -1,12 +1,12 @@
 @category אנשים, מקצועות וחגים
 
 # ── מי שמטפל בנו ─────────────────────────────────────────────────────────────
-doctor | רופא | nurse | dentist | paramedic | vet | pharmacist
-dentist | רופא שנים | doctor | nurse | vet | paramedic | pharmacist
-nurse | אחות | doctor | paramedic | dentist | pharmacist | vet
-paramedic | פרמדיק | nurse | doctor | firefighter | lifeguard | dentist
-pharmacist | רוקח | doctor | nurse | dentist | vet | scientist
-vet | וטרינר | doctor | dentist | nurse | shepherd | farmer
+doctor | רופא | nurse | paramedic | vet | pharmacist | psychologist
+dentist | רופא שנים | nurse | vet | paramedic | pharmacist | psychologist
+nurse | אחות | doctor | paramedic | pharmacist | vet | psychologist
+paramedic | פרמדיק | nurse | doctor | firefighter | lifeguard | pharmacist
+pharmacist | רוקח | doctor | nurse | vet | scientist | paramedic
+vet | וטרינר | doctor | nurse | shepherd | farmer | pharmacist
 psychologist | פסיכולוג | doctor | teacher | nurse | scientist | lawyer
 lifeguard | מַצִּיל | paramedic | firefighter | guard | coach | policeman
 
@@ -80,28 +80,28 @@ parents | הוֹרִים | mother | father | grandmother | grandfather | brother
 grandmother | סָבְתָא | grandfather | mother | father | aunt | grandchild
 grandfather | סַבָּא | grandmother | father | mother | uncle | grandchild
 brother | אָח | twins | cousin | mother | father | baby
-twins | תְּאוֹמִים | brother | cousin | baby | boy | girl
-uncle | דּוֹד | aunt | cousin | grandfather | father | grandmother
-aunt | דּוֹדָה | uncle | cousin | grandmother | mother | grandfather
-cousin | בֶּן דּוֹד | uncle | aunt | brother | twins | grandchild
+twins | תְּאוֹמִים | brother | cousin | baby | boy | grandfather
+uncle | דּוֹד | grandfather | father | grandmother | twins | brother
+aunt | דּוֹדָה | grandmother | mother | grandfather | twins | grandchild
+cousin | בֶּן דּוֹד | brother | twins | grandchild | baby | toddler
 grandchild | נֶכֶד | grandmother | grandfather | brother | cousin | baby
-baby | תִּינוֹק | boy | girl | twins | brother | toddler
-toddler | פָּעוֹט | baby | boy | girl | twins | brother
-boy | יֶלֶד | girl | baby | teenager | twins | toddler
-girl | יַלְדָּה | boy | baby | teenager | twins | toddler
-teenager | נַעַר | boy | girl | grownup | brother | cousin
-grownup | מְבֻגָּר | teenager | parents | uncle | aunt | neighbor
-friend | חָבֵר | neighbor | guest | boy | girl | teenager
-neighbor | שָׁכֵן | friend | guest | grownup | uncle | aunt
+baby | תִּינוֹק | boy | twins | brother | toddler | grandchild
+toddler | פָּעוֹט | baby | boy | twins | brother | grandchild
+boy | יֶלֶד | baby | teenager | twins | toddler | grandchild
+girl | יַלְדָּה | baby | teenager | twins | toddler | grownup
+teenager | נַעַר | boy | grownup | brother | cousin | friend
+grownup | מְבֻגָּר | teenager | parents | uncle | neighbor | friend
+friend | חָבֵר | neighbor | guest | boy | teenager | grownup
+neighbor | שָׁכֵן | friend | guest | grownup | uncle | bride
 guest | אוֹרֵחַ | neighbor | friend | bride | groom | party
 bride | כַּלָּה | groom | chuppah | party | guest | present
 groom | חָתָן | bride | chuppah | party | guest | present
 
 # ── מי שיש בסיפורים ──────────────────────────────────────────────────────────
-king | מֶלֶךְ | queen | prince | princess | knight | giant
-queen | מַלְכָּה | king | princess | prince | fairy | knight
-prince | נָסִיךְ | princess | king | queen | knight | giant
-princess | נְסִיכָה | prince | queen | king | fairy | knight
+king | מֶלֶךְ | prince | knight | giant | groom | bride
+queen | מַלְכָּה | princess | fairy | knight | groom | bride
+prince | נָסִיךְ | king | knight | giant | groom | pirate
+princess | נְסִיכָה | queen | fairy | knight | pirate | giant
 knight | אַבִּיר | prince | king | pirate | giant | soldier
 pirate | פִּירָט | knight | sailor | thief | giant | king
 giant | עֲנָק | knight | king | fairy | hero | pirate
@@ -113,8 +113,8 @@ thief | גַּנָּב | pirate | detective | policeman | knight | giant
 rosh-hashana | ראש השנה | yom-kippur | sukkot | hanukkah | purim | pesach
 yom-kippur | יום כפור | rosh-hashana | sukkot | fast | prayer | shabbat
 sukkot | סכות | sukkah | lulav | etrog | simchat-torah | rosh-hashana
-simchat-torah | שמחת תורה | sukkot | torah | hanukkah | shavuot | purim
-hanukkah | חנכה | hanukkiah | dreidel | purim | pesach | rosh-hashana
+simchat-torah | שמחת תורה | sukkot | hanukkah | shavuot | purim | yom-kippur
+hanukkah | חנכה | dreidel | purim | pesach | rosh-hashana | simchat-torah
 tu-bishvat | טו בשבט | hanukkah | purim | shavuot | lag-baomer | pesach
 purim | פורים | noisemaker | mishloach-manot | hanukkah | pesach | party
 pesach | פסח | seder | haggadah | afikoman | purim | shavuot
@@ -122,31 +122,31 @@ yom-haatzmaut | יום העצמאות | flag | fireworks | mangal | lag-baomer |
 lag-baomer | לג בעמר | mangal | yom-haatzmaut | tu-bishvat | shavuot | fireworks
 shavuot | שבועות | pesach | sukkot | tu-bishvat | torah | lag-baomer
 tisha-beav | תשעה באב | yom-kippur | fast | prayer | shabbat | rosh-hashana
-shabbat | שבת | shabbat-candles | kiddush | prayer | siddur | torah
+shabbat | שבת | kiddush | prayer | siddur | torah | tisha-beav
 
 # ── מה שיש בחג ───────────────────────────────────────────────────────────────
 sukkah | סכה | lulav | etrog | sukkot | simchat-torah | party
 lulav | לולב | etrog | sukkah | sukkot | torah | prayer
 etrog | אתרוג | lulav | sukkah | sukkot | torah | prayer
-hanukkiah | חנכיה | dreidel | hanukkah | shabbat-candles | present | party
-dreidel | סביבון | hanukkiah | hanukkah | noisemaker | present | party
-shabbat-candles | נרות שבת | kiddush | shabbat | hanukkiah | siddur | prayer
-kiddush | קדוש | shabbat-candles | shabbat | torah | prayer | siddur
+hanukkiah | חנכיה | dreidel | shabbat-candles | present | party | etrog
+dreidel | סביבון | hanukkiah | noisemaker | present | party | shabbat-candles
+shabbat-candles | נרות שבת | kiddush | hanukkiah | siddur | prayer | dreidel
+kiddush | קדוש | shabbat-candles | torah | prayer | siddur | mishloach-manot
 mishloach-manot | משלוח מנות | noisemaker | purim | present | party | charity
 noisemaker | רעשן | mishloach-manot | purim | dreidel | party | present
-seder | סדר | haggadah | afikoman | pesach | siddur | prayer
-haggadah | הגדה | seder | afikoman | pesach | siddur | torah
+seder | סדר | haggadah | afikoman | pesach | prayer | noisemaker
+haggadah | הגדה | seder | afikoman | pesach | torah | noisemaker
 afikoman | אפיקומן | seder | haggadah | pesach | present | party
-torah | תורה | siddur | prayer | mezuzah | simchat-torah | bar-mitzvah
+torah | תורה | siddur | prayer | mezuzah | bar-mitzvah | afikoman
 siddur | סדור | torah | prayer | mezuzah | kiddush | haggadah
 prayer | תפלה | siddur | torah | kiddush | fast | mezuzah
 mezuzah | מזוזה | torah | siddur | prayer | kiddush | shabbat
 fast | צום | yom-kippur | tisha-beav | prayer | charity | shabbat
 charity | צדקה | fast | prayer | present | mitzvah | mishloach-manot
 mitzvah | מִצְוָה | charity | prayer | fast | present | friend
-bar-mitzvah | בר מצוה | bat-mitzvah | chuppah | party | torah | present
-bat-mitzvah | בת מצוה | bar-mitzvah | chuppah | party | torah | present
-chuppah | חפה | bride | groom | bar-mitzvah | bat-mitzvah | party
+bar-mitzvah | בר מצוה | chuppah | party | torah | present | charity
+bat-mitzvah | בת מצוה | chuppah | party | torah | present | charity
+chuppah | חפה | bride | groom | bar-mitzvah | party | present
 
 # ── חוגגים ───────────────────────────────────────────────────────────────────
 party | מְסִבָּה | present | fireworks | guest | mangal | flag

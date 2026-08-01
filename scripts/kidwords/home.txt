@@ -7,7 +7,7 @@ kitchen-room | מִטְבָּח | livingroom | room | oven | fridge | sink
 balcony | מִרְפֶּסֶת | room | livingroom | window | roof | flowerpot
 wall | קִיר | floor | ceiling | window | door | picture
 floor | רִצְפָּה | wall | ceiling | carpet | stairs | broom
-ceiling | תִּקְרָה | wall | floor | roof | lamp | bulb
+ceiling | תִּקְרָה | wall | floor | roof | lamp | storage
 roof | גַּג | ceiling | balcony | wall | window | stairs
 storage | מַחְסָן | closet | shelf | basket | suitcase | room
 door | דלת | window | lock | key | wall | stairs
@@ -33,28 +33,28 @@ drawer | מגרה | shelf | closet | bookcase | key | container
 hanger | קולב | closet | shelf | drawer | towel | brush
 
 # ── תאורה וקישוט ─────────────────────────────────────────────────────────────
-lamp | מנורה | bulb | candle | ceiling | mirror | picture
-bulb | נורה | lamp | candle | socket | cable | ceiling
-candle | נר | lamp | bulb | vase | picture | mirror
+lamp | מנורה | candle | ceiling | mirror | picture | hanger
+bulb | נורה | candle | socket | cable | ceiling | hanger
+candle | נר | lamp | vase | picture | mirror | hanger
 mirror | מראה | picture | window | lamp | wall | brush
 picture | תמונה | mirror | vase | wall | lamp | bookcase
 vase | אגרטל | flowerpot | picture | candle | jug | tray
 flowerpot | עציץ | vase | balcony | picture | tray | basket
 carpet | שטיח | curtain | floor | sofa | mattress | broom
 curtain | וילון | carpet | window | sheet | blanket | wall
-clock | שעון | lamp | picture | mirror | wall | smartwatch
+clock | שעון | lamp | picture | mirror | wall | curtain
 
 # ── מכשירים בבית ─────────────────────────────────────────────────────────────
 fan | מאורר | airconditioner | heater | lamp | window | vacuum
 airconditioner | מזגן | fan | heater | window | remote | balcony
-heater | תַּנּוּר חִמּוּם | airconditioner | fan | candle | oven | blanket
+heater | תַּנּוּר חִמּוּם | airconditioner | fan | candle | blanket | washer
 washer | מכונת כביסה | dishwasher | iron | hanger | soap | basket
 iron | מגהץ | washer | hanger | cloth | soap | towel
 vacuum | שואב אבק | broom | squeegee | cloth | carpet | floor
 broom | מטאטא | squeegee | vacuum | bin | floor | cloth
 squeegee | מגב | broom | vacuum | cloth | floor | sponge
-cloth | מטלית | sponge | squeegee | towel | soap | brush
-sponge | ספוג | cloth | soap | brush | squeegee | towel
+cloth | מטלית | sponge | squeegee | soap | brush | broom
+sponge | ספוג | cloth | soap | brush | squeegee | broom
 soap | סבון | sponge | towel | shower | cloth | brush
 towel | מגבת | soap | sponge | shower | bathtub | blanket
 brush | מברשת | comb | sponge | soap | cloth | mirror
@@ -126,19 +126,19 @@ apron | סינר | napkin | cloth | towel | oven | pan
 television | טלויזיה | remote | screen | console | computer | sofa
 remote | שלט | television | console | airconditioner | screen | battery
 console | קונסולה | television | remote | screen | computer | headphones
-computer | מחשב | laptop | screen | keyboard-pc | mouse-pc | tablet
-laptop | מחשב ניד | computer | tablet | screen | keyboard-pc | charger
-tablet | טבלט | laptop | smartphone | computer | screen | headphones
+computer | מחשב | screen | keyboard-pc | tablet | console | remote
+laptop | מחשב ניד | tablet | screen | keyboard-pc | charger | console
+tablet | טבלט | laptop | smartphone | screen | headphones | smartwatch
 smartphone | סמארטפון | tablet | smartwatch | camera | charger | screen
-smartwatch | שעון חכם | smartphone | clock | tablet | camera | charger
-screen | מסך | television | computer | laptop | keyboard-pc | console
-keyboard-pc | מקלדת | mouse-pc | computer | screen | laptop | console
-mouse-pc | עכבר מחשב | keyboard-pc | computer | screen | laptop | console
+smartwatch | שעון חכם | smartphone | tablet | camera | charger | screen
+screen | מסך | television | computer | keyboard-pc | console | smartwatch
+keyboard-pc | מקלדת | mouse-pc | screen | console | smartwatch | headphones
+mouse-pc | עכבר מחשב | keyboard-pc | screen | console | headphones | speaker
 headphones | אזניות | speaker | smartphone | console | tablet | cable
 speaker | רַמְקוֹל | headphones | television | console | smartphone | cable
 camera | מצלמה | smartphone | printer | screen | picture | battery
-printer | מדפסת | camera | computer | screen | cable | laptop
+printer | מדפסת | camera | computer | screen | cable | charger
 charger | מטען | cable | battery | socket | smartphone | laptop
 battery | סוללה | charger | cable | socket | remote | bulb
 cable | כבל | charger | socket | battery | headphones | printer
-socket | שקע | cable | charger | bulb | battery | lamp
+socket | שקע | cable | charger | bulb | battery | printer

@@ -69,6 +69,42 @@ export function playerCountIsValid(count: number): boolean {
   return count >= MIN_PLAYERS && count <= MAX_PLAYERS;
 }
 
+/**
+ * The key two names are considered "the same" by: trimmed, inner whitespace
+ * collapsed, and compared without niqqud — the same comparison every other
+ * Hebrew equality in the game uses. "דָּנָה" and "דנה " are one person.
+ */
+export function nameKey(name: string): string {
+  return stripNiqqud(name).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Positions of players whose name repeats an earlier one.
+ *
+ * Names have to be distinct or the game is unplayable: every screen addresses a
+ * player by name — whose turn it is to be handed the device, who is giving a
+ * clue, who is on the ballot — and two "דנה" rows make each of those ambiguous
+ * to the people in the room, even though the ids behind them differ. Only the
+ * repeats are returned (the first use of a name is not an error), so the setup
+ * screen can mark exactly the rows that need changing. Blank rows are skipped;
+ * "not filled in yet" is a separate condition with its own message.
+ */
+export function duplicateNameIndexes(names: readonly string[]): number[] {
+  const seen = new Set<string>();
+  const repeats: number[] = [];
+  names.forEach((name, index) => {
+    const key = nameKey(name);
+    if (key === '') return;
+    if (seen.has(key)) repeats.push(index);
+    else seen.add(key);
+  });
+  return repeats;
+}
+
+export function namesAreUnique(names: readonly string[]): boolean {
+  return duplicateNameIndexes(names).length === 0;
+}
+
 // ── win conditions ───────────────────────────────────────────────────────────
 
 /**

@@ -11,10 +11,12 @@ import {
   buildGuessOptions,
   checkWinner,
   currentVoter,
+  duplicateNameIndexes,
   gameOverReason,
   getRevealView,
   getSecretEntry,
   maxImposterCount,
+  namesAreUnique,
   nextStepAfterVote,
   revealViewsFor,
   selectedCategories,
@@ -80,6 +82,40 @@ describe('setup', () => {
     expect(() => reducer(tooMany, { type: 'START_GAME', seed: 's' })).toThrow(
       GameRuleError,
     );
+  });
+
+  it('refuses to start when two players share a name', () => {
+    const state = createInitialState(['דָּנָה', 'יוֹסִי', 'דָּנָה']);
+    expect(() => reducer(state, { type: 'START_GAME', seed: 's' })).toThrow(
+      GameRuleError,
+    );
+  });
+
+  it('treats names differing only in niqqud or spacing as the same name', () => {
+    const pointing = createInitialState(['דָּנָה', 'יוֹסִי', 'דנה']);
+    expect(() => reducer(pointing, { type: 'START_GAME', seed: 's' })).toThrow(
+      GameRuleError,
+    );
+
+    const spacing = createInitialState(['אֲבִי  לֵוִי', 'יוֹסִי', 'אֲבִי לֵוִי']);
+    expect(() => reducer(spacing, { type: 'START_GAME', seed: 's' })).toThrow(
+      GameRuleError,
+    );
+  });
+
+  it('starts normally once the repeated name is changed', () => {
+    const state = createInitialState(['דָּנָה', 'יוֹסִי', 'רוּתִי']);
+    expect(() => reducer(state, { type: 'START_GAME', seed: 's' })).not.toThrow();
+  });
+
+  it('points at the repeats only, not the first use of a name', () => {
+    expect(duplicateNameIndexes(['דָּנָה', 'יוֹסִי', 'דנה', 'דָּנָה'])).toEqual([2, 3]);
+    expect(duplicateNameIndexes(['דָּנָה', 'יוֹסִי'])).toEqual([]);
+  });
+
+  it('ignores blank rows — an unfilled name is a different complaint', () => {
+    expect(duplicateNameIndexes(['', '', 'דָּנָה'])).toEqual([]);
+    expect(namesAreUnique(['', ' ', 'דָּנָה'])).toBe(true);
   });
 });
 

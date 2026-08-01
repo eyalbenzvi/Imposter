@@ -23,18 +23,18 @@ shoulder | כתף | arm | neck | elbow | back | chest
 arm | זרוע | shoulder | elbow | hand | muscle | leg
 elbow | מרפק | arm | shoulder | knee | hand | muscle
 body | גּוּף | head | arm | leg | back | skin
-hand | יד | palm | finger | arm | elbow | thumb
-palm | כף יד | hand | finger | thumb | foot | arm
-finger | אצבע | thumb | nail | hand | palm | toe
-thumb | אגדל | finger | nail | palm | hand | toe
-nail | צפרן | finger | thumb | toe | palm | skin
-leg | רגל | knee | thigh | foot | ankle | heel
-thigh | ירך | leg | knee | belly | back | foot
+hand | יד | finger | arm | elbow | thumb | body
+palm | כף יד | finger | thumb | arm | body | elbow
+finger | אצבע | thumb | nail | hand | body | leg
+thumb | אגדל | finger | nail | palm | leg | thigh
+nail | צפרן | finger | thumb | palm | skin | leg
+leg | רגל | knee | thigh | ankle | heel | nail
+thigh | ירך | leg | knee | belly | back | nail
 knee | ברך | leg | thigh | ankle | elbow | heel
-ankle | קרסל | heel | knee | foot | leg | toe
-heel | עקב | ankle | foot | knee | leg | toe
-foot | כף רגל | heel | ankle | toe | leg | palm
-toe | אצבע רגל | finger | foot | nail | heel | thumb
+ankle | קרסל | heel | knee | foot | thigh | nail
+heel | עקב | ankle | foot | knee | thigh | chest
+foot | כף רגל | heel | ankle | chest | knee | back
+toe | אצבע רגל | nail | heel | thumb | chest | back
 
 # ── הגוף מבפנים ──────────────────────────────────────────────────────────────
 chest | חזה | back | belly | shoulder | rib | heart

@@ -2,14 +2,14 @@
 
 # ── מה שלובשים למעלה ─────────────────────────────────────────────────────────
 clothes | בְּגָדִים | shirt | pants | dress | coat | shoes
-shirt | חלצה | tshirt | tanktop | sweater | pants | collar
-tshirt | חֻלְצַת טִי | shirt | tanktop | sweater | hoodie | shorts
-tanktop | גופיה | tshirt | shirt | shorts | underwear | pajamas
+shirt | חלצה | tanktop | sweater | pants | collar | clothes
+tshirt | חֻלְצַת טִי | tanktop | sweater | hoodie | shorts | clothes
+tanktop | גופיה | tshirt | shorts | underwear | pajamas | sweater
 sweater | סודר | hoodie | jacket | coat | shirt | vest
 hoodie | קפוצ'ון | sweater | jacket | tracksuit | coat | tshirt
 jacket | ג'קט | coat | sweater | hoodie | vest | suit
-coat | מעיל | raincoat | jacket | sweater | scarf | hoodie
-raincoat | מְעִיל גֶּשֶׁם | coat | umbrella | boots | jacket | scarf
+coat | מעיל | jacket | sweater | scarf | hoodie | vest
+raincoat | מְעִיל גֶּשֶׁם | umbrella | boots | jacket | scarf | vest
 vest | אפדה | sweater | jacket | shirt | suit | coat
 suit | חליפה | uniform | tie | jacket | dress | vest
 uniform | מדים | suit | tracksuit | tie | shirt | hat
@@ -19,10 +19,10 @@ tracksuit | טרנינג | hoodie | pajamas | uniform | sneakers | shorts
 overall | סרבל | pajamas | dress | shorts | skirt | tracksuit
 
 # ── מה שלובשים למטה ──────────────────────────────────────────────────────────
-pants | מכנסים | shorts | jeans | skirt | tights | tracksuit
-jeans | ג'ִינְס | pants | shorts | skirt | overall | shirt
-shorts | מכנסים קצרים | pants | jeans | skirt | swimsuit | tshirt
-skirt | חצאית | dress | pants | shorts | tights | jeans
+pants | מכנסים | jeans | skirt | tights | tracksuit | overall
+jeans | ג'ִינְס | pants | skirt | overall | shirt | tracksuit
+shorts | מכנסים קצרים | jeans | skirt | swimsuit | tshirt | dress
+skirt | חצאית | dress | pants | tights | jeans | underwear
 dress | שמלה | skirt | overall | suit | tights | robe
 tights | גרביונים | socks | skirt | pants | dress | shoes
 underwear | תחתונים | tanktop | socks | pajamas | swimsuit | shorts
@@ -31,18 +31,18 @@ swimsuit | בגד ים | shorts | flipflops | underwear | tanktop | sunglasses
 # ── נעליים ───────────────────────────────────────────────────────────────────
 shoes | נעלים | sneakers | sandals | boots | socks | shoelace
 sneakers | נַעֲלֵי סְפּוֹרְט | shoes | sandals | boots | flipflops | shoelace
-sandals | סנדלים | flipflops | shoes | sneakers | boots | slippers
-boots | מגפים | shoes | sneakers | sandals | slippers | socks
-flipflops | כפכפים | sandals | slippers | shoes | swimsuit | sneakers
+sandals | סנדלים | flipflops | shoes | sneakers | boots | swimsuit
+boots | מגפים | shoes | sneakers | sandals | socks | flipflops
+flipflops | כפכפים | sandals | slippers | shoes | swimsuit | boots
 slippers | נַעֲלֵי בַּיִת | flipflops | sandals | socks | robe | boots
 heels | עקבים | shoes | sandals | boots | dress | sneakers
-socks | גרבים | tights | shoes | slippers | underwear | sneakers
+socks | גרבים | tights | shoes | slippers | underwear | heels
 shoelace | שרוך | shoes | sneakers | boots | button | ribbon
 
 # ── על הראש ובידיים ──────────────────────────────────────────────────────────
-hat | כובע | cap | kippah | kerchief | crown | scarf
-cap | כּוֹבַע מִצְחִיָּה | hat | kippah | sunglasses | sneakers | kerchief
-kippah | כפה | hat | kerchief | cap | crown | scarf
+hat | כובע | kippah | kerchief | crown | scarf | shoelace
+cap | כּוֹבַע מִצְחִיָּה | kippah | sunglasses | sneakers | kerchief | shoelace
+kippah | כפה | hat | kerchief | crown | scarf | shoelace
 kerchief | מטפחת | scarf | hat | kippah | ribbon | gloves
 scarf | צעיף | gloves | coat | kerchief | hat | sweater
 gloves | כפפות | scarf | socks | coat | hat | boots
@@ -50,7 +50,7 @@ crown | כֶּתֶר | hat | mask | costume | necklace | ring
 mask | מַסֵּכָה | costume | crown | sunglasses | hat | glasses
 costume | תחפשת | mask | crown | uniform | dress | hat
 glasses | משקפים | sunglasses | mask | earring | necklace | wristwatch
-sunglasses | משקפי שמש | glasses | cap | swimsuit | hat | mask
+sunglasses | משקפי שמש | glasses | cap | swimsuit | mask | wristwatch
 wristwatch | שָׁעוֹן יָד | glasses | bracelet | ring | necklace | earring
 
 # ── תכשיטים ואביזרים ─────────────────────────────────────────────────────────
@@ -65,11 +65,11 @@ braid | צַמָּה | ponytail | hairband | ribbon | kerchief | pin
 ponytail | קוּקוּ | braid | hairband | ribbon | pin | kerchief
 bag | תיק | wallet | umbrella | pocket | clothes | shoes
 wallet | ארנק | bag | pocket | pin | ring | umbrella
-umbrella | מטריה | raincoat | boots | bag | coat | hat
+umbrella | מטריה | raincoat | boots | bag | hat | wallet
 belt | חגורה | pants | buckle | jeans | pocket | shoes
 buckle | אַבְזָם | belt | button | zipper | pin | shoelace
-tie | עניבה | bowtie | suit | collar | shirt | belt
-bowtie | עֲנִיבַת פַּרְפָּר | tie | collar | suit | shirt | pin
+tie | עניבה | suit | collar | shirt | belt | buckle
+bowtie | עֲנִיבַת פַּרְפָּר | collar | suit | shirt | pin | button
 
 # ── פרטים בבגד ───────────────────────────────────────────────────────────────
 button | כפתור | zipper | pocket | seam | shoelace | buckle

@@ -38,8 +38,8 @@ persimmon | אפרסמון | pomegranate | apple | fig | date | orange
 olive | זית | pickle | tomato | avocado | pepper | fig
 
 # ── ירקות ────────────────────────────────────────────────────────────────────
-cucumber | מלפפון | tomato | pepper | zucchini | lettuce | pickle
-pickle | מְלָפְפוֹן חָמוּץ | cucumber | olive | tomato | cabbage | pepper
+cucumber | מלפפון | tomato | pepper | zucchini | lettuce | olive
+pickle | מְלָפְפוֹן חָמוּץ | olive | tomato | cabbage | pepper | persimmon
 tomato | עגבניה | cucumber | pepper | eggplant | lettuce | onion
 pepper | פלפל | tomato | cucumber | eggplant | zucchini | onion
 eggplant | חציל | zucchini | pepper | tomato | pumpkin | cucumber
@@ -49,7 +49,7 @@ carrot | גזר | beet | radish | cucumber | potato | zucchini
 beet | סלק | carrot | radish | turnip | kohlrabi | sweet-potato
 radish | צנון | beet | carrot | turnip | kohlrabi | cucumber
 turnip | לֶפֶת | kohlrabi | beet | radish | carrot | cabbage
-kohlrabi | קוֹלוֹרָבִּי | turnip | cabbage | beet | radish | cauliflower
+kohlrabi | קוֹלוֹרָבִּי | turnip | cabbage | beet | radish | potato
 potato | תַּפּוּחַ אֲדָמָה | sweet-potato | carrot | onion | pumpkin | beet
 sweet-potato | בטטה | potato | pumpkin | carrot | beet | onion
 onion | בצל | garlic | leek | sprouts | tomato | pepper
@@ -63,9 +63,9 @@ mint | נענע | rosemary | basil | parsley | coriander | dill
 parsley | פטרוזיליה | coriander | basil | mint | celery | dill
 coriander | כסברה | parsley | mint | basil | celery | dill
 celery | סלרי | parsley | lettuce | leek | coriander | cabbage
-cabbage | כרוב | cauliflower | lettuce | kohlrabi | broccoli | spinach
-cauliflower | כרובית | cabbage | broccoli | kohlrabi | lettuce | spinach
-broccoli | ברוקולי | cauliflower | cabbage | spinach | lettuce | peas
+cabbage | כרוב | lettuce | kohlrabi | broccoli | spinach | celery
+cauliflower | כרובית | broccoli | kohlrabi | lettuce | spinach | celery
+broccoli | ברוקולי | cauliflower | spinach | lettuce | peas | celery
 lettuce | חסה | cabbage | spinach | celery | cucumber | sprouts
 spinach | תרד | lettuce | cabbage | broccoli | celery | peas
 sprouts | נְבָטִים | lettuce | spinach | onion | leek | seed
@@ -76,13 +76,13 @@ corn | תירס | peas | beans | pumpkin | potato | lentils
 mushroom | פטריה | onion | zucchini | lettuce | pepper | eggplant
 
 # ── אגוזים וגרעינים ──────────────────────────────────────────────────────────
-nut | אֱגוֹז | walnut | almond | peanut | pistachio | cashew
-walnut | אֱגוֹז מֶלֶךְ | nut | almond | pecan | pistachio | cashew
-almond | שָׁקֵד | nut | walnut | pistachio | cashew | peanut
+nut | אֱגוֹז | almond | peanut | pistachio | cashew | mushroom
+walnut | אֱגוֹז מֶלֶךְ | almond | pecan | pistachio | cashew | mushroom
+almond | שָׁקֵד | nut | pistachio | cashew | peanut | mushroom
 peanut | בּוֹטְנִים | almond | nut | cashew | pistachio | seeds-snack
 pistachio | פִּיסְטוּק | cashew | almond | walnut | peanut | pecan
 cashew | קָשְׁיוּ | pistachio | almond | peanut | pecan | walnut
-pecan | פֶּקָאן | walnut | pistachio | cashew | almond | nut
+pecan | פֶּקָאן | walnut | pistachio | cashew | almond | seeds-snack
 seeds-snack | גַּרְעִינִים | seeds-sesame | pinenuts | peanut | almond | nut
 seeds-sesame | שֻׁמְשֹׁם | seeds-snack | pinenuts | almond | peanut | nut
 pinenuts | צְנוֹבָרִים | seeds-sesame | seeds-snack | almond | pistachio | nut

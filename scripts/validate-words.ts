@@ -16,10 +16,15 @@
  *   7. anything longer than two words — a word, a hint or a clue. A clue that
  *      needs a sentence is describing the word rather than pointing at it, which
  *      is how "מדביקים אותו וכשמורידים זה כואב" gave away פְּלַסְטֶר.
+ *   8. any two pieces of one entry that are too close to each other: the word,
+ *      its five hints and its three clues all reach the same player, so a pair
+ *      sharing a whole word (אוֹטוֹבּוּס / תַּחֲנַת אוֹטוֹבּוּס), spelled inside one
+ *      another (כֶּלֶב / כְּלַבְלַב) or built on one root (קַצֶּפֶת / הַקְצָפָה) makes
+ *      the round readable instead of guessable. See `src/game/overlap.ts`.
  *
  * Plus two consistency checks that keep the pointing honest:
- *   6. a hint that also exists as an entry must be spelled and pointed identically
- *   7. every string must already be NFC-normalized
+ *   9. a hint that also exists as an entry must be spelled and pointed identically
+ *  10. every string must already be NFC-normalized
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -27,6 +32,7 @@ import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { hasNiqqud, normalize, stripNiqqud } from '../src/game/niqqud.ts';
+import { OVERLAP_REASON, overlap } from '../src/game/overlap.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WORDS_DIR = join(HERE, '..', 'src', 'game', 'words');
@@ -270,6 +276,41 @@ for (const file of files) {
         seenHints.set(key, i);
       }
     });
+
+    // ── 8. nothing in an entry may echo anything else in it ─────────────────
+    // The word, its five hints and its three clues all land in front of the
+    // same player. Any two of them that share a whole word, spell one another
+    // out or come off one root make the round readable instead of guessable.
+    const pieces: [string, string][] = [
+      ['the word', entry.word],
+      ...entry.hints.map((h, i) => [`hint #${i + 1}`, h] as [string, string]),
+      ...(rawClues !== null && typeof rawClues === 'object'
+        ? CLUE_KINDS.filter(
+            (k) => typeof (rawClues as Record<string, unknown>)[k] === 'string',
+          ).map(
+            (k) =>
+              [`clue "${k}"`, (rawClues as Record<string, string>)[k]!] as [
+                string,
+                string,
+              ],
+          )
+        : []),
+    ];
+    for (let i = 0; i < pieces.length; i++) {
+      for (let j = i + 1; j < pieces.length; j++) {
+        const [nameA, valueA] = pieces[i]!;
+        const [nameB, valueB] = pieces[j]!;
+        const kind = overlap(valueA, valueB);
+        // SAME is already reported, with a better message, by the checks above.
+        if (kind !== null && kind !== 'SAME') {
+          fail(
+            label,
+            where,
+            `${nameA} "${valueA}" and ${nameB} "${valueB}" — ${OVERLAP_REASON[kind]} (${kind})`,
+          );
+        }
+      }
+    }
   });
 }
 
