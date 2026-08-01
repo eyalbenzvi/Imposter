@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { stripCacheBuster } from './ui/useFreshBuild';
 import './index.css';
 
 /**
@@ -20,6 +21,7 @@ function trackViewportHeight(): void {
 }
 
 trackViewportHeight();
+stripCacheBuster();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

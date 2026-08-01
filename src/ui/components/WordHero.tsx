@@ -8,29 +8,16 @@ import type { ReactNode } from 'react';
  * there is deliberately no fixed height and no overflow:hidden anywhere near
  * it: niqqud sit above and below the glyphs and would be sheared off.
  */
-export function WordHero({
-  word,
-  tone = 'neutral',
-  sub,
-}: {
-  word: string;
-  tone?: 'neutral' | 'imposter';
-  sub?: ReactNode;
-}) {
+export function WordHero({ word, sub }: { word: string; sub?: ReactNode }) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p
         dir="rtl"
         lang="he"
-        className={`niqqud-hero w-full text-center font-display font-bold ${
-          tone === 'imposter' ? 'text-danger' : 'text-slate-50'
-        }`}
+        className="niqqud-hero w-full text-center font-display font-bold text-slate-50"
         style={{
           fontSize: 'clamp(3rem, 18vw, 6.5rem)',
-          textShadow:
-            tone === 'imposter'
-              ? '0 0 42px rgba(248,113,113,0.35)'
-              : '0 0 42px rgba(167,139,250,0.30)',
+          textShadow: '0 0 42px rgba(167,139,250,0.30)',
         }}
       >
         {word}
