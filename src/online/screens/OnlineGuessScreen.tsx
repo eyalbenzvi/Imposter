@@ -33,7 +33,7 @@ export function OnlineGuessScreen({ view, send }: GameScreenProps) {
             {guesser}
           </p>
           <p className="max-w-[26ch] text-center text-base leading-relaxed text-slate-400">
-            מנסה לנחש את המילה הסודית מתוך ארבע. אם יצליח/תצליח — המתחזה מנצח
+            מנסה לנחש את המילה הסודית מתוך ארבע. אם הניחוש יקלע — המתחזה מנצח
           </p>
         </ScreenBody>
       </Screen>
@@ -42,19 +42,19 @@ export function OnlineGuessScreen({ view, send }: GameScreenProps) {
 
   return (
     <Screen>
-      <ScreenHeader eyebrow="הזדמנות אחרונה" title="הניחוש שלך" />
+      <ScreenHeader eyebrow="הזדמנות אחרונה" title="הניחוש שלכם" />
 
       <ScreenBody className="justify-start gap-4">
         <div className="w-full shrink-0 animate-rise-in rounded-2xl border border-danger/40 bg-danger/[0.07] px-4 py-3 text-center">
           {hidden ? (
             <p className="text-base leading-relaxed text-slate-200">
-              המילה שקיבלת הייתה <strong className="text-danger">תחליף</strong>.
+              המילה שקיבלתם הייתה <strong className="text-danger">תחליף</strong>.
               <br />
               המילה האמיתית הייתה אחרת.
             </p>
           ) : (
             <p className="text-base leading-relaxed text-slate-200">
-              נתפסת. אבל אם תנחש את המילה הסודית —{' '}
+              נתפסתם. אבל אם תנחשו את המילה הסודית —{' '}
               <strong className="text-danger">תנצח בכל זאת</strong>.
             </p>
           )}

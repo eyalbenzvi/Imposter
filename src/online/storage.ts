@@ -10,7 +10,7 @@
 
 import type { Settings } from '../game/types';
 import type { Room, Seat } from './room';
-import type { SeatId } from './protocol';
+import { ROOM_CODE_LENGTH, type SeatId } from './protocol';
 
 const KEY = 'imposter/online/v1';
 
@@ -113,10 +113,12 @@ export function clearGuestSession(): void {
   write(saved);
 }
 
-/** `#join=1234` in the address bar, from a shared link or a QR scan. */
+/** `#join=123456` in the address bar, from a shared link. */
 export function readJoinCode(): string | null {
   if (typeof window === 'undefined') return null;
-  const match = window.location.hash.match(/join=(\d{4})/);
+  const match = window.location.hash.match(
+    new RegExp(`join=(\\d{${ROOM_CODE_LENGTH}})(?!\\d)`),
+  );
   return match ? match[1]! : null;
 }
 

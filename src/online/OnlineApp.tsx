@@ -3,6 +3,7 @@ import { Screen, ScreenBody, ScreenFooter } from '../ui/components/Screen';
 import { useFreshBuild } from '../ui/useFreshBuild';
 import { ConnectionBanner } from './components/ConnectionBanner';
 import { HostStrip } from './components/HostStrip';
+import { LeaveButton } from './components/LeaveButton';
 import { OnlineGame } from './OnlineGame';
 import { GuestLobbyScreen } from './screens/GuestLobbyScreen';
 import { HostLobbyScreen } from './screens/HostLobbyScreen';
@@ -20,7 +21,7 @@ import { useHost } from './useHost';
 
 type Role =
   | { kind: 'PICK' }
-  | { kind: 'JOIN'; code: string | null }
+  | { kind: 'JOIN'; code: string | null; error?: string | null }
   | { kind: 'GUEST'; code: string; name: string }
   | { kind: 'HOST'; name: string };
 
@@ -66,6 +67,7 @@ export default function OnlineApp({ onExit }: { onExit: () => void }) {
       return (
         <JoinScreen
           initialCode={role.code}
+          error={role.error}
           onJoin={(code, name) => setRole({ kind: 'GUEST', code, name })}
           onBack={() => setRole({ kind: 'PICK' })}
         />
@@ -78,7 +80,7 @@ export default function OnlineApp({ onExit }: { onExit: () => void }) {
           code={role.code}
           name={role.name}
           onExit={leave}
-          onRejoin={() => setRole({ kind: 'JOIN', code: role.code })}
+          onRejoin={(why) => setRole({ kind: 'JOIN', code: role.code, error: why })}
         />
       );
   }
@@ -218,6 +220,11 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
         onCommand={host.command}
         onClose={close}
       />
+      {host.status !== 'OPEN' && (
+        <ConnectionBanner tone="bad">
+          החיבור לחדר אבד — השאירו את המשחק פתוח על המסך
+        </ConnectionBanner>
+      )}
     </>
   );
 }
@@ -233,7 +240,7 @@ function GuestSide({
   code: string;
   name: string;
   onExit: () => void;
-  onRejoin: () => void;
+  onRejoin: (why: string | null) => void;
 }) {
   const guest = useGuest(code, name);
   // Every way out of this screen goes through here, so the host is always told
@@ -268,7 +275,11 @@ function GuestSide({
               רעננו לגרסה החדשה
             </button>
           ) : (
-            <button type="button" onClick={onRejoin} className="btn-primary w-full text-xl">
+            <button
+              type="button"
+              onClick={() => onRejoin(guest.message)}
+              className="btn-primary w-full text-xl"
+            >
               נסו קוד או שם אחר
             </button>
           )}
@@ -343,7 +354,10 @@ function GuestSide({
           }}
         />
       ) : (
-        <OnlineGame view={guest.view} send={guest.send} />
+        <>
+          <OnlineGame view={guest.view} send={guest.send} />
+          <LeaveButton onLeave={quit} />
+        </>
       )}
       {banner}
       {guest.message && guest.status === 'PLAYING' && (

@@ -47,6 +47,7 @@ import {
   playerIdOf,
   seatById,
   seatByConn,
+  seatIdOf,
   validateJoin,
   type Pending,
   type Room,
@@ -55,6 +56,7 @@ import {
 import {
   electorate,
   neededFor,
+  pendingSetFor,
   resolveChoice,
   waitingKind,
 } from './thresholds';
@@ -119,7 +121,7 @@ function timerSeconds(state: GameState): number {
  * intent minted against the old state is now stale), clear the buffers, and
  * re-arm the clock.
  */
-function commit(room: Room, actions: Action[], env: Env, keep?: Partial<Pending>): Outcome {
+function commit(room: Room, actions: Action[], env: Env): Outcome {
   const next = foldActions(room.state, actions);
   if (next === null) return reject(room, 'NOT_ALLOWED');
 
@@ -127,6 +129,16 @@ function commit(room: Room, actions: Action[], env: Env, keep?: Partial<Pending>
     next.phase !== room.state.phase ||
     next.clueTurnIndex !== room.state.clueTurnIndex ||
     next.roundNumber !== room.state.roundNumber;
+
+  // Requests to cut the clue round short outlive the turns they were made
+  // during: a round advances one player at a time, and clearing the tally on
+  // every turn means five players can never assemble three requests. They go
+  // when the round does.
+  const sameRound =
+    next.phase === 'CLUES' &&
+    room.state.phase === 'CLUES' &&
+    next.roundNumber === room.state.roundNumber;
+  const keep: Partial<Pending> = sameRound ? { skip: room.pending.skip } : {};
 
   const seconds = timerSeconds(next);
   const deadlineAt = phaseMoved
@@ -170,11 +182,17 @@ export function handleJoin(
   if (msg.seatId !== undefined) {
     const seat = seatById(room, msg.seatId);
     if (seat) {
-      // Somebody else's device is live on that seat — a second tab on the same
-      // phone reading the same localStorage, most likely.
-      if (seat.connId !== null && seat.connId !== connId) {
-        return reject(room, 'SEAT_TAKEN');
-      }
+      // The new channel takes the seat even when the old one still looks live.
+      //
+      // Refusing would be the cautious-looking choice and it is the wrong one:
+      // a phone that drops off retries after one second, while the host only
+      // learns the old channel is dead when peerjs times the ICE connection
+      // out, several seconds later. In that window every reconnect names a
+      // seat whose `connId` is still set — so refusing locks a player out of a
+      // game they are standing in the room for, and their seat goes on
+      // counting toward every threshold. Two tabs on one phone is a far rarer
+      // problem, and it costs that phone a refresh rather than the room a
+      // player.
       const bad = validateJoin(room, msg.name, seat.seatId);
       if (bad) return reject(room, bad);
       const seats = room.seats.map((s) =>
@@ -296,9 +314,6 @@ function authorise(
     case 'VOTE': {
       if (state.phase !== 'VOTING') return 'NOT_ALLOWED';
       if (!alive) return 'NOT_ALLOWED';
-      // A cast vote is final — the single-device screen says so in as many
-      // words, and the two modes must not disagree about it.
-      if (room.pending.votes[playerId] !== undefined) return 'NOT_ALLOWED';
       if (!voteTargetsFor(state, playerId).includes(msg.target)) return 'NOT_ALLOWED';
       return null;
     }
@@ -432,15 +447,20 @@ function applyIntent(
     }
 
     case 'SKIP_CLUES': {
-      if (room.pending.ready.includes(playerId)) return { room, accepted: true };
-      const ready = [...room.pending.ready, playerId];
-      if (ready.length < neededFor(state, 'CLUE')) {
-        return { room: touch(room, { pending: { ...room.pending, ready } }), accepted: true };
+      if (room.pending.skip.includes(playerId)) return { room, accepted: true };
+      const skip = [...room.pending.skip, playerId];
+      if (skip.length < neededFor(state, 'CLUE')) {
+        return { room: touch(room, { pending: { ...room.pending, skip } }), accepted: true };
       }
       return commit(room, [{ type: 'FINISH_CLUES' }], env);
     }
 
     case 'VOTE': {
+      // A cast vote is final — the single-device screen says so in as many
+      // words. A second tap is a screen that has not caught up yet, not an
+      // error to shout about, so it is swallowed rather than rejected: a
+      // rejection here would put a red banner over the rest of the game.
+      if (room.pending.votes[playerId] !== undefined) return { room, accepted: true };
       const votes = { ...room.pending.votes, [playerId]: msg.target };
       if (Object.keys(votes).length < neededFor(state, 'VOTE')) {
         return { room: touch(room, { pending: { ...room.pending, votes } }), accepted: true };
@@ -478,32 +498,18 @@ export function hostCommand(room: Room, cmd: HostCommand, env: Env): Outcome {
       if (state.phase !== 'REVEAL') return reject(room, 'NOT_ALLOWED');
       return commit(room, revealActions(state), env);
 
-    case 'VOTE_FOR': {
-      if (state.phase !== 'VOTING') return reject(room, 'NOT_ALLOWED');
-      if (!voteTargetsFor(state, cmd.playerId).includes(cmd.target)) {
-        return reject(room, 'NOT_ALLOWED');
-      }
-      const votes = { ...room.pending.votes, [cmd.playerId]: cmd.target };
-      if (Object.keys(votes).length < neededFor(state, 'VOTE')) {
-        return { room: touch(room, { pending: { ...room.pending, votes } }), accepted: true };
-      }
-      return commit(room, voteActions(state, votes), env);
-    }
-
-    case 'CLUE_FOR': {
+    case 'SKIP_TURN': {
       if (state.phase !== 'CLUES') return reject(room, 'NOT_ALLOWED');
-      if (state.settings.clueMode !== 'TYPE') return reject(room, 'NOT_ALLOWED');
       const playerId = currentCluePlayer(state);
       if (playerId === null) return reject(room, 'NOT_ALLOWED');
-      if (cmd.text.trim().length === 0) return reject(room, 'BAD_PAYLOAD');
-      return commit(room, [{ type: 'SUBMIT_CLUE', playerId, text: cmd.text }], env);
-    }
-
-    case 'SKIP_TURN':
-      if (state.phase !== 'CLUES') return reject(room, 'NOT_ALLOWED');
+      // In SPEAK mode the turn is just a marker and skipping it is free. In
+      // TYPE mode the reducer will not move on without a clue, so the skipped
+      // player is entered with a dash — the round has to survive, and ending
+      // it outright is what the button used to do while claiming otherwise.
       return state.settings.clueMode === 'SPEAK'
         ? commit(room, [{ type: 'NEXT_CLUE_TURN' }], env)
-        : commit(room, [{ type: 'FINISH_CLUES' }], env);
+        : commit(room, [{ type: 'SUBMIT_CLUE', playerId, text: SKIPPED_CLUE }], env);
+    }
 
     case 'FORCE_CHOICE': {
       if (state.phase !== 'DISCUSSION') return reject(room, 'NOT_ALLOWED');
@@ -514,19 +520,34 @@ export function hostCommand(room: Room, cmd: HostCommand, env: Env): Outcome {
       return commit(room, [action], env);
     }
 
-    case 'GUESS_FOR':
-      if (state.phase !== 'IMPOSTER_GUESS') return reject(room, 'NOT_ALLOWED');
-      if (!state.guessOptions?.includes(cmd.wordId)) return reject(room, 'BAD_PAYLOAD');
-      return commit(room, [{ type: 'SUBMIT_GUESS', wordId: cmd.wordId }], env);
+    case 'DROP_SEAT': {
+      // Only in the lobby: once `seatOrder` is frozen, removing a seat would
+      // leave the map pointing at somebody who is no longer there.
+      if (room.locked) return reject(room, 'NOT_ALLOWED');
+      const seat = seatById(room, cmd.seatId);
+      if (!seat || seat.isHost) return reject(room, 'NOT_ALLOWED');
+      return {
+        room: touch(room, {
+          seats: room.seats.filter((s) => s.seatId !== cmd.seatId),
+        }),
+        accepted: true,
+      };
+    }
 
     case 'FORCE_ADVANCE':
       return forceAdvance(room, env);
   }
 }
 
+/** What a player who never typed a clue is recorded as having said. */
+const SKIPPED_CLUE = '—';
+
 /**
- * "Get on with it." Only ever used for phases with a single successor —
- * DISCUSSION has two, so it needs `FORCE_CHOICE` instead.
+ * "Get on with it", for every phase.
+ *
+ * `DISCUSSION` is the one that cannot be answered generically — it has two
+ * successors — so `FORCE_CHOICE` carries the option instead and this falls
+ * back to the game-advancing one.
  */
 function forceAdvance(room: Room, env: Env): Outcome {
   const state = room.state;
@@ -537,21 +558,12 @@ function forceAdvance(room: Room, env: Env): Outcome {
       return commit(room, [{ type: 'FINISH_CLUES' }], env);
     case 'DISCUSSION':
       return commit(room, [{ type: 'START_VOTING', seed: env.seed }], env);
-    case 'VOTING': {
-      // Fill in whoever is missing by voting for the first legal target, so a
-      // dead phone can't hold the round hostage. Crude on purpose: the host is
-      // expected to reach for VOTE_FOR first.
-      const votes = { ...room.pending.votes };
-      for (const voter of aliveIds(state)) {
-        if (votes[voter] === undefined) {
-          const target = voteTargetsFor(state, voter)[0];
-          if (target) votes[voter] = target;
-        }
-      }
-      return commit(room, voteActions(state, votes), env);
-    }
+    case 'VOTING':
+      return commit(room, voteActions(state, closeVote(room)), env);
     case 'VOTE_RESULT':
       return commit(room, [{ type: 'CONTINUE', seed: env.seed }], env);
+    case 'IMPOSTER_GUESS':
+      return commit(room, [{ type: 'SUBMIT_GUESS', wordId: forfeitGuess(state) }], env);
     case 'GAME_OVER':
       return commit(room, [{ type: 'NEW_ROUND', seed: env.seed }], env);
     default:
@@ -559,15 +571,82 @@ function forceAdvance(room: Room, env: Env): Outcome {
   }
 }
 
-/** Whether the room is currently blocked on somebody who isn't there. */
+/**
+ * Fill in the votes of players who never cast one.
+ *
+ * The engine will not resolve a vote without one from every living player, so
+ * a dead phone has to be answered somehow. Copying whoever the room is already
+ * leaning toward is the least distorting choice available: it cannot invent a
+ * leader who had no votes, and it cannot rescue somebody the room had already
+ * settled on. With nothing cast at all there is no lean to follow, and the
+ * first legal target is as good as any.
+ */
+function closeVote(room: Room): Record<PlayerId, PlayerId> {
+  const state = room.state;
+  const votes = { ...room.pending.votes };
+
+  const counts = new Map<PlayerId, number>();
+  for (const target of Object.values(votes)) {
+    counts.set(target, (counts.get(target) ?? 0) + 1);
+  }
+  // Ties in the lean are broken by roster order, so the result is stable.
+  let lean: PlayerId | null = null;
+  let best = 0;
+  for (const player of state.players) {
+    const count = counts.get(player.id) ?? 0;
+    if (count > best) {
+      best = count;
+      lean = player.id;
+    }
+  }
+
+  for (const voter of aliveIds(state)) {
+    if (votes[voter] !== undefined) continue;
+    const options = voteTargetsFor(state, voter);
+    const pick = lean !== null && options.includes(lean) ? lean : options[0];
+    if (pick) votes[voter] = pick;
+  }
+  return votes;
+}
+
+/**
+ * The guess a vanished imposter is recorded as having made.
+ *
+ * Deliberately a wrong one. The phase exists to give a caught imposter a last
+ * chance, and a player who is not there has not taken it — handing them a one
+ * in four shot at stealing the game would be the greater unfairness.
+ */
+function forfeitGuess(state: GameState): string {
+  const options = state.guessOptions ?? [];
+  return options.find((id) => id !== state.secretWordId) ?? options[0] ?? '';
+}
+
+/**
+ * Is the room actually waiting on a player who is not there?
+ *
+ * Precision matters more than it looks. A blunt "anybody offline" lights the
+ * host's override warning through a perfectly healthy clue round — where the
+ * only person anyone is waiting on is the current speaker — and a host who
+ * learns to ignore an amber light will ignore it in the phase that really is
+ * stuck.
+ */
 export function blockedOnDisconnected(room: Room): boolean {
-  const kind = waitingKind(room.state);
-  if (kind === null || !room.seatOrder) return false;
-  const voters = electorate(room.state, kind);
-  return voters.some((id) => {
-    const index = Number(id.slice(1));
-    const seatId = room.seatOrder![index];
-    const seat = seatId ? seatById(room, seatId) : undefined;
+  const state = room.state;
+  if (!room.seatOrder) return false;
+
+  const offline = (playerId: PlayerId | null): boolean => {
+    if (playerId === null) return false;
+    const seatId = seatIdOf(room, playerId);
+    const seat = seatId === null ? undefined : seatById(room, seatId);
     return seat?.connId === null;
-  });
+  };
+
+  // One player at a time, so only that player can hold things up.
+  if (state.phase === 'CLUES') return offline(currentCluePlayer(state));
+  if (state.phase === 'IMPOSTER_GUESS') return offline(state.guessingImposterId);
+
+  const kind = waitingKind(state);
+  if (kind === null) return false;
+  const done = pendingSetFor(room, kind);
+  return electorate(state, kind).some((id) => !done.includes(id) && offline(id));
 }

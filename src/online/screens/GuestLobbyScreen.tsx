@@ -1,5 +1,24 @@
+import { selectedCategories } from '../../game/rules';
+import { CATEGORIES } from '../../game/words';
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../../ui/components/Screen';
 import type { PlayerView } from '../view';
+
+/**
+ * On one device everybody is looking at the setup screen. Online a guest can
+ * otherwise sit down without knowing whether the imposter is told, whether
+ * clues are spoken or typed, or how many imposters there are.
+ */
+function settingsLine(view: PlayerView): string {
+  const s = view.settings;
+  const chosen = selectedCategories(s);
+  return [
+    s.mode === 'HIDDEN' ? 'מצב סמוי' : 'מצב גלוי',
+    s.clueMode === 'SPEAK' ? 'רמזים בדיבור' : 'רמזים בהקלדה',
+    s.imposterCount === 1 ? 'מתחזה אחד' : `${s.imposterCount} מתחזים`,
+    chosen.length === CATEGORIES.length ? 'כל הקטגוריות' : `${chosen.length} קטגוריות`,
+    ...(s.imposterGuessEnabled ? ['ניחוש אחרון למתחזה'] : []),
+  ].join(' · ');
+}
 
 export function GuestLobbyScreen({
   view,
@@ -18,6 +37,11 @@ export function GuestLobbyScreen({
       <ScreenBody className="justify-start gap-5 pt-2">
         <p className="text-center text-base leading-relaxed text-slate-400">
           אתם בפנים. {lobby.hostName} יתחיל את המשחק כשכולם יגיעו
+        </p>
+
+        <p className="w-full rounded-xl border border-ink-700 bg-ink-850/50 px-3 py-2
+          text-center text-xs leading-relaxed text-slate-400">
+          {settingsLine(view)}
         </p>
 
         <ul className="flex w-full flex-col gap-2">

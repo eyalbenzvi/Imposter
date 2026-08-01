@@ -30,43 +30,99 @@ function json(room: Room, playerId: PlayerId): string {
   return JSON.stringify(view(room, playerId));
 }
 
-/** Every phase a game passes through, as a set of rooms to inspect. */
-function everyPhase(mode: GameMode = 'HIDDEN'): Record<string, Room> {
-  const e = env('view-seed');
-  const reveal = started(5, { mode, imposterGuessEnabled: true }, e);
+/**
+ * Every phase a game passes through, as a set of rooms to inspect.
+ *
+ * Deliberately more than the happy path: a two-imposter variant, a runoff, and
+ * a game that carries into a second round after an ejection. A leak scan that
+ * only ever walks a five-player one-imposter game passes by luck.
+ */
+function everyPhase(
+  mode: GameMode = 'HIDDEN',
+  players = 5,
+  imposterCount = 1,
+): Record<string, Room> {
+  const e = env(`view-${mode}-${players}-${imposterCount}`);
+  const reveal = started(players, { mode, imposterCount, imposterGuessEnabled: true }, e);
   const clues = revealed(reveal, e);
   const discussion = speakRound(clues, e);
   const voting = toVoting(discussion, e);
   const voteResult = voteOut(voting, imposter(voting), e);
-  const guess = allReady(voteResult, e);
-  const options = guess.state.guessOptions!;
-  const wrong = options.find((id) => id !== guess.state.secretWordId)!;
-  const gameOver = expectOk(
-    asPlayer(guess, guess.state.guessingImposterId!, { t: 'GUESS', wordId: wrong }, e),
-  );
-  return { reveal, clues, discussion, voting, voteResult, guess, gameOver };
+  const rooms: Record<string, Room> = {
+    reveal,
+    clues,
+    discussion,
+    voting,
+    voteResult,
+  };
+
+  // With two imposters, catching one does not end the game — so the same walk
+  // also gives us a second round with a dead player in the room.
+  const after = allReady(voteResult, e);
+  if (after.state.phase === 'IMPOSTER_GUESS') {
+    rooms.guess = after;
+    const options = after.state.guessOptions!;
+    const wrong = options.find((id) => id !== after.state.secretWordId)!;
+    rooms.gameOver = expectOk(
+      asPlayer(after, after.state.guessingImposterId!, { t: 'GUESS', wordId: wrong }, e),
+    );
+  } else if (after.state.phase === 'CLUES') {
+    rooms.roundTwoClues = after;
+    const roundTwo = speakRound(after, e);
+    rooms.roundTwoDiscussion = roundTwo;
+  } else {
+    rooms.gameOver = after;
+  }
+  return rooms;
+}
+
+/** A room parked in a runoff, the fiddliest state the projection has to serve. */
+function runoffRoom(): Room {
+  const e = env('view-runoff');
+  let room = toVoting(speakRound(revealed(started(4, {}, e), e), e), e);
+  room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' }, e));
+  room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p2' }, e));
+  room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p0' }, e));
+  room = expectOk(asPlayer(room, 'p3', { t: 'VOTE', target: 'p0' }, e));
+  return allReady(room, e);
+}
+
+/** Every room worth scanning, across group sizes and imposter counts. */
+function allRooms(): Record<string, Room> {
+  return {
+    ...prefixed('solo', everyPhase('HIDDEN', 5, 1)),
+    ...prefixed('known', everyPhase('KNOWN', 5, 1)),
+    ...prefixed('pair', everyPhase('HIDDEN', 8, 2)),
+    runoff: runoffRoom(),
+  };
+}
+
+function prefixed(tag: string, rooms: Record<string, Room>): Record<string, Room> {
+  return Object.fromEntries(Object.entries(rooms).map(([k, v]) => [`${tag}/${k}`, v]));
 }
 
 describe('the projection never leaks the secret word', () => {
-  it('keeps it away from the imposter through every phase before the guess', () => {
-    const rooms = everyPhase();
-    for (const [name, room] of Object.entries(rooms)) {
-      if (name === 'guess' || name === 'gameOver') continue;
+  it('keeps it away from every imposter, in every phase, before the guess', () => {
+    for (const [name, room] of Object.entries(allRooms())) {
+      if (name.endsWith('guess') || name.endsWith('gameOver')) continue;
       const secret = getWordEntry(room.state.secretWordId!).word;
-      const bad = room.state.imposterIds[0]!;
-      expect(json(room, bad), `${name}: imposter saw the secret word`).not.toContain(secret);
+      for (const bad of room.state.imposterIds) {
+        expect(json(room, bad), `${name}: ${bad} saw the secret word`).not.toContain(
+          secret,
+        );
+      }
     }
   });
 
   it('keeps the substitute word away from citizens before the game ends', () => {
-    const rooms = everyPhase();
-    for (const [name, room] of Object.entries(rooms)) {
-      if (name === 'gameOver') continue;
+    for (const [name, room] of Object.entries(allRooms())) {
+      if (name.endsWith('gameOver')) continue;
       const hint = room.state.hintWord!;
       for (const player of room.state.players.filter((p) => !p.isImposter)) {
-        expect(json(room, player.id), `${name}: ${player.id} saw the hint word`).not.toContain(
-          hint,
-        );
+        expect(
+          json(room, player.id),
+          `${name}: ${player.id} saw the hint word`,
+        ).not.toContain(hint);
       }
     }
   });
@@ -85,37 +141,32 @@ describe('the projection never leaks the secret word', () => {
 
 describe('the projection never leaks who the imposter is', () => {
   it('carries no role field on any player, in any phase', () => {
-    for (const mode of ['HIDDEN', 'KNOWN'] as const) {
-      const rooms = everyPhase(mode);
-      for (const [name, room] of Object.entries(rooms)) {
-        for (const player of room.state.players) {
-          const v = view(room, player.id);
-          for (const p of v.players) {
-            expect(Object.keys(p).sort(), `${mode}/${name}`).toEqual([
-              'alive',
-              'connected',
-              'id',
-              'name',
-            ]);
-          }
+    for (const [name, room] of Object.entries(allRooms())) {
+      for (const player of room.state.players) {
+        const v = view(room, player.id);
+        for (const p of v.players) {
+          expect(Object.keys(p).sort(), name).toEqual([
+            'alive',
+            'connected',
+            'id',
+            'name',
+          ]);
         }
       }
     }
   });
 
   it('never ships imposterIds before the game is over', () => {
-    const rooms = everyPhase();
-    for (const [name, room] of Object.entries(rooms)) {
-      if (name === 'gameOver') continue;
+    for (const [name, room] of Object.entries(allRooms())) {
+      if (name.endsWith('gameOver')) continue;
       for (const player of room.state.players) {
-        expect(view(room, player.id).ending, `${name}`).toBeNull();
+        expect(view(room, player.id).ending, name).toBeNull();
       }
     }
   });
 
   it('never ships the internal draw — word id, hint index, clue kind, reveal order', () => {
-    const rooms = everyPhase();
-    for (const [name, room] of Object.entries(rooms)) {
+    for (const [name, room] of Object.entries(allRooms())) {
       const blob = room.state.players
         // The caught imposter is handed four ids to choose between, one of
         // which is by definition the secret word's. That is the guess.
@@ -128,7 +179,7 @@ describe('the projection never leaks who the imposter is', () => {
       expect(blob, `${name}: clueKind`).not.toContain('clueKind');
       expect(blob, `${name}: isImposter`).not.toContain('isImposter');
       // `ending.imposterIds` is the whole point of the final screen.
-      if (name !== 'gameOver') {
+      if (!name.endsWith('gameOver')) {
         expect(blob, `${name}: imposterIds`).not.toContain('imposterIds');
       }
     }
@@ -145,24 +196,74 @@ describe('the projection never leaks who the imposter is', () => {
  * has acted, so nothing differs on account of what they have done.
  */
 describe('in HIDDEN mode an imposter and a citizen see the same thing', () => {
-  /** Blank exactly what may legitimately differ, and nothing else. */
+  /**
+   * Blank exactly what may legitimately differ, and nothing else.
+   *
+   * Four fields differ between any two players, and every one of them is a
+   * pure function of *which seat you are* — public information that the room
+   * can already see. Rather than take that on trust, `assertPublic` re-derives
+   * each one from public data and fails if it does not match; only then are
+   * they blanked. Anything else that differs is a tell.
+   */
   function comparable(v: PlayerView): unknown {
     return {
       ...v,
       you: null,
+      // The card itself is the one thing that is meant to be private. Its
+      // *kind* is not: in HIDDEN mode it is 'PLAIN' for everybody.
       reveal: v.reveal === null ? null : { kind: v.reveal.kind },
-      voteTargets: v.voteTargets.length,
+      isYourTurn: null,
+      voteTargets: null,
+      waiting: v.waiting === null ? null : { ...v.waiting, youDone: null },
     };
   }
 
-  const phases = ['reveal', 'clues', 'discussion', 'voting', 'voteResult'] as const;
+  /** Every blanked field must be exactly what public data predicts. */
+  function assertPublic(room: Room, v: PlayerView): void {
+    expect(v.isYourTurn).toBe(v.currentPlayerId === v.you.id);
+    const ballot =
+      v.phase === 'VOTING' && v.you.alive
+        ? room.state.eligibleTargets.filter((id) => id !== v.you.id)
+        : [];
+    expect(v.voteTargets).toEqual(ballot);
+  }
 
-  it.each(phases)('%s', (phase) => {
-    const rooms = everyPhase('HIDDEN');
-    const room = rooms[phase]!;
-    const bad = imposter(room);
-    const good = citizen(room);
-    expect(comparable(view(room, bad))).toEqual(comparable(view(room, good)));
+  const phases = [
+    'reveal',
+    'clues',
+    'discussion',
+    'voting',
+    'voteResult',
+    'roundTwoClues',
+    'roundTwoDiscussion',
+  ] as const;
+
+  function expectNoTell(room: Room, label: string): void {
+    const good = view(room, citizen(room));
+    assertPublic(room, good);
+    for (const bad of room.state.imposterIds) {
+      const mine = view(room, bad);
+      assertPublic(room, mine);
+      expect(comparable(mine), `${label}/${bad}`).toEqual(comparable(good));
+    }
+  }
+
+  it.each(phases)('one imposter, %s', (phase) => {
+    const room = everyPhase('HIDDEN', 5, 1)[phase];
+    if (!room) return;
+    expectNoTell(room, phase);
+  });
+
+  it.each(phases)('two imposters, %s', (phase) => {
+    const room = everyPhase('HIDDEN', 8, 2)[phase];
+    if (!room) return;
+    expectNoTell(room, phase);
+  });
+
+  it('holds in a runoff, where the ballot itself has been narrowed', () => {
+    const room = runoffRoom();
+    expect(room.state.voteStage).toBe('RUNOFF');
+    expectNoTell(room, 'runoff');
   });
 
   it('gives the imposter a reveal card of the same shape as everyone else', () => {

@@ -102,8 +102,9 @@ export function pendingSetFor(room: Room, kind: WaitingKind): PlayerId[] {
     case 'VOTE':
       return Object.keys(room.pending.votes);
     case 'CLUE':
-      // A clue round is per-turn, so "who has skipped" is the collective count.
-      return room.pending.ready;
+      // A clue round is per-turn, so "who has asked to skip" is the only
+      // collective count there is.
+      return room.pending.skip;
   }
 }
 

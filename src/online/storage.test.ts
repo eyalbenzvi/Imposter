@@ -102,19 +102,19 @@ describe('host session', () => {
 
 describe('guest session', () => {
   it('round-trips', () => {
-    saveGuestSession({ code: '4271', seatId: 's2', name: 'דנה' });
-    expect(loadGuestSession()).toMatchObject({ code: '4271', seatId: 's2', name: 'דנה' });
+    saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה' });
+    expect(loadGuestSession()).toMatchObject({ code: '427193', seatId: 's2', name: 'דנה' });
   });
 
   it('only answers for the room it was issued in', () => {
-    saveGuestSession({ code: '4271', seatId: 's2', name: 'דנה' });
-    expect(loadGuestSession('4271')).not.toBeNull();
-    expect(loadGuestSession('8830')).toBeNull();
+    saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה' });
+    expect(loadGuestSession('427193')).not.toBeNull();
+    expect(loadGuestSession('883042')).toBeNull();
   });
 
   it('does not clobber the host session, or the other way round', () => {
     saveHostSession(revealed(started(4)));
-    saveGuestSession({ code: '4271', seatId: 's2', name: 'דנה' });
+    saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה' });
     expect(loadHostSession()).not.toBeNull();
     expect(loadGuestSession()).not.toBeNull();
     clearGuestSession();
@@ -125,20 +125,22 @@ describe('guest session', () => {
 
 describe('opening straight into the online mode', () => {
   it('does so for a shared join link', () => {
-    installLocation('#join=4271');
-    expect(readJoinCode()).toBe('4271');
+    installLocation('#join=427193');
+    expect(readJoinCode()).toBe('427193');
     expect(shouldStartOnline()).toBe(true);
   });
 
-  it('ignores a malformed hash', () => {
-    installLocation('#join=abc');
-    expect(readJoinCode()).toBeNull();
-    expect(shouldStartOnline()).toBe(false);
+  it('ignores a hash that is not a room code', () => {
+    for (const hash of ['#join=abc', '#join=4271', '#join=42719311', '#nope=427193']) {
+      installLocation(hash);
+      expect(readJoinCode(), hash).toBeNull();
+      expect(shouldStartOnline(), hash).toBe(false);
+    }
   });
 
   it('does so for a host or guest session that is still warm', () => {
     expect(shouldStartOnline()).toBe(false);
-    saveGuestSession({ code: '4271', seatId: 's1', name: 'דנה' });
+    saveGuestSession({ code: '427193', seatId: 's1', name: 'דנה' });
     expect(shouldStartOnline()).toBe(true);
   });
 

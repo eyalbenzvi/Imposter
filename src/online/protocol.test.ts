@@ -69,6 +69,14 @@ describe('parseGuestMessage', () => {
       v: 1,
       name: 'x',
     });
+    expect(parseGuestMessage({ t: 'JOIN', v: 1, name: 'x', seatId: 's4' })).toEqual({
+      t: 'JOIN',
+      v: 1,
+      name: 'x',
+      seatId: 's4',
+    });
+    // A non-string seat id is a malformed message, not a missing field.
+    expect(parseGuestMessage({ t: 'JOIN', v: 1, name: 'x', seatId: 4 })).toBeNull();
   });
 });
 

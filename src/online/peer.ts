@@ -26,10 +26,17 @@ export function roomPeerId(code: string): string {
   return `${PEER_PREFIX}${code}`;
 }
 
-/** Four digits: short enough to read across a room, and that is the point. */
+/**
+ * Six digits: short enough to read across a room, long enough not to collide.
+ *
+ * The peer id lives in a namespace shared with every other copy of this game on
+ * the public broker, so a code is not just a convenience — two groups drawing
+ * the same one means the second host cannot open their room and a guest who
+ * types it lands in a stranger's game. Four digits is 9,000 slots and starts
+ * colliding at around a hundred concurrent rooms; six is 900,000.
+ */
 export function randomCode(): string {
-  const n = Math.floor(Math.random() * 9000) + 1000;
-  return String(n);
+  return String(Math.floor(Math.random() * 900_000) + 100_000);
 }
 
 /**
@@ -237,6 +244,11 @@ export function joinHost(code: string): Promise<GuestPeer> {
   if (joined && joined.code === code && joined.peer?.channel.isOpen() !== false) {
     return joined.promise;
   }
+  // Whatever we are replacing has to go. Every reconnect lands here, and an
+  // orphaned Peer keeps a broker websocket open plus a closure that will call
+  // setState on an unmounted tree — across a long evening on a flaky phone that
+  // adds up.
+  joined?.peer?.destroy();
   const promise = createGuest(code);
   const entry: { code: string; promise: Promise<GuestPeer>; peer: GuestPeer | null } = {
     code,

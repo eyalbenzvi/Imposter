@@ -8,7 +8,12 @@ import {
   startedGame,
 } from '../game/testUtils';
 import type { GameState } from '../game/types';
-import { handleIntent, handleJoin, startGame } from './driver';
+import {
+  blockedOnDisconnected,
+  handleIntent,
+  handleJoin,
+  startGame,
+} from './driver';
 import { PROTOCOL_VERSION } from './protocol';
 import { createRoom, playerIdOf, seatIdOf } from './room';
 import { majority } from './thresholds';
@@ -92,16 +97,40 @@ describe('lobby', () => {
     expect(second.room.seats).toHaveLength(2);
   });
 
-  it('refuses a seat that another live device is holding', () => {
-    let room = lobby(3);
-    const seatId = room.seats[1]!.seatId;
-    const out = handleJoin(room, 'other-tab', {
+  /**
+   * The reconnect race: a phone retries after a second, while the host only
+   * learns the old channel died when peerjs times the connection out. Refusing
+   * the new channel would lock a player out of a game they are standing in the
+   * room for — and their seat would go on counting toward every threshold.
+   */
+  it('hands a seat to a reconnecting device even while the old channel looks live', () => {
+    const room = lobby(3);
+    const seat = room.seats[1]!;
+    expect(seat.connId).not.toBeNull();
+    const out = handleJoin(room, 'reconnected', {
       t: 'JOIN',
       v: PROTOCOL_VERSION,
-      name: 'בני',
-      seatId,
+      name: seat.name,
+      seatId: seat.seatId,
     });
-    expect(out.reason).toBe('SEAT_TAKEN');
+    expect(out.accepted).toBe(true);
+    expect(out.seatId).toBe(seat.seatId);
+    expect(out.room.seats[1]!.connId).toBe('reconnected');
+    expect(out.room.seats).toHaveLength(3);
+  });
+
+  it('lets a reconnecting player back into a locked game, keeping their name', () => {
+    const room = started(4);
+    const seat = room.seats[2]!;
+    const out = handleJoin(room, 'back-again', {
+      t: 'JOIN',
+      v: PROTOCOL_VERSION,
+      name: 'שם אחר לגמרי',
+      seatId: seat.seatId,
+    });
+    expect(out.accepted).toBe(true);
+    // A locked room's roster is frozen: the reducer already knows these names.
+    expect(out.room.seats[2]!.name).toBe(seat.name);
   });
 
   it('locks the room once the game starts', () => {
@@ -373,11 +402,19 @@ describe('voting', () => {
     expect(room.state.votes).toHaveLength(5);
   });
 
-  it('refuses a second vote from the same player', () => {
+  /**
+   * A cast vote is final, and a second tap is a screen that has not caught up
+   * rather than a mistake. Swallowing it keeps the first vote and says nothing:
+   * rejecting would put a red banner over the rest of the player's game, since
+   * the epoch has not moved and so this is not a STALE the guest hides.
+   */
+  it('ignores a second vote from the same player without complaining', () => {
     let room = toVotingViaClues(started(5));
     room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p1' }));
-    expect(asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' }).reason).toBe('NOT_ALLOWED');
-    expect(room.pending.votes['p0']).toBe('p1');
+    const again = asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' });
+    expect(again.accepted).toBe(true);
+    expect(again.reason).toBeUndefined();
+    expect(again.room.pending.votes['p0']).toBe('p1');
   });
 
   it('refuses a vote for yourself or for an ineligible target', () => {
@@ -388,32 +425,83 @@ describe('voting', () => {
     );
   });
 
-  it('narrows the ballot in a runoff', () => {
-    // 4 players, 2 v 2 → tie → runoff between the two leaders.
+  /**
+   * 4 players, a genuine 2–2. Every assertion here runs unconditionally: an
+   * earlier version guarded the body with `if (outcome === 'TIE_RUNOFF')` on a
+   * vote split that was actually 3–1, so the whole test passed without
+   * executing a line of it — and the runoff, the fiddliest transition in the
+   * game, had no coverage at all.
+   */
+  it('narrows the ballot to the tied leaders in a runoff', () => {
     let room = toVotingViaClues(started(4));
     room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' }));
     room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p2' }));
-    room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p3' }));
-    room = expectOk(asPlayer(room, 'p3', { t: 'VOTE', target: 'p2' }));
+    room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p0' }));
+    room = expectOk(asPlayer(room, 'p3', { t: 'VOTE', target: 'p0' }));
+
     expect(room.state.phase).toBe('VOTE_RESULT');
-    if (room.state.lastVote!.outcome === 'TIE_RUNOFF') {
-      room = allReady(room);
-      expect(room.state.phase).toBe('VOTING');
-      expect(room.state.voteStage).toBe('RUNOFF');
-      const tied = room.state.eligibleTargets;
-      const voter = tied.includes('p0') ? 'p1' : 'p0';
-      const bad = room.state.players.map((p) => p.id).find((id) => !tied.includes(id))!;
-      expect(asPlayer(room, voter, { t: 'VOTE', target: bad }).reason).toBe('NOT_ALLOWED');
-    }
+    expect(room.state.lastVote!.outcome).toBe('TIE_RUNOFF');
+    const tied = [...room.state.lastVote!.tiedIds].sort();
+    expect(tied).toEqual(['p0', 'p2']);
+
+    room = allReady(room);
+    expect(room.state.phase).toBe('VOTING');
+    expect(room.state.voteStage).toBe('RUNOFF');
+    expect([...room.state.eligibleTargets].sort()).toEqual(tied);
+    expect(room.state.votes).toHaveLength(0);
+
+    // p1 and p3 got no votes, so they are off the ballot — and unvotable.
+    expect(asPlayer(room, 'p0', { t: 'VOTE', target: 'p1' }).reason).toBe('NOT_ALLOWED');
+    // They still vote, though: the runoff narrows the targets, not the voters.
+    expect(asPlayer(room, 'p1', { t: 'VOTE', target: 'p2' }).accepted).toBe(true);
   });
 
-  it('lets the host vote for a dead phone', () => {
+  it('ejects nobody after a second tie and opens another clue round', () => {
     let room = toVotingViaClues(started(4));
-    room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p1' }));
-    room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p0' }));
+    room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' }));
+    room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p2' }));
     room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p0' }));
-    room = expectOk(host(room, { t: 'VOTE_FOR', playerId: 'p3', target: 'p0' }));
+    room = expectOk(asPlayer(room, 'p3', { t: 'VOTE', target: 'p0' }));
+    room = allReady(room);
+    expect(room.state.voteStage).toBe('RUNOFF');
+
+    // Tie again, between the same two leaders.
+    room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p2' }));
+    room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p2' }));
+    room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p0' }));
+    room = expectOk(asPlayer(room, 'p3', { t: 'VOTE', target: 'p0' }));
+    expect(room.state.lastVote!.outcome).toBe('TIE_NO_EJECTION');
+    expect(room.state.players.every((p) => p.alive)).toBe(true);
+
+    room = allReady(room);
+    expect(room.state.phase).toBe('CLUES');
+    expect(room.state.roundNumber).toBe(2);
+    expect(room.state.voteStage).toBe('FIRST');
+  });
+
+  /**
+   * A dead phone cannot be allowed to hold the round hostage, but the way out
+   * must not invent a result either — so the missing votes follow whoever the
+   * room was already leaning toward.
+   */
+  it('closes the vote on the room’s existing lean when someone never votes', () => {
+    let room = toVotingViaClues(started(5));
+    room = expectOk(asPlayer(room, 'p0', { t: 'VOTE', target: 'p3' }));
+    room = expectOk(asPlayer(room, 'p1', { t: 'VOTE', target: 'p3' }));
+    room = expectOk(asPlayer(room, 'p2', { t: 'VOTE', target: 'p4' }));
+    expect(room.state.phase).toBe('VOTING');
+
+    room = expectOk(host(room, { t: 'FORCE_ADVANCE' }));
     expect(room.state.phase).toBe('VOTE_RESULT');
+    // p3 led 2–1 and stays ahead; the fill-ins cannot manufacture a new leader.
+    expect(room.state.lastVote!.ejectedId).toBe('p3');
+    expect(room.state.votes).toHaveLength(5);
+  });
+
+  it('falls back to a legal target when nobody has voted at all', () => {
+    const room = expectOk(host(toVotingViaClues(started(4)), { t: 'FORCE_ADVANCE' }));
+    expect(room.state.phase).toBe('VOTE_RESULT');
+    expect(room.state.votes).toHaveLength(4);
   });
 });
 
@@ -499,16 +587,40 @@ describe('the imposter guess', () => {
     ).toBe('BAD_PAYLOAD');
   });
 
-  it('gives the host a way out if the guesser has vanished', () => {
+  /**
+   * The guesser is the one player who may act here, and they have just been
+   * voted out — if their phone is dead there is no other legal input, so
+   * without this the room is stuck in a phase with no exit at all.
+   */
+  it('gives the host a way out if the guesser has vanished, and it is a forfeit', () => {
     let room = revealed(started(5, { imposterGuessEnabled: true }));
     room = speakRound(room);
     room = toVoting(room);
     room = voteOut(room, imposter(room));
     room = allReady(room);
-    const wrong = room.state.guessOptions!.find((id) => id !== room.state.secretWordId)!;
-    const out = expectOk(host(room, { t: 'GUESS_FOR', wordId: wrong }));
+    expect(room.state.phase).toBe('IMPOSTER_GUESS');
+
+    const out = expectOk(host(room, { t: 'FORCE_ADVANCE' }));
     expect(out.state.phase).toBe('GAME_OVER');
+    // A player who is not there has not taken their chance; handing them a one
+    // in four shot at stealing the game would be the greater unfairness.
+    expect(out.state.guessResult).toBe('WRONG');
     expect(out.state.winner).toBe('CITIZENS');
+  });
+
+  it('marks the guesser as disconnected so the host is told to step in', () => {
+    let room = revealed(started(5, { imposterGuessEnabled: true }));
+    room = speakRound(room);
+    room = toVoting(room);
+    room = voteOut(room, imposter(room));
+    room = allReady(room);
+    const seatId = seatIdOf(room, room.state.guessingImposterId!)!;
+    expect(blockedOnDisconnected(room)).toBe(false);
+    const offline = {
+      ...room,
+      seats: room.seats.map((s) => (s.seatId === seatId ? { ...s, connId: null } : s)),
+    };
+    expect(blockedOnDisconnected(offline)).toBe(true);
   });
 });
 
@@ -520,8 +632,8 @@ describe('transactional replay', () => {
    */
   it('leaves the room untouched when an action in the batch is illegal', () => {
     const room = revealed(started(5));
-    // FINISH_CLUES is legal here, but a guess is not: the batch must bounce.
-    const out = host(room, { t: 'GUESS_FOR', wordId: 'anything' });
+    // Reveal is over, so forcing it again is not a legal batch.
+    const out = host(room, { t: 'FORCE_REVEAL' });
     expect(out.accepted).toBe(false);
     expect(out.room).toBe(room);
     expect(out.room.state).toBe(room.state);

@@ -43,6 +43,16 @@ export type Guest = {
 
 const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000];
 
+/** Refusals the player has to act on. Everything else is worth retrying. */
+const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
+  'NAME_TAKEN',
+  'NAME_EMPTY',
+  'NAME_LONG',
+  'ROOM_FULL',
+  'ROOM_LOCKED',
+  'BAD_VERSION',
+]);
+
 export function useGuest(code: string, name: string): Guest {
   const [status, setStatus] = useState<GuestStatus>('CONNECTING');
   const [view, setView] = useState<PlayerView | null>(null);
@@ -92,13 +102,20 @@ export function useGuest(code: string, name: string): Guest {
               viewRef.current = msg.view;
               setView(msg.view);
               setStatus('PLAYING');
+              // A refusal belongs to the tap that caused it. Leaving it set
+              // pinned a red banner over every screen for the rest of the game.
+              setReason(null);
               return;
             case 'REJECTED':
               // A screen that fell behind, not a mistake the player made. The
               // host has already sent a fresh view; say nothing.
               if (msg.reason === 'STALE') return;
               setReason(msg.reason);
-              if (msg.on === 'JOIN') {
+              // Only a refusal the player can actually do something about ends
+              // the attempt. Anything else stays in the backoff loop, so a
+              // transient no during a reconnect does not throw them out of a
+              // game they are still sitting in.
+              if (msg.on === 'JOIN' && TERMINAL.has(msg.reason)) {
                 stopped.current = true;
                 setStatus('REJECTED');
               }

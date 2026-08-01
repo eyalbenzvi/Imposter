@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { maxImposterCount } from '../game/rules';
 import type { Settings } from '../game/types';
 import { newSeed } from '../ui/useGame';
 import {
@@ -44,7 +45,14 @@ import {
   type RejectReason,
   type SeatId,
 } from './protocol';
-import { createRoom, seatByConn, seatOrderIsSound, type Room, type Seat } from './room';
+import {
+  createRoom,
+  emptyPending,
+  seatByConn,
+  seatOrderIsSound,
+  type Room,
+  type Seat,
+} from './room';
 import {
   clearHostSession,
   loadHostSession,
@@ -74,6 +82,14 @@ export type Host = {
   closeRoom: () => void;
 };
 
+/** Keep the imposter count inside what the current roster can support. */
+function clampSettings(settings: Settings, playerCount: number): Settings {
+  if (playerCount < 1) return settings;
+  const cap = maxImposterCount(playerCount);
+  const imposterCount = Math.min(Math.max(1, settings.imposterCount), cap);
+  return imposterCount === settings.imposterCount ? settings : { ...settings, imposterCount };
+}
+
 function env(): Env {
   return { seed: newSeed(), now: Date.now() };
 }
@@ -88,7 +104,7 @@ function restore(hostName: string): Room {
     locked: saved.locked,
     settings: saved.settings,
     state: saved.state,
-    pending: { reveal: [], ready: [], choice: {}, votes: {} },
+    pending: emptyPending(),
     epoch: saved.epoch,
     version: saved.epoch,
     deadlineAt: null,
@@ -155,13 +171,19 @@ export function useHost(hostName: string): Host {
     broadcast();
   }, [version, broadcast]);
 
-  // Persistence, on the other hand, only has to keep up with the game. Writing
-  // the whole state to localStorage on every tap of a counter would put a
-  // serialize-and-write of the entire room in the path of every intent.
-  const epoch = roomRef.current.epoch;
+  // Persistence keeps up with the game and with the host's settings, but not
+  // with every tap of a counter — serializing the whole room on each intent
+  // would put a localStorage write in the path of every message.
+  //
+  // And nothing is written until the room means something. A session saved the
+  // instant this hook mounts survives its 6-hour TTL, so a host who merely
+  // glanced at the lobby and hit Back would find every later launch of the app
+  // opening the online mode instead of the single-device game they wanted.
+  const room = roomRef.current;
+  const worthKeeping = room.locked || room.seats.length > 1;
   useEffect(() => {
-    saveHostSession(roomRef.current!);
-  }, [epoch]);
+    if (worthKeeping) saveHostSession(roomRef.current!);
+  }, [worthKeeping, room.epoch, room.settings, room.seats.length]);
 
   // ── receiving ─────────────────────────────────────────────────────────────
 
@@ -293,15 +315,32 @@ export function useHost(hostName: string): Host {
 
   const setSettings = useCallback(
     (patch: Partial<Settings>) => {
-      const room = roomRef.current!;
+      const current = roomRef.current!;
       commit({
-        ...room,
-        settings: { ...room.settings, ...patch },
-        version: room.version + 1,
+        ...current,
+        // Clamped here rather than left to the reducer, which only sees these
+        // at START_GAME. Two players leaving a seven-player lobby would
+        // otherwise leave "2 imposters" lit on a roster that can only take one,
+        // and the game would quietly start with a different setup than the one
+        // on screen.
+        settings: clampSettings(
+          { ...current.settings, ...patch },
+          current.seats.length,
+        ),
+        version: current.version + 1,
       });
     },
     [commit],
   );
+
+  // Seats come and go in the lobby, so the cap moves under the chosen value.
+  useEffect(() => {
+    const current = roomRef.current!;
+    if (current.locked) return;
+    const clamped = clampSettings(current.settings, current.seats.length);
+    if (clamped.imposterCount === current.settings.imposterCount) return;
+    commit({ ...current, settings: clamped, version: current.version + 1 });
+  }, [room.seats.length, commit, room.locked]);
 
   const start = useCallback(() => {
     const out = startGame(roomRef.current!, env());
@@ -349,11 +388,6 @@ export function useHost(hostName: string): Host {
     destroyHost();
     clearHostSession();
   }, []);
-
-  const room = roomRef.current!;
-  // Referenced so the memo below re-runs on every commit; the room itself lives
-  // in a ref and would otherwise look unchanged to React.
-  void version;
 
   return {
     status,

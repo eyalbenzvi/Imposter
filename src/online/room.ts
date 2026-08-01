@@ -37,6 +37,15 @@ export type Seat = {
 export type Pending = {
   reveal: PlayerId[];
   ready: PlayerId[];
+  /**
+   * Who has asked to cut the clue round short.
+   *
+   * A bucket of its own rather than sharing `ready`, because it is the one
+   * request that has to survive the actions it sits alongside: a clue round
+   * advances a turn at a time, and wiping the skip tally on every turn means a
+   * group of five can never assemble three requests.
+   */
+  skip: PlayerId[];
   choice: Record<PlayerId, ChoiceOption>;
   votes: Record<PlayerId, PlayerId>;
 };
@@ -79,7 +88,7 @@ export type Room = {
 };
 
 export function emptyPending(): Pending {
-  return { reveal: [], ready: [], choice: {}, votes: {} };
+  return { reveal: [], ready: [], skip: [], choice: {}, votes: {} };
 }
 
 export function createRoom(

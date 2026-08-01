@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '../../ui/components/Screen';
-import { MAX_NAME_LENGTH } from '../protocol';
+import { useFreshBuild } from '../../ui/useFreshBuild';
+import { ConnectionBanner } from '../components/ConnectionBanner';
+import { MAX_NAME_LENGTH, ROOM_CODE_LENGTH } from '../protocol';
 
 /**
  * Code, then name. A shared link fills the code in and lands straight on the
@@ -19,11 +21,15 @@ export function JoinScreen({
 }) {
   const [code, setCode] = useState(initialCode ?? '');
   const [name, setName] = useState('');
+  // A host on an older build turns newer guests away, and the guest is the one
+  // staring at the dead end — so offer the reload here.
+  const build = useFreshBuild(true);
 
-  const codeOk = /^\d{4}$/.test(code);
+  const codeOk = new RegExp(`^\\d{${ROOM_CODE_LENGTH}}$`).test(code);
   const nameOk = name.trim().length > 0;
 
   return (
+    <>
     <Screen scrollable>
       <ScreenHeader eyebrow="כל אחד בטלפון שלו" title="הצטרפות לחדר" />
 
@@ -39,17 +45,19 @@ export function JoinScreen({
             id="room-code"
             dir="ltr"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, '').slice(0, ROOM_CODE_LENGTH))
+            }
             inputMode="numeric"
             autoComplete="off"
-            placeholder="1234"
+            placeholder="123456"
             enterKeyHint="next"
             className="num w-full rounded-2xl border-2 border-ink-600 bg-ink-850 px-4 py-4
-              text-center font-display text-4xl tabular-nums tracking-[0.3em] text-slate-50
+              text-center font-display text-4xl tabular-nums tracking-[0.18em] text-slate-50
               outline-none transition placeholder:text-slate-700 focus:border-glow focus:bg-ink-800"
           />
           <p className="pt-2 text-xs text-slate-500">
-            ארבע ספרות, מהמכשיר שפתח את החדר
+            {ROOM_CODE_LENGTH} ספרות, מהמכשיר שפתח את החדר
           </p>
         </div>
 
@@ -101,5 +109,11 @@ export function JoinScreen({
         </button>
       </ScreenFooter>
     </Screen>
+    {build.stale && (
+      <ConnectionBanner action={{ label: 'רענון', onClick: build.reload }}>
+        יש גרסה חדשה של המשחק
+      </ConnectionBanner>
+    )}
+    </>
   );
 }

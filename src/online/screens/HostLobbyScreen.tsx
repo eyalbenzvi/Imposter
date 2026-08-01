@@ -74,8 +74,8 @@ export function HostLobbyScreen({
               </p>
               <p
                 dir="ltr"
-                className="num pt-1 font-display font-black tabular-nums tracking-[0.2em] text-slate-50"
-                style={{ fontSize: 'clamp(3rem, 20vw, 5rem)' }}
+                className="num pt-1 font-display font-black tabular-nums tracking-[0.12em] text-slate-50"
+                style={{ fontSize: 'clamp(2.2rem, 14vw, 3.6rem)' }}
               >
                 {code}
               </p>
@@ -115,7 +115,23 @@ export function HostLobbyScreen({
                   </span>
                 )}
                 {!seat.isHost && seat.connId === null && (
-                  <span className="shrink-0 text-xs text-gold">מנותק</span>
+                  <>
+                    <span className="shrink-0 text-xs text-gold">מנותק</span>
+                    {/* A host who refreshed gets every seat back, including
+                        players who have gone home. Frozen into the roster they
+                        become real players, and the reveal — which waits for
+                        everyone — can then only be cleared by an override. */}
+                    <button
+                      type="button"
+                      onClick={() => host.command({ t: 'DROP_SEAT', seatId: seat.seatId })}
+                      aria-label={`הסירו את ${seat.name}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg
+                        border border-ink-700 text-slate-500 transition active:scale-95
+                        hover:border-danger/60 hover:text-danger"
+                    >
+                      ×
+                    </button>
+                  </>
                 )}
               </li>
             ))}

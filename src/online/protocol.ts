@@ -16,8 +16,11 @@ import type { PlayerView } from './view';
 
 export const PROTOCOL_VERSION = 1;
 
-/** Namespaced so a 4-digit code can't collide with another app on the broker. */
+/** Namespaced so a room code can't collide with another app on the broker. */
 export const PEER_PREFIX = 'imposter-v1-';
+
+/** Digits in a room code. See `randomCode` for why it is not four. */
+export const ROOM_CODE_LENGTH = 6;
 
 /** Same limits the single-device screens enforce, so both modes agree. */
 export const MAX_NAME_LENGTH = 14;
@@ -83,17 +86,20 @@ export type RejectReason =
   | 'BAD_VERSION'
   | 'NOT_ALLOWED'
   | 'STALE'
-  | 'SEAT_TAKEN'
   | 'BAD_PAYLOAD';
 
-/** What the host can do to unstick a room — see `driver.hostCommand`. */
+/**
+ * What the host can do to unstick a room — see `driver.hostCommand`.
+ *
+ * Every one of these is reachable from `HostStrip`. A recovery path no UI can
+ * invoke is worse than none: it reads as covered, and the tests that exercise
+ * it stay green while the room is wedged.
+ */
 export type HostCommand =
   | { t: 'FORCE_REVEAL' }
-  | { t: 'VOTE_FOR'; playerId: PlayerId; target: PlayerId }
-  | { t: 'CLUE_FOR'; text: string }
   | { t: 'SKIP_TURN' }
   | { t: 'FORCE_CHOICE'; option: ChoiceOption }
-  | { t: 'GUESS_FOR'; wordId: string }
+  | { t: 'DROP_SEAT'; seatId: SeatId }
   | { t: 'FORCE_ADVANCE' };
 
 const GUEST_TYPES: ReadonlySet<string> = new Set<GuestMessageType>([
@@ -195,6 +201,5 @@ export const REJECT_TEXT: Record<RejectReason, string> = {
   BAD_VERSION: 'יש גרסה חדשה של המשחק — צריך לרענן',
   NOT_ALLOWED: 'הפעולה לא אפשרית כרגע',
   STALE: 'המשחק התקדם בינתיים',
-  SEAT_TAKEN: 'המקום הזה כבר תפוס על ידי מכשיר אחר',
   BAD_PAYLOAD: 'הודעה לא תקינה',
 };

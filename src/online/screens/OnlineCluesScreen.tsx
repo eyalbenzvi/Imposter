@@ -70,7 +70,7 @@ function SpeakingRound({ view, send }: GameScreenProps) {
           </p>
           {!view.isYourTurn && (
             <p className="max-w-[26ch] pt-2 text-base leading-relaxed text-slate-400">
-              הקשיבו לרמז. המסך יתקדם כש{current} יסיים
+              הקשיבו לרמז. המסך יתקדם בסוף התור
             </p>
           )}
         </div>
