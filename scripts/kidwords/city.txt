@@ -3,7 +3,7 @@
 # ── רכבים על הכביש ───────────────────────────────────────────────────────────
 car | מכונית | taxi | bus | truck | pickup | motorcycle
 taxi | מונית | car | bus | pickup | truck | ambulance
-bus | אוטובוס | taxi | car | lightrail | truck | busstop
+bus | אוטובוס | taxi | car | lightrail | truck | pickup
 truck | משאית | pickup | bus | tractor | car | tank
 pickup | טנדר | truck | car | tractor | taxi | bus
 tractor | טרקטור | truck | pickup | tank | cart | car
@@ -13,16 +13,16 @@ policecar | נַיֶּדֶת | ambulance | firetruck | car | taxi | motorcycle
 tank | טנק | tractor | truck | firetruck | submarine | pickup
 motorcycle | אופנוע | scooter | bicycle | kickscooter | car | taxi
 scooter | קטנוע | motorcycle | kickscooter | bicycle | car | taxi
-bicycle | אופנים | kickscooter | motorcycle | scooter | bikelane | wheel
-kickscooter | קורקינט | bicycle | scooter | motorcycle | bikelane | wheel
-cart | עגלה | wheelchair | tractor | wheel | bicycle | truck
-wheelchair | כסא גלגלים | cart | wheel | elevator | escalator | bicycle
+bicycle | אופנים | kickscooter | motorcycle | scooter | wheel | cart
+kickscooter | קורקינט | bicycle | scooter | motorcycle | wheel | cart
+cart | עגלה | wheelchair | tractor | bicycle | truck | kickscooter
+wheelchair | כסא גלגלים | cart | elevator | escalator | bicycle | train
 
 # ── על מסילה ובאוויר ─────────────────────────────────────────────────────────
-train | רכבת | lightrail | wagon | station | bus | cablecar
-lightrail | רכבת קלה | train | wagon | bus | station | cablecar
-wagon | קרון | train | lightrail | cart | station | cablecar
-cablecar | רכבל | train | elevator | escalator | lightrail | wagon
+train | רכבת | wagon | station | bus | cablecar | wheelchair
+lightrail | רכבת קלה | wagon | bus | station | cablecar | wheelchair
+wagon | קרון | train | cart | station | cablecar | elevator
+cablecar | רכבל | train | elevator | escalator | wagon | plane
 elevator | מעלית | escalator | cablecar | wheelchair | level | tower
 escalator | דרגנוע | elevator | cablecar | level | mall | wheelchair
 plane | מטוס | helicopter | hotairballoon | airport | ship | ticket
@@ -44,7 +44,7 @@ pedal | דושה | brake | steeringwheel | wheel | bicycle | tire
 brake | בלם | pedal | steeringwheel | tire | wheel | engine
 engine | מנוע | car-battery | fuel | wheel | brake | carhorn
 car-battery | מצבר | engine | fuel | carhorn | headlight | brake
-fuel | דלק | engine | car-battery | gasstation | headlight | carhorn
+fuel | דלק | engine | car-battery | headlight | carhorn | brake
 headlight | פנס | carhorn | engine | car-battery | seatbelt | tire
 carhorn | צופר | headlight | brake | engine | steeringwheel | seatbelt
 seatbelt | חגורת בטיחות | steeringwheel | brake | carhorn | headlight | pedal
@@ -53,7 +53,7 @@ seatbelt | חגורת בטיחות | steeringwheel | brake | carhorn | headlight
 road | כביש | lane | route | sidewalk | bridge | trafficjam
 lane | נתיב | road | route | bikelane | crosswalk | trafficjam
 route | מסלול | road | lane | map | trip | bikelane
-bikelane | שְׁבִיל אוֹפַנַּיִם | lane | sidewalk | bicycle | road | crosswalk
+bikelane | שְׁבִיל אוֹפַנַּיִם | lane | sidewalk | road | crosswalk | route
 sidewalk | מדרכה | crosswalk | road | bikelane | street | bench
 crosswalk | מעבר חציה | trafficlight | sidewalk | road | roadsign | lane
 trafficlight | רמזור | crosswalk | roadsign | road | square | street
@@ -65,16 +65,16 @@ trafficjam | פקק תנועה | road | lane | trafficlight | trip | bus
 street | רחוב | square | sidewalk | road | neighborhood | bench
 square | ככר | street | fountain | bench | park | neighborhood
 trip | נסיעה | route | ticket | map | trafficjam | station
-ticket | כרטיס | trip | station | busstop | train | bus
+ticket | כרטיס | trip | station | train | bus | map
 map | מפה | route | trip | ticket | road | neighborhood
 
 # ── תחנות ────────────────────────────────────────────────────────────────────
-station | תחנה | busstop | train | airport | port | ticket
-busstop | תַּחֲנַת אוֹטוֹבּוּס | station | bus | ticket | sidewalk | trafficlight
-airport | נמל תעופה | plane | station | port | ticket | helicopter
-port | נמל | ship | airport | boat | station | ferry
+station | תחנה | train | airport | ticket | map | trip
+busstop | תַּחֲנַת אוֹטוֹבּוּס | ticket | sidewalk | trafficlight | airport | map
+airport | נמל תעופה | plane | station | ticket | helicopter | parking
+port | נמל | ship | boat | station | ferry | parking
 parking | חניון | garage | gasstation | car | road | mall
-gasstation | תחנת דלק | fuel | garage | parking | car | road
+gasstation | תחנת דלק | garage | parking | car | road | port
 garage | מוסך | parking | gasstation | car | engine | tire
 
 # ── חנויות ───────────────────────────────────────────────────────────────────
@@ -85,29 +85,29 @@ grocery | מכלת | supermarket | kiosk | shop | market | bakery
 bakery | מַאֲפִיָּה | grocery | supermarket | shop | market | restaurant
 kiosk | קיוסק | grocery | shop | supermarket | bench | busstop
 market | שוק | supermarket | shop | mall | grocery | square
-pharmacy | בית מרקחת | clinic | hospital | shop | grocery | supermarket
-restaurant | מסעדה | cafe | hotel | shop | mall | market
-cafe | בֵּית קָפֶה | restaurant | hotel | kiosk | mall | bakery
+pharmacy | בית מרקחת | clinic | shop | grocery | supermarket | market
+restaurant | מסעדה | cafe | shop | mall | market | barbershop
+cafe | בֵּית קָפֶה | restaurant | kiosk | mall | bakery | barbershop
 barbershop | מספרה | laundry | shop | mall | clinic | pharmacy
 laundry | מכבסה | barbershop | shop | garage | pharmacy | clinic
 
 # ── מקומות בעיר ──────────────────────────────────────────────────────────────
-hospital | בית חולים | clinic | pharmacy | ambulance | cityhall | bank
-clinic | מרפאה | hospital | pharmacy | ambulance | cityhall | bank
+hospital | בית חולים | clinic | ambulance | cityhall | bank | laundry
+clinic | מרפאה | hospital | ambulance | cityhall | bank | laundry
 bank | בנק | post | cityhall | atm | shop | pharmacy
 atm | כַּסְפּוֹמָט | bank | post | shop | mall | supermarket
 post | דאר | bank | cityhall | atm | shop | library
 cityhall | עיריה | post | bank | library | museum | hospital
-library | ספריה | museum | school | cityhall | theater | university
-school | בֵּית סֵפֶר | library | kindergarten | university | museum | playground
-kindergarten | גן ילדים | school | playground | park | library | zoo
-university | אוניברסיטה | school | library | museum | theater | cityhall
+library | ספריה | museum | cityhall | theater | university | post
+school | בֵּית סֵפֶר | kindergarten | university | museum | cityhall | post
+kindergarten | גן ילדים | school | park | university | museum | cityhall
+university | אוניברסיטה | school | museum | theater | cityhall | kindergarten
 museum | מוזיאון | library | theater | cinema | cityhall | zoo
 theater | תאטרון | cinema | museum | clubhouse | culturehall | library
 culturehall | הֵיכָל תַּרְבּוּת | theater | cinema | museum | clubhouse | stadium
 cinema | קולנוע | theater | mall | museum | clubhouse | culturehall
 clubhouse | מועדון | cinema | theater | culturehall | park | playground
-hotel | בית מלון | restaurant | pool | cafe | mall | airport
+hotel | בית מלון | restaurant | pool | mall | airport | clubhouse
 synagogue | בית כנסת | church | mosque | cityhall | library | tower
 church | כנסיה | synagogue | mosque | tower | museum | cityhall
 mosque | מסגד | synagogue | church | tower | museum | cityhall
@@ -117,14 +117,14 @@ house | בַּיִת | apartment | building | neighborhood | village | tower
 apartment | דִּירָה | house | building | level | neighborhood | tower
 level | קוֹמָה | apartment | building | elevator | escalator | tower
 neighborhood | שְׁכוּנָה | street | city | village | building | park
-city | עִיר | neighborhood | village | street | cityhall | map
+city | עִיר | neighborhood | village | street | map | level
 village | כְּפָר | city | neighborhood | house | tractor | street
 
 # ── בחוץ ─────────────────────────────────────────────────────────────────────
-park | פארק | playground | bench | fountain | zoo | square
-playground | גן שעשועים | park | kindergarten | zoo | bench | pool
-zoo | גן חיות | park | playground | museum | kindergarten | pool
-pool | ברכה | playground | park | stadium | zoo | hotel
+park | פארק | playground | bench | fountain | square | village
+playground | גן שעשועים | park | bench | pool | village | city
+zoo | גן חיות | park | museum | pool | stadium | village
+pool | ברכה | playground | park | stadium | hotel | bench
 stadium | אצטדיון | pool | park | culturehall | clubhouse | playground
 bench | ספסל | fountain | park | sidewalk | square | street
 fountain | מזרקה | bench | square | park | pool | playground

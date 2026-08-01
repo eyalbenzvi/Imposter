@@ -9,9 +9,9 @@ schnitzel | שניצל | hamburger | steak | meatball | chips | chicken
 steak | סטיק | schnitzel | hamburger | meatball | kebab | chicken
 meatball | קציצה | schnitzel | kebab | hamburger | steak | sausage
 kebab | קֵבָּב | meatball | shawarma | steak | hamburger | sausage
-hotdog | נקניקיה | hamburger | sausage | chips | pizza | schnitzel
-sausage | נַקְנִיק | hotdog | pastrami | meatball | kebab | chicken
-pastrami | פסטרמה | sausage | hotdog | cheese | tuna | chicken
+hotdog | נקניקיה | hamburger | chips | pizza | schnitzel | kebab
+sausage | נַקְנִיק | pastrami | meatball | kebab | chicken | meat
+pastrami | פסטרמה | sausage | cheese | tuna | chicken | meat
 chicken | עוֹף | meat | schnitzel | steak | sausage | tuna
 meat | בָּשָׂר | chicken | steak | schnitzel | sausage | tuna
 tuna | טונה | chicken | meat | cheese | egg | pastrami
@@ -36,16 +36,16 @@ pashtida | פשטידה | quiche | lasagna | burekas | cholent | omelet
 quiche | קִישׁ | pashtida | burekas | lasagna | pizza | crepe
 burekas | בורקס | pashtida | quiche | malawach | jachnun | croissant
 malawach | מְלַוַּח | jachnun | burekas | crepe | pita | pancake
-jachnun | ג'חְנוּן | malawach | burekas | challah | pita | crepe
+jachnun | גַ'חְנוּן | malawach | burekas | challah | pita | crepe
 crepe | קְרֶפּ | pancake | malawach | waffle | toast | quiche
 pancake | פַּנְקֵיק | crepe | waffle | toast | omelet | doughnut
 
 # ── לחם ומאפים ───────────────────────────────────────────────────────────────
-bread | לחם | bun | pita | challah | slice | toast
-bun | לחמניה | bread | pita | bagel | challah | croissant
-pita | פיתה | bun | bread | challah | falafel | malawach
-challah | חלה | bread | bun | pita | bagel | matzah
-bagel | ביגל | bun | bread | pretzel | croissant | challah
+bread | לחם | pita | challah | slice | toast | pancake
+bun | לחמניה | pita | bagel | challah | croissant | pancake
+pita | פיתה | bun | challah | falafel | malawach | bagel
+challah | חלה | bread | pita | bagel | matzah | pretzel
+bagel | ביגל | bun | pretzel | croissant | challah | pita
 pretzel | פְּרֶצֶל | bagel | cracker | bun | bisli | snack
 croissant | קרואסון | bagel | bun | doughnut | burekas | cake
 slice | פְּרוּסָה | bread | toast | sandwich | challah | spread
@@ -54,18 +54,18 @@ sandwich | כָּרִיךְ | toast | slice | pita | bread | pizza
 matzah | מַצָּה | cracker | bread | challah | pita | slice
 
 # ── מתוקים ומלוחים ───────────────────────────────────────────────────────────
-cake | עוגה | cookie | birthday-cake | doughnut | icecream | chocolate
-birthday-cake | עוּגַת גְּבִינָה | cake | cookie | doughnut | icecream | whipped-cream
-cookie | עוגיה | cake | cracker | waffle | chocolate | candy
+cake | עוגה | doughnut | icecream | chocolate | matzah | sandwich
+birthday-cake | עוּגַת יוֹם הֻלֶּדֶת | doughnut | icecream | whipped-cream | matzah | cracker
+cookie | עוגיה | cracker | waffle | chocolate | candy | matzah
 cracker | קְרָקֶר | cookie | pretzel | bisli | snack | matzah
 waffle | ופל | cookie | crepe | pancake | icecream | chocolate
-doughnut | ספגניה | latke | cake | croissant | cookie | icecream
+doughnut | ספגניה | latke | cake | croissant | icecream | waffle
 latke | לְבִיבָה | doughnut | pancake | crepe | chips | burekas
-hamantaschen | אָזְנֵי הָמָן | cookie | doughnut | cake | latke | candy
+hamantaschen | אָזְנֵי הָמָן | cookie | doughnut | latke | candy | icecream
 icecream | גלידה | popsicle | artik | milkshake | whipped-cream | cake
 popsicle | שַׁלְגּוֹן | artik | icecream | milkshake | candy | lollipop
 artik | אַרְטִיק | popsicle | icecream | milkshake | lollipop | candy
-chocolate | שוקולד | candy | krembo | cookie | cake | marshmallow
+chocolate | שוקולד | candy | krembo | cookie | marshmallow | artik
 candy | סכריה | lollipop | chocolate | gum | marshmallow | cookie
 lollipop | לַקְקָן | candy | gum | popsicle | marshmallow | chocolate
 gum | מַסְטִיק | candy | lollipop | marshmallow | chocolate | snack
@@ -86,7 +86,7 @@ milk | חלב | yogurt | cheese | cream | choco | butter
 cheese | גבינה | cottage | yogurt | butter | milk | egg
 cottage | קוֹטֶג' | cheese | yogurt | cream | milk | butter
 yogurt | יוגורט | milk | cottage | cheese | cream | porridge
-butter | חמאה | cheese | cream | spread | milk | oil
+butter | חמאה | cheese | cream | spread | milk | yogurt
 cream | שַׁמֶּנֶת | butter | whipped-cream | milk | yogurt | cottage
 porridge | דַּיְסָה | cereal | cornflakes | soup | yogurt | milk
 cereal | דִּגְנֵי בֹּקֶר | cornflakes | porridge | milk | snack | cracker
@@ -94,7 +94,7 @@ cornflakes | קוֹרְנְפְלֶקְס | cereal | porridge | milk | snack | p
 
 # ── מה ששמים באוכל ───────────────────────────────────────────────────────────
 salt | מֶלַח | sugar | oil | vinegar | flour | sauce
-sugar | סֻכָּר | salt | flour | honey | oil | candy
+sugar | סֻכָּר | salt | flour | honey | oil | cornflakes
 flour | קֶמַח | sugar | salt | oil | cake | bread
 oil | שֶׁמֶן | vinegar | salt | butter | flour | sauce
 vinegar | חֹמֶץ | oil | salt | sauce | mustard | ketchup
@@ -104,29 +104,29 @@ mustard | חַרְדָּל | ketchup | mayonnaise | sauce | hotdog | vinegar
 sauce | רֹטֶב | ketchup | mayonnaise | mustard | oil | pasta
 
 # ── ארוחות ───────────────────────────────────────────────────────────────────
-meal | אֲרוּחָה | breakfast | lunch | dinner | dessert | menu
-breakfast | אֲרוּחַת בֹּקֶר | lunch | dinner | meal | cereal | omelet
-lunch | אֲרוּחַת צָהֳרַיִם | dinner | breakfast | meal | soup | rice
-dinner | אֲרוּחַת עֶרֶב | lunch | breakfast | meal | soup | salad
-dessert | קִנּוּחַ | cake | icecream | portion | meal | cookie
+meal | אֲרוּחָה | dessert | menu | sauce | mustard | mayonnaise
+breakfast | אֲרוּחַת בֹּקֶר | omelet | sauce | mustard | dessert | mayonnaise
+lunch | אֲרוּחַת צָהֳרַיִם | soup | rice | dessert | sauce | portion
+dinner | אֲרוּחַת עֶרֶב | soup | salad | dessert | portion | menu
+dessert | קִנּוּחַ | cake | icecream | portion | meal | menu
 portion | מָנָה | dessert | meal | menu | salad | soup
-menu | תַּפְרִיט | portion | meal | dessert | breakfast | dinner
+menu | תַּפְרִיט | portion | meal | dessert | water | juice
 
 # ── שתייה ────────────────────────────────────────────────────────────────────
 water | מים | juice | soda | milk | tea | lemonade
 juice | מיץ | lemonade | nectar | water | soda | smoothie
 lemonade | לימונדה | limonana | juice | gazoz | soda | water
-limonana | לימוננע | lemonade | juice | gazoz | soda | smoothie
+limonana | לִימוֹנַעֲנָע | lemonade | juice | gazoz | soda | smoothie
 nectar | נקטר | juice | concentrate | lemonade | syrup | smoothie
 concentrate | תרכיז | syrup | nectar | juice | lemonade | gazoz
 syrup | סירופ | concentrate | nectar | gazoz | juice | honey
 soda | סודה | gazoz | cola | water | juice | lemonade
 gazoz | גזוז | soda | cola | lemonade | limonana | syrup
 cola | קולה | soda | gazoz | juice | lemonade | water
-choco | שוקו | cocoa | milk | milkshake | chocolate | tea
-cocoa | קקאו | choco | chocolate | milk | coffee | tea
+choco | שוקו | cocoa | milk | milkshake | tea | cola
+cocoa | קקאו | choco | milk | coffee | tea | cola
 coffee | קפה | tea | cocoa | milk | water | choco
 tea | תה | coffee | water | cocoa | juice | milk
-milkshake | מילקשיק | shake | smoothie | icecream | choco | milk
-shake | שיק | milkshake | smoothie | juice | icecream | yogurt
-smoothie | סמותי | shake | milkshake | juice | nectar | yogurt
+milkshake | מילקשיק | smoothie | icecream | choco | milk | tea
+shake | שיק | smoothie | juice | icecream | yogurt | tea
+smoothie | סמותי | shake | juice | nectar | yogurt | tea

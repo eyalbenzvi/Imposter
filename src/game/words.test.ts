@@ -7,6 +7,7 @@ import {
   wordsInCategory,
 } from './words';
 import { hasNiqqud, normalize, stripNiqqud } from './niqqud';
+import { overlap } from './overlap';
 import { CLUE_KINDS, HINTS_PER_WORD } from './types';
 
 describe('word store', () => {
@@ -124,6 +125,30 @@ describe('word store', () => {
       for (const kind of CLUE_KINDS) {
         const clue = entry.clues![kind];
         expect(words(clue), `${entry.id}.${kind}: ${clue}`).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
+  it('never puts two things that echo each other in one entry', () => {
+    // Everything in an entry lands in front of the same player, so any two
+    // pieces that share a whole word (אוֹטוֹבּוּס / תַּחֲנַת אוֹטוֹבּוּס), spell one
+    // another out (כֶּלֶב / כְּלַבְלַב) or come off one root (קַצֶּפֶת / הַקְצָפָה)
+    // turn the round from a guess into a read.
+    for (const entry of WORDS) {
+      const pieces: [string, string][] = [
+        ['word', entry.word],
+        ...entry.hints.map((h, i) => [`hint #${i + 1}`, h] as [string, string]),
+        ...CLUE_KINDS.map((k) => [`clue ${k}`, entry.clues![k]] as [string, string]),
+      ];
+      for (let i = 0; i < pieces.length; i++) {
+        for (let j = i + 1; j < pieces.length; j++) {
+          const [nameA, a] = pieces[i]!;
+          const [nameB, b] = pieces[j]!;
+          expect(
+            overlap(a, b),
+            `${entry.id}: ${nameA} "${a}" vs ${nameB} "${b}"`,
+          ).toBeNull();
+        }
       }
     }
   });

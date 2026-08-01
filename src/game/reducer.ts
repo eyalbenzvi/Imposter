@@ -27,6 +27,7 @@ import {
   checkWinner,
   currentVoter,
   drawTurnOrder,
+  duplicateNameIndexes,
   maxImposterCount,
   nextStepAfterVote,
   playerAtReveal,
@@ -240,6 +241,13 @@ export function reducer(state: GameState, action: Action): GameState {
       if (!playerCountIsValid(state.players.length)) {
         throw new GameRuleError(
           `A game needs 3–12 players, got ${state.players.length}`,
+        );
+      }
+      const repeats = duplicateNameIndexes(state.players.map((p) => p.name));
+      if (repeats.length > 0) {
+        const names = repeats.map((i) => state.players[i]!.name);
+        throw new GameRuleError(
+          `Every player needs a different name, repeated: ${names.join(', ')}`,
         );
       }
       if (

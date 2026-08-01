@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Screen, ScreenFooter } from '../components/Screen';
 import { MAX_PLAYERS, MIN_PLAYERS, type Settings } from '../../game/types';
 import {
+  duplicateNameIndexes,
   maxImposterCount,
   selectedCategories,
   suggestImposterCount,
@@ -56,7 +57,11 @@ export function SetupScreen({ game }: { game: Game }) {
   const filled = names.map((n) => n.trim()).filter((n) => n.length > 0);
   const enoughPlayers = names.length >= MIN_PLAYERS;
   const allNamed = filled.length === names.length;
-  const canStart = enoughPlayers && allNamed;
+  // Same helper the reducer refuses to start on, so the button and the rule
+  // can't disagree about which rosters are legal.
+  const repeats = new Set(duplicateNameIndexes(names));
+  const namesUnique = repeats.size === 0;
+  const canStart = enoughPlayers && allNamed && namesUnique;
   const cap = maxImposterCount(names.length);
   const suggestion = suggestImposterCount(names.length);
 
@@ -115,7 +120,9 @@ export function SetupScreen({ game }: { game: Game }) {
           defaultOpen
         >
           <ul className="flex flex-col gap-2">
-            {names.map((name, index) => (
+            {names.map((name, index) => {
+              const repeated = repeats.has(index);
+              return (
               <li key={index} className="flex items-center gap-2">
                 <span className="w-6 shrink-0 text-center text-sm tabular-nums text-slate-500">
                   {index + 1}
@@ -134,7 +141,13 @@ export function SetupScreen({ game }: { game: Game }) {
                   maxLength={14}
                   enterKeyHint={index === names.length - 1 ? 'done' : 'next'}
                   autoComplete="off"
-                  className="niqqud min-h-[48px] w-full rounded-xl border border-ink-600 bg-ink-850 px-3 text-lg text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-glow focus:bg-ink-800"
+                  aria-invalid={repeated || undefined}
+                  aria-errormessage={repeated ? 'duplicate-names' : undefined}
+                  className={`niqqud min-h-[48px] w-full rounded-xl border bg-ink-850 px-3 text-lg text-slate-100 outline-none transition placeholder:text-slate-600 focus:bg-ink-800 ${
+                    repeated
+                      ? 'border-danger focus:border-danger'
+                      : 'border-ink-600 focus:border-glow'
+                  }`}
                 />
                 <button
                   type="button"
@@ -146,8 +159,15 @@ export function SetupScreen({ game }: { game: Game }) {
                   ×
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
+
+          {!namesUnique && (
+            <p id="duplicate-names" className="pt-2 text-sm text-danger">
+              לכל שחקן צריך שם אחר — יש שם שחוזר פעמיים
+            </p>
+          )}
 
           <button
             type="button"
@@ -365,7 +385,9 @@ export function SetupScreen({ game }: { game: Game }) {
           <p className="text-center text-sm text-gold">
             {!enoughPlayers
               ? `צריך לפחות ${MIN_PLAYERS} שחקנים`
-              : 'מלאו שם לכל שחקן'}
+              : !allNamed
+                ? 'מלאו שם לכל שחקן'
+                : 'לכל שחקן צריך שם אחר'}
           </p>
         )}
         <button

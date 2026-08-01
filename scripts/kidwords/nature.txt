@@ -1,7 +1,7 @@
 @category טבע ומזג אוויר
 
 # ── הרים ובקעות ──────────────────────────────────────────────────────────────
-mountain | הר | hill | summit | valley | cliff | volcano
+mountain | הר | hill | summit | valley | cliff | slope
 summit | פסגה | mountain | hill | cliff | slope | valley
 hill | גבעה | mountain | valley | plain | summit | slope
 slope | מִדְרוֹן | hill | cliff | mountain | summit | path
@@ -18,15 +18,15 @@ mud | בץ | soil | puddle | sand | dust | rain
 dust | אָבָק | sand | soil | smoke | mud | stone
 desert | מדבר | sand | plain | wadi | heat | dryness
 forest | יער | field | grove | desert | mountain | valley
-grove | חֹרְשָׁה | forest | field | path | valley | hill
-pole | קֹטֶב | glacier | ice | snow | cold | continent
+grove | חֻרְשָׁה | forest | field | path | valley | hill
+pole | קֹטֶב | glacier | snow | cold | continent | grove
 field | שדה | forest | plain | valley | soil | grove
 path | שְׁבִיל | field | forest | slope | wadi | view
 island | אי | bay | beach | sea | ocean | volcano
 bay | מפרץ | island | beach | sea | ocean | lake
-sunbeam | קֶרֶן שֶׁמֶשׁ | sun | light | shade | sunrise | sky
-land | יַבָּשָׁה | continent | island | sea | soil | plain
-continent | יַבֶּשֶׁת | land | island | ocean | earth | sea
+sunbeam | קֶרֶן שֶׁמֶשׁ | light | shade | sunrise | sky | bay
+land | יַבָּשָׁה | island | sea | soil | plain | sunbeam
+continent | יַבֶּשֶׁת | island | ocean | earth | sea | sunbeam
 
 # ── מים ──────────────────────────────────────────────────────────────────────
 sea | ים | ocean | lake | beach | sea-wave | river
@@ -37,13 +37,13 @@ foam | קֶצֶף | sea-wave | current | sea | drop | dew
 current | זֶרֶם | sea-wave | river | stream | foam | waterfall
 river | נהר | stream | lake | waterfall | current | spring
 stream | נחל | river | spring | waterfall | wadi | lake
-waterfall | מפל | river | stream | spring | current | cliff
+waterfall | מַפָּל | river | stream | spring | current | cliff
 spring | מעין | well | stream | river | waterfall | puddle
 well | באר | spring | puddle | lake | river | stream
 lake | אגם | sea | river | bay | ocean | stream
-glacier | קרחון | ice | snow | mountain | frost | cold
-volcano | הר געש | lava | mountain | earthquake | summit | cliff
-lava | לבה | volcano | fire | smoke | mountain | heat
+glacier | קרחון | snow | mountain | frost | cold | lake
+volcano | הר געש | lava | earthquake | summit | cliff | glacier
+lava | לבה | volcano | fire | smoke | heat | earthquake
 earthquake | רעידת אדמה | volcano | tsunami | flood | storm | lava
 tsunami | צונאמי | sea-wave | flood | earthquake | storm | ocean
 flood | שטפון | rain | tsunami | puddle | storm | river
@@ -54,9 +54,9 @@ drizzle | טפטוף | rain | showers | drop | dew | fog
 showers | ממטרים | rain | drizzle | storm | hail | cloud
 drop | טפה | drizzle | dew | rain | puddle | foam
 puddle | שלולית | rain | mud | drop | flood | dew
-snow | שלג | hail | frost | ice | glacier | cold
+snow | שלג | hail | frost | ice | cold | puddle
 hail | ברד | snow | ice | frost | rain | storm
-ice | קרח | snow | frost | glacier | hail | cold
+ice | קרח | snow | frost | hail | cold | dew
 frost | כפור | ice | snow | dew | cold | hail
 dew | טל | frost | drop | drizzle | fog | rain
 
@@ -64,10 +64,10 @@ dew | טל | frost | drop | drizzle | fog | rain
 wind | רוח | gust | storm | tempest | cloud | tornado
 gust | משב | wind | storm | tempest | tornado | cloud
 storm | סופה | tempest | wind | hurricane | tornado | rain
-tempest | סערה | storm | wind | hurricane | tornado | gust
+tempest | סְעָרָה | storm | wind | hurricane | tornado | gust
 hurricane | הוריקן | tornado | storm | tempest | wind | flood
 tornado | טורנדו | hurricane | storm | tempest | gust | wind
-cloud | ענן | fog | rain | sky | cloudy | sun
+cloud | ענן | fog | rain | sky | sun | tornado
 fog | ערפל | cloud | dew | drizzle | smoke | air
 sun | שמש | sunrise | sunset | heat | sky | shade
 shade | צל | sun | cloud | darkness | heat | cold
@@ -80,7 +80,7 @@ drought | בצרת | dryness | heatwave | hamsin | desert | heat
 humidity | לחות | heat | dew | fog | rain | air
 lightning | ברק | thunder | storm | rain | cloud | spark
 thunder | רעם | lightning | storm | rain | cloud | wind
-rainbow | קשת בענן | cloud | rain | sun | light | sky
+rainbow | קשת בענן | rain | sun | light | sky | thunder
 
 # ── מודדים ומספרים ───────────────────────────────────────────────────────────
 weather | מֶזֶג אֲוִיר | forecast | temperature | season | cloud | wind
@@ -89,8 +89,8 @@ temperature | טמפרטורה | degrees | thermometer | forecast | heat | cold
 degrees | מעלות | temperature | thermometer | forecast | heat | cold
 thermometer | מדחום | temperature | degrees | forecast | heat | cold
 clear | בהיר | cloudy | sun | sky | air | light
-cloudy | מענן | clear | cloud | fog | rain | sky
-air | אויר | wind | sky | humidity | fog | weather
+cloudy | מענן | clear | fog | rain | sky | air
+air | אויר | wind | sky | humidity | fog | cloudy
 
 # ── שמים וחלל ────────────────────────────────────────────────────────────────
 sky | שמים | cloud | star | moon | sun | horizon
@@ -99,12 +99,12 @@ view | נוֹף | horizon | mountain | field | nature | sky
 nature | טֶבַע | view | forest | field | mountain | sky
 sunrise | זריחה | sunset | sun | morning | light | sky
 sunset | שקיעה | sunrise | sun | evening | horizon | light
-star | כוכב | moon | planet | comet | sky | space
-moon | ירח | star | sun | planet | sky | night
-planet | כּוֹכַב לֶכֶת | star | earth | moon | space | comet
-comet | שָׁבִיט | star | planet | moon | space | earth
-earth | כְּדוּר הָאָרֶץ | planet | continent | moon | space | land
-space | חָלָל | star | planet | earth | moon | sky
+star | כוכב | moon | comet | sky | space | sunset
+moon | ירח | star | sun | sky | night | sunset
+planet | כּוֹכַב לֶכֶת | earth | moon | space | comet | sunset
+comet | שָׁבִיט | star | moon | space | earth | light
+earth | כְּדוּר הָאָרֶץ | planet | continent | moon | space | comet
+space | חָלָל | star | earth | moon | sky | light
 light | אוֹר | darkness | shade | sun | spark | fire
 darkness | חֹשֶׁךְ | light | night | shade | evening | midnight
 fire | אֵשׁ | smoke | spark | heat | lava | light
