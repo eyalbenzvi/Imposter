@@ -5,6 +5,7 @@ import { CategoriesPanel } from '../../ui/components/settings/CategoriesPanel';
 import { ModePanel } from '../../ui/components/settings/ModePanel';
 import { Panel } from '../../ui/components/settings/Panel';
 import { RulesPanel } from '../../ui/components/settings/RulesPanel';
+import { QrCode } from '../components/QrCode';
 import type { Host } from '../useHost';
 import { shareUrl } from '../storage';
 
@@ -89,8 +90,18 @@ export function HostLobbyScreen({
                 {code}
               </p>
               <p className="pb-4 pt-1 text-sm leading-relaxed text-slate-400">
-                כל שחקן פותח את המשחק בטלפון שלו ומקליד את הקוד
+                סרקו את הקוד, או הקלידו את המספר במכשיר שלכם
               </p>
+
+              <div className="flex flex-col items-center gap-3 pb-4">
+                <div className="rounded-2xl bg-white p-2 shadow-lg shadow-glow-deep/20">
+                  <QrCode url={shareUrl(code)} />
+                </div>
+                <p className="text-xs text-slate-500">
+                  סריקה פותחת את המשחק ישירות במסך ההצטרפות
+                </p>
+              </div>
+
               <button type="button" onClick={() => void share()} className="btn-ghost w-full">
                 {copied ? 'הקישור הועתק ✓' : 'שתפו קישור הצטרפות'}
               </button>

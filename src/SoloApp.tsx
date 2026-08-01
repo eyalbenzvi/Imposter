@@ -8,6 +8,7 @@ import { VoteResultScreen } from './ui/screens/VoteResultScreen';
 import { VotingScreen } from './ui/screens/VotingScreen';
 import { HomeButton } from './ui/components/HomeButton';
 import { useFreshBuild } from './ui/useFreshBuild';
+import { useKeepAwake } from './ui/useKeepAwake';
 import { useGame } from './ui/useGame';
 
 /**
@@ -25,6 +26,9 @@ export default function SoloApp({ onGoOnline }: { onGoOnline?: () => void }) {
   // Only offered between games: reloading is free on the setup screen, and a
   // banner over a live round would be noise.
   const build = useFreshBuild(game.state.phase === 'SETUP');
+  // The device is being passed around and read from across a table; a screen
+  // that times out mid-discussion is the same annoyance here as anywhere.
+  useKeepAwake(game.state.phase !== 'SETUP');
 
   const screen = (() => {
     switch (game.state.phase) {
