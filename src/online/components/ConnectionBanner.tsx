@@ -1,6 +1,9 @@
 /**
- * Bottom-of-screen status, styled like the existing "new build" banner so a
- * player only ever has one place to look for "something is up".
+ * Floating status, styled like the existing "new build" banner so a player only
+ * ever has one place to look for "something is up".
+ *
+ * Sits at the bottom by default and at the top when it has to stay up while the
+ * player is still playing — see `place`.
  */
 export function ConnectionBanner({
   tone = 'warn',
@@ -34,6 +37,10 @@ export function ConnectionBanner({
     place === 'top'
       ? {
           top: 'max(0.75rem, env(safe-area-inset-top))',
+          // Nothing to tap on this variant, and it hangs over the top row of
+          // the vote grid and the clue strip if the message wraps to three
+          // lines. Better to let those taps through than to eat them.
+          pointerEvents: 'none' as const,
           // Clear of the host's gear button, which is fixed in this corner.
           insetInlineEnd: 'calc(max(0.75rem, env(safe-area-inset-right)) + 3.25rem)',
           insetInlineStart: '0.75rem',
