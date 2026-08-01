@@ -232,4 +232,21 @@ describe('the broker recovery loop', () => {
     expect(reconnect.mock.calls.length).toBe(settled);
     expect(c.pending()).toBe(0);
   });
+
+  /**
+   * Giving up is not the end of it: the host coming back to the tab arms the
+   * loop again. That attempt has to be prompt — a foregrounded tab is the most
+   * likely moment for the socket to come back — and it was twenty seconds away
+   * because the backoff was left parked at the ceiling.
+   */
+  it('tries again promptly if it is told the socket is down after giving up', () => {
+    const { c, reconnect, loop } = setup();
+    loop.down();
+    for (let i = 0; i < 40; i++) c.advance(MAX_DELAY_MS);
+    const settled = reconnect.mock.calls.length;
+
+    loop.down();
+    c.advance(FIRST_DELAY_MS);
+    expect(reconnect.mock.calls.length).toBe(settled + 1);
+  });
 });

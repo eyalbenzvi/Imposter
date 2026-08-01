@@ -10,13 +10,14 @@ import {
 import type { GameState } from '../game/types';
 import {
   blockedOnDisconnected,
+  dropConnection,
   handleIntent,
   handleJoin,
   renameSeat,
   startGame,
 } from './driver';
 import { PROTOCOL_VERSION } from './protocol';
-import { createRoom, playerIdOf, seatIdOf } from './room';
+import { createRoom, playerIdOf, seatByConn, seatIdOf } from './room';
 import { majority } from './thresholds';
 import {
   allReady,
@@ -46,7 +47,7 @@ describe('lobby', () => {
 
   it('rejects a name that only differs by niqqud — the reducer would refuse to start', () => {
     let room = createRoom('1234', 'דָּנָה');
-    const out = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'דנה' });
+    const out = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'דנה' }, 'fresh-token');
     expect(out.accepted).toBe(false);
     expect(out.reason).toBe('NAME_TAKEN');
     room = out.room;
@@ -56,20 +57,20 @@ describe('lobby', () => {
   it('rejects a name that only differs by surrounding or inner whitespace', () => {
     const room = createRoom('1234', 'דנה');
     expect(
-      handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: '  דנה ' }).reason,
+      handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: '  דנה ' }, 'fresh-token').reason,
     ).toBe('NAME_TAKEN');
   });
 
   it('rejects blank, whitespace-only and over-long names', () => {
     const room = lobby(3);
-    expect(handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: '' }).reason).toBe(
+    expect(handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: '' }, 'fresh-token').reason).toBe(
       'NAME_EMPTY',
     );
     expect(
-      handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: '   ' }).reason,
+      handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: '   ' }, 'fresh-token').reason,
     ).toBe('NAME_EMPTY');
     expect(
-      handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'א'.repeat(15) })
+      handleJoin(room, 'x', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'א'.repeat(15) }, 'fresh-token')
         .reason,
     ).toBe('NAME_LONG');
   });
@@ -77,22 +78,22 @@ describe('lobby', () => {
   it('turns away a thirteenth player', () => {
     const room = lobby(12);
     expect(
-      handleJoin(room, 'c12', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'נוסף' }).reason,
+      handleJoin(room, 'c12', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'נוסף' }, 'fresh-token').reason,
     ).toBe('ROOM_FULL');
   });
 
   it('rejects a mismatched protocol version', () => {
     const room = lobby(3);
-    expect(handleJoin(room, 'x', { t: 'JOIN', v: 99, name: 'רון' }).reason).toBe(
+    expect(handleJoin(room, 'x', { t: 'JOIN', v: 99, name: 'רון' }, 'fresh-token').reason).toBe(
       'BAD_VERSION',
     );
   });
 
   it('is idempotent for a repeat JOIN over the same channel (StrictMode, retries)', () => {
     let room = createRoom('1234', 'אבי');
-    const first = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'בני' });
+    const first = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'בני' }, 'fresh-token');
     room = first.room;
-    const second = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'בני' });
+    const second = handleJoin(room, 'c1', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'בני' }, 'fresh-token');
     expect(second.accepted).toBe(true);
     expect(second.seatId).toBe(first.seatId);
     expect(second.room.seats).toHaveLength(2);
@@ -108,12 +109,18 @@ describe('lobby', () => {
     const room = lobby(3);
     const seat = room.seats[1]!;
     expect(seat.connId).not.toBeNull();
-    const out = handleJoin(room, 'reconnected', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: seat.name,
-      seatId: seat.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'reconnected',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+        token: seat.token,
+      },
+      'unused',
+    );
     expect(out.accepted).toBe(true);
     expect(out.seatId).toBe(seat.seatId);
     expect(out.room.seats[1]!.connId).toBe('reconnected');
@@ -123,12 +130,18 @@ describe('lobby', () => {
   it('lets a reconnecting player back into a locked game, keeping their name', () => {
     const room = started(4);
     const seat = room.seats[2]!;
-    const out = handleJoin(room, 'back-again', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: 'שם אחר לגמרי',
-      seatId: seat.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'back-again',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'שם אחר לגמרי',
+        seatId: seat.seatId,
+        token: seat.token,
+      },
+      'unused',
+    );
     expect(out.accepted).toBe(true);
     // A locked room's roster is frozen: the reducer already knows these names.
     expect(out.room.seats[2]!.name).toBe(seat.name);
@@ -144,12 +157,19 @@ describe('lobby', () => {
   it('never hands the host seat to a guest that asks for it', () => {
     const room = started(4);
     const hostSeat = room.seats[0]!;
-    const out = handleJoin(room, 'attacker', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: 'תוקף',
-      seatId: hostSeat.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'attacker',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'תוקף',
+        seatId: hostSeat.seatId,
+        // Even holding the host's own token, which is not a secret.
+        token: hostSeat.token,
+      },
+      'unused',
+    );
     expect(out.accepted).toBe(false);
     expect(out.seatId).toBeUndefined();
     expect(out.room.seats[0]!.connId).toBe('host');
@@ -157,12 +177,18 @@ describe('lobby', () => {
 
   it('does not let a guest squat the host seat in an open lobby either', () => {
     const room = lobby(3);
-    const out = handleJoin(room, 'attacker', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: 'תוקף',
-      seatId: room.seats[0]!.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'attacker',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'תוקף',
+        seatId: room.seats[0]!.seatId,
+        token: room.seats[0]!.token,
+      },
+      'squatter-token',
+    );
     // Unlocked, so they are welcome — as a new seat of their own, at the back.
     expect(out.accepted).toBe(true);
     expect(out.seatId).not.toBe(room.seats[0]!.seatId);
@@ -179,12 +205,18 @@ describe('lobby', () => {
   it('names the channel it took the seat from, so the caller can say goodbye', () => {
     const room = lobby(3);
     const seat = room.seats[1]!;
-    const out = handleJoin(room, 'the-new-one', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: seat.name,
-      seatId: seat.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'the-new-one',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+        token: seat.token,
+      },
+      'unused',
+    );
     expect(out.displaced).toBe(seat.connId);
   });
 
@@ -193,28 +225,146 @@ describe('lobby', () => {
     const seat = room.seats[1]!;
     const freed = { ...room, seats: room.seats.map((s) => (s === seat ? { ...s, connId: null } : s)) };
     expect(
-      handleJoin(freed, 'fresh', {
-        t: 'JOIN',
-        v: PROTOCOL_VERSION,
-        name: seat.name,
-        seatId: seat.seatId,
-      }).displaced,
+      handleJoin(
+        freed,
+        'fresh',
+        {
+          t: 'JOIN',
+          v: PROTOCOL_VERSION,
+          name: seat.name,
+          seatId: seat.seatId,
+          token: seat.token,
+        },
+        'unused',
+      ).displaced,
     ).toBeUndefined();
     expect(
-      handleJoin(room, seat.connId!, {
+      handleJoin(
+        room,
+        seat.connId!,
+        {
+          t: 'JOIN',
+          v: PROTOCOL_VERSION,
+          name: seat.name,
+          seatId: seat.seatId,
+          token: seat.token,
+        },
+        'unused',
+      ).displaced,
+    ).toBeUndefined();
+  });
+
+  /**
+   * The attack the seat token exists to stop, end to end.
+   *
+   * `s1`…`s11` are not secrets and neither is the six-digit room code — it is
+   * read out loud and printed in a QR. Without a token, one crafted `JOIN` from
+   * anybody who can reach the room takes a seat that is not theirs, and the
+   * host answers it with `projectView` for that seat: the reveal card, and so
+   * the word, and so — by comparing two seats — the imposter. It also lets them
+   * vote as that player, and (since the takeover is silent to the victim and
+   * terminal) puts them out of the game.
+   */
+  it('refuses a seat claimed with somebody else’s id and no token', () => {
+    const room = started(5);
+    const victim = room.seats[2]!;
+    const out = handleJoin(
+      room,
+      'attacker',
+      { t: 'JOIN', v: PROTOCOL_VERSION, name: 'תוקף', seatId: victim.seatId },
+      'attacker-token',
+    );
+    expect(out.accepted).toBe(false);
+    expect(out.seatId).toBeUndefined();
+    expect(out.displaced).toBeUndefined();
+    // And the seat is exactly as it was — same channel, same name.
+    expect(out.room.seats[2]).toEqual(victim);
+  });
+
+  it('refuses a seat claimed with the wrong token', () => {
+    const room = started(5);
+    const victim = room.seats[2]!;
+    const other = room.seats[3]!;
+    expect(other.token).not.toBe(victim.token);
+    const out = handleJoin(
+      room,
+      'attacker',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'תוקף',
+        seatId: victim.seatId,
+        // Their own, perfectly valid — for a different seat.
+        token: other.token,
+      },
+      'attacker-token',
+    );
+    expect(out.accepted).toBe(false);
+    expect(out.room.seats[2]).toEqual(victim);
+  });
+
+  /**
+   * The step that makes the attack reachable from an *already seated* player:
+   * `LEAVE` in a locked room only nulls `connId`, which clears `seatByConn` and
+   * so disarms the idempotency guard that would otherwise have short-circuited
+   * the whole JOIN.
+   */
+  it('refuses a seat hop by a player who left their own seat first', () => {
+    let room = started(5);
+    const attackerSeat = room.seats[1]!;
+    const victim = room.seats[2]!;
+    room = dropConnection(room, attackerSeat.connId!);
+    expect(seatByConn(room, attackerSeat.connId!)).toBeUndefined();
+
+    const out = handleJoin(
+      room,
+      attackerSeat.connId!,
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: 'תוקף',
+        seatId: victim.seatId,
+        token: attackerSeat.token,
+      },
+      'attacker-token',
+    );
+    expect(out.accepted).toBe(false);
+    expect(out.room.seats[2]).toEqual(victim);
+  });
+
+  it('gives every new seat a token of its own, and never repeats one', () => {
+    const room = lobby(6);
+    const tokens = room.seats.map((s) => s.token);
+    expect(new Set(tokens).size).toBe(tokens.length);
+    expect(tokens.every((t) => t.length > 0)).toBe(true);
+  });
+
+  it('keeps the token a seat already had when its owner comes back', () => {
+    const room = lobby(4);
+    const seat = room.seats[1]!;
+    const out = handleJoin(
+      room,
+      'reconnected',
+      {
         t: 'JOIN',
         v: PROTOCOL_VERSION,
         name: seat.name,
         seatId: seat.seatId,
-      }).displaced,
-    ).toBeUndefined();
+        token: seat.token,
+      },
+      // A fresh one is minted on every JOIN; a reclaim must ignore it, or the
+      // device's stored token would be invalidated by its own reconnect.
+      'a-brand-new-token',
+    );
+    expect(out.accepted).toBe(true);
+    expect(out.room.seats[1]!.token).toBe(seat.token);
   });
 
   it('locks the room once the game starts', () => {
     const room = started(4);
     expect(room.locked).toBe(true);
     expect(
-      handleJoin(room, 'late', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'מאחר' }).reason,
+      handleJoin(room, 'late', { t: 'JOIN', v: PROTOCOL_VERSION, name: 'מאחר' }, 'fresh-token').reason,
     ).toBe('ROOM_LOCKED');
   });
 
@@ -937,7 +1087,7 @@ describe('reopening the room between games', () => {
       t: 'JOIN',
       v: PROTOCOL_VERSION,
       name: 'מאחר',
-    });
+    }, 'fresh-token');
     expect(out.accepted).toBe(true);
     expect(out.room.seats).toHaveLength(5);
   });
@@ -998,12 +1148,18 @@ describe('changing a name', () => {
     const seat = room.seats[2]!;
     room = expectOk(renameSeat(room, seat.seatId, 'רוני'));
 
-    const out = handleJoin(room, 'reconnected', {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: seat.name,
-      seatId: seat.seatId,
-    });
+    const out = handleJoin(
+      room,
+      'reconnected',
+      {
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: seat.name,
+        seatId: seat.seatId,
+        token: seat.token,
+      },
+      'unused',
+    );
 
     expect(out.accepted).toBe(true);
     expect(out.room.seats[2]!.name).toBe('רוני');

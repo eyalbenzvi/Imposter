@@ -106,6 +106,25 @@ describe('guest session', () => {
     expect(loadGuestSession()).toMatchObject({ code: '427193', seatId: 's2', name: 'דנה' });
   });
 
+  /**
+   * The seat token is the whole of the reconnect story: without it the JOIN
+   * cannot name a seat at all, so a player who came back would be handed a new
+   * one — and mid-game there are no new seats, so they would be locked out of
+   * a game they are standing in the room for.
+   */
+  it('round-trips the seat token', () => {
+    saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה', token: 'k-42' });
+    expect(loadGuestSession('427193')?.token).toBe('k-42');
+  });
+
+  /** Written by a build from before seats had tokens. Costs a rejoin, no more. */
+  it('survives a session that predates tokens', () => {
+    saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה' });
+    const saved = loadGuestSession('427193');
+    expect(saved).not.toBeNull();
+    expect(saved?.token).toBeUndefined();
+  });
+
   it('only answers for the room it was issued in', () => {
     saveGuestSession({ code: '427193', seatId: 's2', name: 'דנה' });
     expect(loadGuestSession('427193')).not.toBeNull();

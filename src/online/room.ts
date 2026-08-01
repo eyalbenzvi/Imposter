@@ -22,7 +22,30 @@ export type Seat = {
   /** The live data channel, or null while this player is disconnected. */
   connId: string | null;
   isHost: boolean;
+  /**
+   * The secret that proves this seat is yours. Issued once, in `WELCOME`.
+   *
+   * Seat ids are `s0`…`s11` and a `JOIN` may name one, because a reconnecting
+   * phone has to be able to say which seat it is coming back to. Without a
+   * secret to go with it that sentence is an instruction anybody with the room
+   * code can give: name somebody else's seat, and the host hands over their
+   * projected view — their reveal card, and with it the word and the imposter —
+   * plus the ability to vote as them. Six digits shouted across a room is not
+   * an access control, and it was never meant to be; this is.
+   *
+   * Deliberately the *only* secret in the design. There is no login, no
+   * signature on messages, and no attempt to stop somebody joining a room they
+   * were not invited to — the game is played in one room and the threat is a
+   * bored player with a console, not an adversary.
+   */
+  token: string;
 };
+
+/**
+ * The host's seat, which has no channel and can never be reclaimed over the
+ * wire. A constant rather than a secret because it is never a valid answer.
+ */
+export const HOST_TOKEN = 'host';
 
 /**
  * Intents that have arrived but are not yet a game action.
@@ -98,7 +121,9 @@ export function createRoom(
 ): Room {
   return {
     code,
-    seats: [{ seatId: 's0', name: hostName, connId: 'host', isHost: true }],
+    seats: [
+      { seatId: 's0', name: hostName, connId: 'host', isHost: true, token: HOST_TOKEN },
+    ],
     seatOrder: null,
     locked: false,
     settings: { ...DEFAULT_SETTINGS, ...settings },

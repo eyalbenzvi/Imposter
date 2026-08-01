@@ -38,7 +38,12 @@ export type ChoiceOption = 'VOTE' | 'ANOTHER_ROUND';
  * double taps and messages buffered across a phase change harmless.
  */
 export type GuestMessage =
-  | { t: 'JOIN'; v: number; name: string; seatId?: SeatId }
+  /**
+   * `seatId` + `token` together mean "I am coming back to that seat"; the id
+   * alone means nothing, because it is guessable and the token is not. Both are
+   * absent on a first join.
+   */
+  | { t: 'JOIN'; v: number; name: string; seatId?: SeatId; token?: string }
   | { t: 'LEAVE' }
   /** Heartbeat. Carries nothing; arriving at all is the whole message. */
   | { t: 'PING' }
@@ -74,7 +79,8 @@ export type Intent =
     : never;
 
 export type HostMessage =
-  | { t: 'WELCOME'; v: number; seatId: SeatId }
+  /** The seat, and the secret that lets this device come back to it. */
+  | { t: 'WELCOME'; v: number; seatId: SeatId; token: string }
   | { t: 'PING' }
   | { t: 'VIEW'; view: PlayerView }
   | {
@@ -168,11 +174,13 @@ export function parseGuestMessage(raw: unknown): GuestMessage | null {
     case 'JOIN':
       if (typeof msg.v !== 'number' || !str(msg.name)) return null;
       if (msg.seatId !== undefined && !str(msg.seatId)) return null;
+      if (msg.token !== undefined && !str(msg.token)) return null;
       return {
         t: 'JOIN',
         v: msg.v,
         name: msg.name,
         ...(str(msg.seatId) ? { seatId: msg.seatId } : {}),
+        ...(str(msg.token) ? { token: msg.token } : {}),
       };
     case 'LEAVE':
       return { t: 'LEAVE' };
@@ -210,8 +218,10 @@ export function parseHostMessage(raw: unknown): HostMessage | null {
   const msg = raw as Record<string, unknown>;
   switch (msg.t) {
     case 'WELCOME':
-      return typeof msg.v === 'number' && typeof msg.seatId === 'string'
-        ? { t: 'WELCOME', v: msg.v, seatId: msg.seatId }
+      return typeof msg.v === 'number' &&
+        typeof msg.seatId === 'string' &&
+        typeof msg.token === 'string'
+        ? { t: 'WELCOME', v: msg.v, seatId: msg.seatId, token: msg.token }
         : null;
     case 'VIEW':
       return typeof msg.view === 'object' && msg.view !== null
@@ -222,7 +232,10 @@ export function parseHostMessage(raw: unknown): HostMessage | null {
       // can name a reason this one has never heard of, and an unchecked cast
       // put it straight into `REJECT_TEXT[reason]` — undefined — so the player
       // got a refusal screen with no text on it at all.
-      return typeof msg.reason === 'string' && msg.reason in REJECT_TEXT
+      return typeof msg.reason === 'string' &&
+        msg.reason in REJECT_TEXT &&
+        typeof msg.on === 'string' &&
+        GUEST_TYPES.has(msg.on)
         ? {
             t: 'REJECTED',
             reason: msg.reason as RejectReason,

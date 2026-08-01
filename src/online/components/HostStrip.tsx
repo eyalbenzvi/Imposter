@@ -42,14 +42,22 @@ export function HostStrip({
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
-  // A fresh clock for every phase, so "waited long enough" means waited long
-  // enough on *this* screen.
+  // A fresh clock for every screen, so "waited long enough" means waited long
+  // enough on *this* one. `view.key` is the epoch, which in SPEAK mode moves on
+  // every turn — that is intentional here: each player gets their own grace
+  // before the host can skip them.
   useEffect(() => {
     setRipe(false);
-    setOpen(false);
     const id = window.setTimeout(() => setRipe(true), GRACE_MS);
     return () => window.clearTimeout(id);
   }, [view.phase, view.roundNumber, view.key]);
+
+  // Closing the sheet is a *phase* change, not an epoch change. Tied to the
+  // epoch it shut under the host's finger on every clue turn, mid-read.
+  useEffect(() => {
+    setOpen(false);
+    setConfirming(false);
+  }, [view.phase]);
 
   // Overrides wait; deliberate actions do not.
   const options = [...(ripe ? commandsFor(view) : []), ...alwaysFor(view)];

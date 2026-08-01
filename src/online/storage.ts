@@ -37,6 +37,12 @@ export type GuestSession = {
   code: string;
   seatId: SeatId;
   name: string;
+  /**
+   * The secret that proves the seat is ours. Absent in sessions written by
+   * builds before seats had one — those simply cannot reclaim a seat, which
+   * costs a rejoin and nothing else.
+   */
+  token?: string;
   at: number;
 };
 

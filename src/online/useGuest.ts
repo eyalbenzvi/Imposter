@@ -28,6 +28,7 @@ import {
   type ConnectFailure,
 } from './peer';
 import { useKeepAwake } from '../ui/useKeepAwake';
+import { nameToPersist, renameOnArrival } from './guestName';
 import { nextRetry } from './retry';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
@@ -87,10 +88,17 @@ export function useGuest(code: string, name: string): Guest {
    * reconnect would introduce the player by the name they had abandoned.
    */
   const nameRef = useRef(name);
-  /** The name to fall back to if a rename in flight comes back refused. */
+  /**
+   * The name to fall back to if a rename in flight comes back refused, and the
+   * flag for "a rename is in flight at all".
+   */
   const priorName = useRef<string | null>(null);
+  /** The name currently in the session — what the next reconnect will send. */
+  const persisted = useRef<string | null>(null);
   /** Our seat, once the host has given us one — needed to re-save the session. */
   const seatIdRef = useRef<string | null>(null);
+  /** The secret that proves the seat is ours. Issued once, in `WELCOME`. */
+  const tokenRef = useRef<string | null>(null);
   /** When the host last said anything. See the heartbeat effect below. */
   const heardFrom = useRef(0);
   /** Have we ever held a seat here? Changes what a failure means entirely. */
@@ -118,6 +126,10 @@ export function useGuest(code: string, name: string): Guest {
 
   useEffect(() => {
     stopped.current = false;
+    // A rename that was in flight when the channel dropped is simply lost —
+    // the host either applied it or did not, and its next `VIEW` says which.
+    // Leaving the flag set would freeze the persist path for good.
+    priorName.current = null;
     let cancelled = false;
 
     const scheduleRetry = (why: ConnectFailure): void => {
@@ -161,13 +173,9 @@ export function useGuest(code: string, name: string): Guest {
         setStatus('JOINING');
 
         const saved = loadGuestSession(code);
-        // Reclaiming a seat and being called something new are two separate
-        // requests, and the host answers only the first: a JOIN naming a seat
-        // deliberately ignores the name it carries, because on a reconnect the
-        // name is stale by construction. So when the player has come back and
-        // typed something else, it has to be said again, as a rename.
-        const renameOnArrival =
-          saved !== null && saved.name !== nameRef.current ? nameRef.current : null;
+        persisted.current = saved?.name ?? null;
+        /** Cleared once asked, so the request is made on arrival and not again. */
+        let arriving = saved !== null;
 
         channel.onMessage((raw) => {
           const msg = parseHostMessage(raw);
@@ -178,18 +186,23 @@ export function useGuest(code: string, name: string): Guest {
               return;
             case 'WELCOME':
               seatIdRef.current = msg.seatId;
+              tokenRef.current = msg.token;
               // The name written here is provisional — what we asked to be
               // called, which on a seat reclaim is not what the host has us
               // down as. `VIEW` below corrects it from the host's own record.
-              saveGuestSession({ code, seatId: msg.seatId, name: nameRef.current });
+              // The token is the part that matters and is final.
+              persisted.current = nameRef.current;
+              saveGuestSession({
+                code,
+                seatId: msg.seatId,
+                token: msg.token,
+                name: nameRef.current,
+              });
               // From here on a failure means "the host hiccuped", not "there is
               // no such room" — and the two get very different patience.
               seatedOnce.current = true;
               setStatus('PLAYING');
               setReason(null);
-              if (renameOnArrival !== null) {
-                channel.send({ t: 'RENAME', name: renameOnArrival } satisfies GuestMessage);
-              }
               return;
             case 'VIEW': {
               viewRef.current = msg.view;
@@ -198,15 +211,47 @@ export function useGuest(code: string, name: string): Guest {
               // A refusal belongs to the tap that caused it. Leaving it set
               // pinned a red banner over every screen for the rest of the game.
               setReason(null);
+
               // The host's copy of our name is the only authority on it, and
-              // this is the one place it arrives. Writing what we *asked* to be
-              // called would persist a rename the host refused, and send it
-              // again on every reconnect for the rest of the evening.
+              // this is where it arrives. See `guestName.ts` for why the two
+              // decisions below are made against different values.
               const theirs = msg.view.you.name;
-              if (seatIdRef.current !== null && theirs !== nameRef.current) {
-                nameRef.current = theirs;
+              const seatId = seatIdRef.current;
+
+              if (arriving) {
+                arriving = false;
+                const ask = renameOnArrival(
+                  nameRef.current,
+                  theirs,
+                  msg.view.phase === 'SETUP',
+                );
+                if (ask !== null) {
+                  priorName.current = theirs;
+                  channel.send({ t: 'RENAME', name: ask } satisfies GuestMessage);
+                  return;
+                }
+              }
+
+              if (priorName.current !== null) {
+                // A rename is still in flight. Only a view carrying the new
+                // name settles it — anything else is an unrelated broadcast
+                // that raced past it, and adopting that would roll the name
+                // backwards mid-request.
+                if (theirs !== nameRef.current) return;
                 priorName.current = null;
-                saveGuestSession({ code, seatId: seatIdRef.current, name: theirs });
+              } else {
+                nameRef.current = theirs;
+              }
+
+              const write = nameToPersist(theirs, persisted.current);
+              if (write !== null && seatId !== null) {
+                persisted.current = write;
+                saveGuestSession({
+                  code,
+                  seatId,
+                  token: tokenRef.current ?? undefined,
+                  name: write,
+                });
               }
               return;
             }
@@ -258,7 +303,9 @@ export function useGuest(code: string, name: string): Guest {
           t: 'JOIN',
           v: PROTOCOL_VERSION,
           name: nameRef.current,
-          ...(saved ? { seatId: saved.seatId } : {}),
+          // Both or neither: the seat id alone is guessable and proves nothing,
+          // so the host ignores it without the token that came with it.
+          ...(saved?.token ? { seatId: saved.seatId, token: saved.token } : {}),
         } satisfies GuestMessage);
       })
       .catch((err: unknown) => {

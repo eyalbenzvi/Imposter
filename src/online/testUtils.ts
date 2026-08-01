@@ -18,6 +18,15 @@ import { createRoom, playerIdOf, seatIdOf, type Room } from './room';
 
 export const SEED = 'seed-online';
 
+/**
+ * A predictable stand-in for the random seat token the host mints.
+ *
+ * Predictable in the tests and *only* there — the point of the real one is
+ * that a guest cannot guess another guest's, so a test that needs to prove a
+ * wrong token is refused has to be able to name a right one.
+ */
+export const tokenFor = (connId: string): string => `tok-${connId}`;
+
 export function env(seed = SEED, now = 1_700_000_000_000): Env {
   return { seed, now };
 }
@@ -27,11 +36,12 @@ export function lobby(count = 5, settings: Partial<Settings> = {}): Room {
   const roster = names(count);
   let room = createRoom('1234', roster[0]!, settings);
   for (let i = 1; i < count; i++) {
-    const out = handleJoin(room, `c${i}`, {
-      t: 'JOIN',
-      v: PROTOCOL_VERSION,
-      name: roster[i]!,
-    });
+    const out = handleJoin(
+      room,
+      `c${i}`,
+      { t: 'JOIN', v: PROTOCOL_VERSION, name: roster[i]! },
+      tokenFor(`c${i}`),
+    );
     if (!out.accepted) throw new Error(`join ${i} rejected: ${out.reason}`);
     room = out.room;
   }

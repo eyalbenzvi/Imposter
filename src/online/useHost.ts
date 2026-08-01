@@ -52,6 +52,7 @@ import {
 import {
   createRoom,
   emptyPending,
+  seatById,
   seatByConn,
   seatOrderIsSound,
   staleConnIds,
@@ -242,7 +243,7 @@ export function useHost(hostName: string): Host {
       }
 
       if (msg.t === 'JOIN') {
-        const out = handleJoin(room, channel.id, msg);
+        const out = handleJoin(room, channel.id, msg, newSeed());
         if (!out.accepted || !out.seatId) {
           sendTo(channel, {
             t: 'REJECTED',
@@ -276,7 +277,15 @@ export function useHost(hostName: string): Host {
         }
 
         commit(out.room);
-        sendTo(channel, { t: 'WELCOME', v: PROTOCOL_VERSION, seatId: out.seatId });
+        // Read back from the committed room, not from the token we minted: on
+        // a reclaim the seat kept the one it already had.
+        const token = seatById(out.room, out.seatId)?.token ?? '';
+        sendTo(channel, {
+          t: 'WELCOME',
+          v: PROTOCOL_VERSION,
+          seatId: out.seatId,
+          token,
+        });
         // Straight away, not on the next state change: a guest reconnecting
         // mid-discussion would otherwise sit on a blank screen until something
         // moved — and the thing that would move it is their own missing tap.
@@ -343,7 +352,12 @@ export function useHost(hostName: string): Host {
     let cancelled = false;
     const saved = loadHostSession();
 
-    void openHost({ preferredCode: saved?.code ?? roomRef.current!.code })
+    // `preferredCode` only for a host who is genuinely coming back. A fresh
+    // host's code is a number `restore()` drew a moment ago and nobody has
+    // seen — insisting on it turned a one-in-900,000 collision into 75 seconds
+    // of "פותחים חדר…" followed by "the previous room code is no longer
+    // available", and made the draw-another-number fallback unreachable.
+    void openHost(saved?.code ? { preferredCode: saved.code } : {})
       .then((peer) => {
         // Deliberately no teardown. StrictMode's first mount is cancelled
         // while the second is already awaiting this very promise, so
@@ -539,8 +553,13 @@ export function useHost(hostName: string): Host {
   const command = useCallback(
     (cmd: HostCommand) => {
       const out = hostCommand(roomRef.current!, cmd, env());
-      if (out.accepted) commit(out.room);
-      else setError(out.reason ? REJECT_TEXT[out.reason] : 'הפעולה נכשלה');
+      // Cleared on success as well as set on failure. Without it, one refused
+      // rename left a red line under "התחילו לשחק" and inside the name editor
+      // for the rest of the lobby, including after a name that was accepted.
+      if (out.accepted) {
+        setError(null);
+        commit(out.room);
+      } else setError(out.reason ? REJECT_TEXT[out.reason] : 'הפעולה נכשלה');
     },
     [commit],
   );

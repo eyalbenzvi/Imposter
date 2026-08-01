@@ -175,6 +175,8 @@ export function handleJoin(
   room: Room,
   connId: string,
   msg: Extract<GuestMessage, { t: 'JOIN' }>,
+  /** The secret to issue if this turns out to be a new seat. */
+  newToken: string,
 ): JoinOutcome {
   if (msg.v !== PROTOCOL_VERSION) return reject(room, 'BAD_VERSION');
 
@@ -190,12 +192,19 @@ export function handleJoin(
   // Reconnecting to a seat we already hold.
   if (msg.seatId !== undefined) {
     const seat = seatById(room, msg.seatId);
-    // The host's seat is never reachable over the wire. It belongs to the tab
-    // running this code and has no channel behind it, so there is no such
-    // thing as the host reconnecting to it — but `seatId` is guest-supplied,
-    // and a JOIN naming it would otherwise hand a stranger the host's seat,
-    // and with it the host's projected view: their role, and the word.
-    if (seat && !seat.isHost) {
+    // Both halves are load-bearing, and neither is paranoia.
+    //
+    // The host's seat has no channel behind it — it belongs to the tab running
+    // this code — so no reconnect to it is ever legitimate, and `s0` is not
+    // hard to guess.
+    //
+    // Every other seat needs the token, because `s1`…`s11` are not secrets
+    // either. Anyone holding the room code could otherwise name a seat that is
+    // not theirs and be handed its projected view — the reveal card, and with
+    // it the word and, by comparison across seats, the imposter — along with
+    // the ability to vote as that player and, since the takeover is silent to
+    // them and terminal, to put them out of the game.
+    if (seat && !seat.isHost && msg.token !== undefined && seat.token === msg.token) {
       // The new channel takes the seat even when the old one still looks live.
       //
       // Refusing would be the cautious-looking choice and it is the wrong one:
@@ -235,6 +244,7 @@ export function handleJoin(
     name: normalize(msg.name.trim()),
     connId,
     isHost: false,
+    token: newToken,
   };
   return {
     room: touch(room, { seats: [...room.seats, seat] }),

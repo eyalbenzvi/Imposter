@@ -115,7 +115,15 @@ export function makeBrokerLoop(io: BrokerIo): BrokerLoop {
         // The next tick re-evaluates from scratch.
       }
 
-      if (downSince !== null && io.now() - downSince > GIVE_UP_AFTER_MS) return;
+      if (downSince !== null && io.now() - downSince > GIVE_UP_AFTER_MS) {
+        // Stop chasing it, but leave the backoff short. The only thing that
+        // arms this loop again is the host returning to the tab, and making
+        // them wait a further twenty seconds for the first attempt — because
+        // the delay was parked at the ceiling when we gave up — is the wrong
+        // way round: a foregrounded tab is the most likely moment to succeed.
+        delay = FIRST_DELAY_MS;
+        return;
+      }
       delay = nextDelay(delay);
       arm();
     }, delay);

@@ -51,6 +51,7 @@ describe('parseGuestMessage', () => {
       { t: 'JOIN', v: '1', name: 'דנה' },
       { t: 'JOIN', v: 1, name: 5 },
       { t: 'JOIN', v: 1, name: 'דנה', seatId: 9 },
+      { t: 'JOIN', v: 1, name: 'דנה', seatId: 's4', token: 9 },
       { t: 'RENAME' },
       { t: 'RENAME', name: 5 },
     ];
@@ -84,11 +85,29 @@ describe('parseGuestMessage', () => {
     // A non-string seat id is a malformed message, not a missing field.
     expect(parseGuestMessage({ t: 'JOIN', v: 1, name: 'x', seatId: 4 })).toBeNull();
   });
+
+  it('carries the seat token through, and only as a string', () => {
+    expect(
+      parseGuestMessage({ t: 'JOIN', v: 1, name: 'x', seatId: 's4', token: 'abc' }),
+    ).toEqual({ t: 'JOIN', v: 1, name: 'x', seatId: 's4', token: 'abc' });
+    // Absent is legitimate — a first join has no seat and no token.
+    expect(parseGuestMessage({ t: 'JOIN', v: 1, name: 'x' })).not.toHaveProperty('token');
+  });
+
+  it('does not forge a rejection reason it was not given', () => {
+    // `on` decides whether a refusal is terminal (`useGuest`'s TERMINAL set)
+    // and whether it reverts a rename, so a missing one must not slide through
+    // as undefined.
+    expect(parseHostMessage({ t: 'REJECTED', reason: 'STALE', key: null })).toBeNull();
+    expect(
+      parseHostMessage({ t: 'REJECTED', reason: 'STALE', key: null, on: 'NOPE' }),
+    ).toBeNull();
+  });
 });
 
 describe('parseHostMessage', () => {
   it('accepts what the host actually sends', () => {
-    expect(parseHostMessage({ t: 'WELCOME', v: 1, seatId: 's2' })).not.toBeNull();
+    expect(parseHostMessage({ t: 'WELCOME', v: 1, seatId: 's2', token: 'k' })).not.toBeNull();
     expect(parseHostMessage({ t: 'VIEW', view: { key: '1' } })).not.toBeNull();
     expect(
       parseHostMessage({ t: 'REJECTED', reason: 'STALE', key: '4', on: 'VOTE' }),
