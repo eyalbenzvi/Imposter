@@ -37,12 +37,12 @@ import {
 } from './peer';
 import {
   PROTOCOL_VERSION,
+  REJECT_TEXT,
   parseGuestMessage,
   type GuestMessage,
   type HostCommand,
   type HostMessage,
   type Intent,
-  type RejectReason,
   type SeatId,
 } from './protocol';
 import {
@@ -147,9 +147,12 @@ export function useHost(hostName: string): Host {
   const broadcast = useCallback(() => {
     const room = roomRef.current!;
     if (!seatOrderIsSound(room)) {
-      // Identity is the one thing that must never be guessed at. Rather than
-      // hand somebody another player's word, stop.
-      setError('החדר נסגר בגלל תקלה בזיהוי השחקנים');
+      // Identity is the one thing that must never be guessed at. A room whose
+      // seat map has drifted from its roster would hand somebody another
+      // player's word, so nothing goes out at all — and `view` below returns
+      // null through the same gate, which puts the host on an error screen
+      // rather than leaving them playing a game nobody else can see.
+      setError('משהו השתבש בזיהוי השחקנים — צריך לפתוח חדר מחדש');
       return;
     }
     for (const seat of room.seats) {
@@ -373,7 +376,7 @@ export function useHost(hostName: string): Host {
     (cmd: HostCommand) => {
       const out = hostCommand(roomRef.current!, cmd, env());
       if (out.accepted) commit(out.room);
-      else setError(reasonText(out.reason));
+      else setError(out.reason ? REJECT_TEXT[out.reason] : 'הפעולה נכשלה');
     },
     [commit],
   );
@@ -393,7 +396,8 @@ export function useHost(hostName: string): Host {
     status,
     code,
     seats: room.seats,
-    view: room.seats[0] ? projectView(room, room.seats[0].seatId, Date.now()) : null,
+    // Through the same soundness gate the guests' views go through.
+    view: room.seats[0] ? viewFor(room.seats[0].seatId) : null,
     phase: room.state.phase,
     settings: room.settings,
     setSettings,
@@ -404,8 +408,4 @@ export function useHost(hostName: string): Host {
     error,
     closeRoom,
   };
-}
-
-function reasonText(reason: RejectReason | undefined): string {
-  return reason === undefined ? 'הפעולה נכשלה' : 'הפעולה לא אפשרית כרגע';
 }
