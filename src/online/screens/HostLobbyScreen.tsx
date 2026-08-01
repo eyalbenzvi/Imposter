@@ -5,6 +5,7 @@ import { CategoriesPanel } from '../../ui/components/settings/CategoriesPanel';
 import { ModePanel } from '../../ui/components/settings/ModePanel';
 import { Panel } from '../../ui/components/settings/Panel';
 import { RulesPanel } from '../../ui/components/settings/RulesPanel';
+import { EditableName } from '../components/EditableName';
 import { QrCode } from '../components/QrCode';
 import type { Host } from '../useHost';
 import { shareUrl } from '../storage';
@@ -19,6 +20,16 @@ export function HostLobbyScreen({
   const [copied, setCopied] = useState(false);
   const code = host.code;
   const enough = host.seats.length >= MIN_PLAYERS;
+  /**
+   * The room exists and this device is running it.
+   *
+   * `DEGRADED` counts. It means the signalling socket dropped, which stops
+   * *new* people finding the code — it does nothing to the players already
+   * here, whose channels run directly to this phone. Gating the lobby on
+   * `OPEN` alone blanked the code card and disabled "start" over a broker blip,
+   * for a room full of connected players waiting to play.
+   */
+  const running = host.status === 'OPEN' || host.status === 'DEGRADED';
 
   const panelProps = {
     settings: host.settings,
@@ -77,7 +88,7 @@ export function HostLobbyScreen({
             </div>
           )}
 
-          {host.status === 'OPEN' && code && (
+          {running && code && (
             <>
               <p className="text-xs font-semibold tracking-[0.04em] text-glow/70">
                 קוד החדר
@@ -105,6 +116,14 @@ export function HostLobbyScreen({
               <button type="button" onClick={() => void share()} className="btn-ghost w-full">
                 {copied ? 'הקישור הועתק ✓' : 'שתפו קישור הצטרפות'}
               </button>
+
+              {host.status === 'DEGRADED' && (
+                <p className="pt-3 text-xs leading-relaxed text-gold">
+                  אין כרגע חיבור לשירות החדרים — מי שכבר כאן מחובר כרגיל, אבל
+                  שחקנים חדשים לא יצליחו להתחבר עד שהחיבור יחזור. אפשר להתחיל
+                  לשחק.
+                </p>
+              )}
             </>
           )}
         </section>
@@ -126,9 +145,19 @@ export function HostLobbyScreen({
                 <span className="w-5 shrink-0 text-center text-sm tabular-nums text-slate-500">
                   {index + 1}
                 </span>
-                <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
-                  {seat.name}
-                </span>
+                {seat.isHost ? (
+                  <EditableName
+                    name={seat.name}
+                    onRename={(name) =>
+                      host.command({ t: 'RENAME_SEAT', seatId: seat.seatId, name })
+                    }
+                    error={host.error}
+                  />
+                ) : (
+                  <span className="niqqud min-w-0 flex-1 truncate text-lg text-slate-100">
+                    {seat.name}
+                  </span>
+                )}
                 {seat.isHost && (
                   <span className="shrink-0 rounded-full bg-glow/20 px-2 py-0.5 text-xs font-semibold text-glow-soft">
                     מארח
@@ -169,12 +198,12 @@ export function HostLobbyScreen({
       </div>
 
       <ScreenFooter>
-        {host.error && host.status === 'OPEN' && (
+        {host.error && running && (
           <p className="text-center text-sm text-danger">{host.error}</p>
         )}
         <button
           type="button"
-          disabled={!enough || host.status !== 'OPEN'}
+          disabled={!enough || !running}
           onClick={host.start}
           className="btn-primary w-full text-xl"
         >

@@ -20,8 +20,13 @@ import type { GameScreenProps } from './props';
 export function OnlineDiscussionScreen({ view, send }: GameScreenProps) {
   const board = view.settings.clueMode === 'TYPE';
   const nameOf = (id: string) => view.players.find((p) => p.id === id)?.name ?? '';
-  const alive = view.players.filter((p) => p.alive).length;
-  const needed = Math.floor(alive / 2) + 1;
+  // Read from the view, not recomputed. `thresholds.ts` exists so the counter
+  // on screen is the one the driver will act on — a "3 / 5" that disagrees with
+  // the rule that fires is worse than no counter at all — and this is the only
+  // screen where the majority rule is visible to players. The fallback is the
+  // old local sum rather than zero, so a null `waiting` can never render 0 / 0.
+  const alive = view.waiting?.total ?? view.players.filter((p) => p.alive).length;
+  const needed = view.waiting?.needed ?? Math.floor(alive / 2) + 1;
 
   return (
     <Screen>

@@ -23,50 +23,65 @@ describe('noticing that somebody has gone quiet', () => {
   const TIMEOUT = 10_000;
 
   it('names a connection that has stopped talking', () => {
-    const room = lobby(3);
-    const [, second, third] = room.seats;
     const seen = new Map([
-      [second!.connId!, NOW - 1_000],
-      [third!.connId!, NOW - 30_000],
+      ['c1', NOW - 1_000],
+      ['c2', NOW - 30_000],
     ]);
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([third!.connId]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual(['c2']);
   });
 
   /**
    * The window between a channel opening and its first message is the one time
-   * "no sighting" is normal. Sweeping then would drop players as they arrive.
+   * "no sighting" is normal — the caller stamps one on open. Reaping then would
+   * drop players as they arrive.
    */
   it('leaves a connection alone until it has been seen at least once', () => {
-    const room = lobby(3);
-    expect(staleConnIds(room, new Map(), NOW, TIMEOUT)).toEqual([]);
+    expect(staleConnIds(['c1', 'c2'], new Map(), NOW, TIMEOUT)).toEqual([]);
   });
 
-  it('never sweeps the host — it is the device the room runs on', () => {
-    const room = lobby(3);
-    const seen = new Map(room.seats.map((s) => [s.connId!, NOW - 60_000]));
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).not.toContain('host');
+  it('reaps a channel that holds no seat at all', () => {
+    // A guest refused entry, or one whose seat was taken over by a reconnect.
+    // Walking the seat list could never see either, and they accumulated.
+    const seen = new Map([['orphan', NOW - 60_000]]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual(['orphan']);
   });
 
-  it('ignores a seat that is already marked disconnected', () => {
-    const started = lobby(3);
-    const room = {
-      ...started,
-      seats: started.seats.map((s, i) => (i === 1 ? { ...s, connId: null } : s)),
-    };
-    const seen = new Map([[room.seats[2]!.connId!, NOW - 60_000]]);
-    expect(staleConnIds(room, seen, NOW, TIMEOUT)).toEqual([room.seats[2]!.connId]);
+  it('is exactly at the boundary, not around it', () => {
+    const seen = new Map([['c1', NOW - TIMEOUT]]);
+    expect(staleConnIds(seen.keys(), seen, NOW, TIMEOUT)).toEqual([]);
+    expect(staleConnIds(seen.keys(), seen, NOW + 1, TIMEOUT)).toEqual(['c1']);
   });
 });
 
 describe('what a disconnect does, before and after the game starts', () => {
   /** In the lobby a departure is just a departure — no ghosts on the roster. */
-  it('removes the seat entirely while the room is still open', () => {
+  it('removes the seat entirely when somebody actually leaves an open room', () => {
     const room = lobby(4);
     const gone = room.seats[2]!;
-    const after = dropConnection(room, gone.connId!);
+    const after = dropConnection(room, gone.connId!, 'LEFT');
     expect(after.seats).toHaveLength(3);
     expect(after.seats.some((s) => s.seatId === gone.seatId)).toBe(false);
     expect(after.version).toBeGreaterThan(room.version);
+  });
+
+  /**
+   * Silence is not a departure, and treating it as one was how a player who
+   * glanced at a notification vanished from the lobby with no trace.
+   *
+   * A backgrounded phone stops sending heartbeats for ten seconds and then
+   * comes back. Deleting the seat left nothing on the host's screen to say
+   * anybody was missing — not greyed out, not "מנותק", gone — so nothing told
+   * the host to wait, and starting the game in that window met the returning
+   * player with `ROOM_LOCKED`, which is terminal.
+   */
+  it('only marks the seat absent when a lobby player merely went quiet', () => {
+    const room = lobby(4);
+    const quiet = room.seats[2]!;
+    const after = dropConnection(room, quiet.connId!);
+    expect(after.seats).toHaveLength(4);
+    expect(after.seats[2]!.connId).toBeNull();
+    // And the seat keeps its token, so the phone can reclaim it on return.
+    expect(after.seats[2]!.token).toBe(quiet.token);
   });
 
   /**
@@ -85,9 +100,14 @@ describe('what a disconnect does, before and after the game starts', () => {
 
   it('keeps the host seated whatever happens to its channel', () => {
     const room = lobby(3);
-    const after = dropConnection(room, 'host');
-    expect(after.seats[0]!.isHost).toBe(true);
-    expect(after.seats).toHaveLength(3);
+    // `'host'` is a string a guest can name its own connection, so this must
+    // not reach the host's seat by either reason.
+    for (const why of ['LEFT', 'SILENT'] as const) {
+      const after = dropConnection(room, 'host', why);
+      expect(after.seats[0]!.isHost).toBe(true);
+      expect(after.seats[0]!.connId).toBe('host');
+      expect(after.seats).toHaveLength(3);
+    }
   });
 
   it('does nothing for a connection that holds no seat', () => {

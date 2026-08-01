@@ -28,6 +28,15 @@ import {
   type ConnectFailure,
 } from './peer';
 import { useKeepAwake } from '../ui/useKeepAwake';
+import {
+  initialName,
+  onReconnect,
+  onRename,
+  onRenameRefused,
+  onView,
+  type NameState,
+} from './guestName';
+import { nextRetry } from './retry';
 import { clearGuestSession, loadGuestSession, saveGuestSession } from './storage';
 import type { PlayerView } from './view';
 
@@ -51,24 +60,12 @@ export type Guest = {
   failure: ConnectFailure | null;
   message: string | null;
   retry: () => void;
+  /** Lobby only — the host refuses once the roster is frozen. */
+  rename: (name: string) => void;
   leave: () => void;
 };
 
-const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000];
 
-/**
- * How many times to try before saying so.
- *
- * Retrying forever looks harmless and is not: a phone whose saved session
- * points at a room that was closed hours ago will sit on "connecting…" until
- * somebody force-quits the browser, and — because the session is what sends
- * the app into the online mode on launch — it will do it again on every launch.
- * After this many retries the player gets a screen with a way out. Kept low on
- * purpose: two attempts and a short timeout means about thirteen seconds before
- * somebody is told something useful, and a player staring at a phone counts
- * every one of them.
- */
-const MAX_ATTEMPTS_BEFORE_GIVING_UP = 1;
 
 /** Refusals the player has to act on. Everything else is worth retrying. */
 const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
@@ -78,6 +75,27 @@ const TERMINAL: ReadonlySet<RejectReason> = new Set<RejectReason>([
   'ROOM_FULL',
   'ROOM_LOCKED',
   'BAD_VERSION',
+  // Somebody else is now sitting here. Retrying would take the seat straight
+  // back off them and start the whole exchange again from their side.
+  'SEAT_TAKEN',
+]);
+
+/**
+ * Terminal refusals that also mean the seat in our session no longer exists.
+ *
+ * A session is what sends the app straight back into the online mode on the
+ * next launch, so keeping one that names a seat we were just told we cannot
+ * have lands this phone on the same rejection screen every time it opens the
+ * game, for the full six hours the session lives.
+ *
+ * `SEAT_TAKEN` is deliberately absent: the seat is real and is ours, another
+ * device is simply using it. `BAD_VERSION` too — that is a refresh away from
+ * working, and the seat is still there.
+ */
+const FORGET_SESSION: ReadonlySet<RejectReason> = new Set<RejectReason>([
+  'ROOM_LOCKED',
+  'ROOM_FULL',
+  'NAME_TAKEN',
 ]);
 
 export function useGuest(code: string, name: string): Guest {
@@ -87,8 +105,24 @@ export function useGuest(code: string, name: string): Guest {
   const [failure, setFailure] = useState<ConnectFailure | null>(null);
 
   const channelRef = useRef<Channel | null>(null);
+  /**
+   * Everything about what this device is called — see `guestName.ts`.
+   *
+   * A ref rather than the `name` prop, because the prop is captured when the
+   * join screen hands over and never moves again: after a rename, every
+   * reconnect would introduce the player by the name they had abandoned.
+   */
+  const naming = useRef<NameState>(initialName(name, null));
+  /** Our seat, once the host has given us one — needed to re-save the session. */
+  const seatIdRef = useRef<string | null>(null);
+  /** The secret that proves the seat is ours. Issued once, in `WELCOME`. */
+  const tokenRef = useRef<string | null>(null);
   /** When the host last said anything. See the heartbeat effect below. */
   const heardFrom = useRef(0);
+  /** Have we ever held a seat here? Changes what a failure means entirely. */
+  const seatedOnce = useRef(false);
+  /** When the current outage began — the clock the reconnect budget runs on. */
+  const outageSince = useRef(Date.now());
   const viewRef = useRef<PlayerView | null>(null);
   const attempt = useRef(0);
   const retryTimer = useRef<number | null>(null);
@@ -100,37 +134,67 @@ export function useGuest(code: string, name: string): Guest {
   // who is looking at a lock screen.
   useKeepAwake(status !== 'UNREACHABLE' && status !== 'CLOSED' && status !== 'REJECTED');
 
+  // A new name arriving on the prop is the player typing one in and entering
+  // the room again, which outranks anything remembered from last time.
+  // Declared above the connect effect so it has already run when the JOIN goes.
+  useEffect(() => {
+    naming.current = initialName(name, naming.current.persisted);
+  }, [name]);
+
+  /**
+   * Introduce ourselves. Safe to repeat: the host keys a JOIN on the channel it
+   * arrived over, so a second one over a live channel is a no-op that answers
+   * with a fresh view.
+   */
+  const sendJoin = useCallback(
+    (channel: Channel) => {
+      const saved = loadGuestSession(code);
+      channel.send({
+        t: 'JOIN',
+        v: PROTOCOL_VERSION,
+        name: naming.current.intended,
+        // Both or neither: the seat id alone is guessable and proves nothing,
+        // so the host ignores it without the token that came with it.
+        ...(saved?.token ? { seatId: saved.seatId, token: saved.token } : {}),
+      } satisfies GuestMessage);
+    },
+    [code],
+  );
+
   useEffect(() => {
     stopped.current = false;
     let cancelled = false;
 
-    const giveUp = (why: ConnectFailure): void => {
-      stopped.current = true;
-      // A saved session is what sends the app into the online mode on launch,
-      // so a session pointing at a room that no longer exists would send this
-      // phone back to the same dead screen every single time it opened the
-      // game. Forget it; the player can still tap "try again" from here.
-      if (why === 'NO_ROOM') clearGuestSession();
-      setFailure(why);
-      setStatus('UNREACHABLE');
-    };
-
     const scheduleRetry = (why: ConnectFailure): void => {
       if (cancelled || stopped.current) return;
-      // No amount of waiting conjures up a room that does not exist.
-      if (why === 'NO_ROOM') {
-        giveUp(why);
+      const decision = nextRetry(
+        {
+          seatedOnce: seatedOnce.current,
+          attempt: attempt.current,
+          since: outageSince.current,
+        },
+        why,
+        Date.now(),
+        // Drawn here rather than inside `nextRetry`, which is pure and tested
+        // as such. Every impurity in this layer lives on the React side.
+        Math.random(),
+      );
+
+      if (decision.action === 'GIVE_UP') {
+        stopped.current = true;
+        // A session pointing at a room that never answered would send this
+        // phone back to the same dead screen on every launch. A seated
+        // player's session is the opposite — it is how they get back in.
+        if (decision.clearSession) clearGuestSession();
+        setFailure(why);
+        setStatus('UNREACHABLE');
         return;
       }
-      if (attempt.current >= MAX_ATTEMPTS_BEFORE_GIVING_UP) {
-        giveUp(why);
-        return;
-      }
-      const wait = BACKOFF_MS[Math.min(attempt.current, BACKOFF_MS.length - 1)]!;
+
       attempt.current++;
       retryTimer.current = window.setTimeout(() => {
         if (!cancelled && !stopped.current) setNonce((n) => n + 1);
-      }, wait);
+      }, decision.delayMs);
     };
 
     setStatus(viewRef.current ? 'RECONNECTING' : 'CONNECTING');
@@ -144,6 +208,11 @@ export function useGuest(code: string, name: string): Guest {
         attempt.current = 0;
         setStatus('JOINING');
 
+        // A rename in flight when the channel dropped is simply lost: the host
+        // either applied it or did not, and its next `VIEW` says which.
+        const saved = loadGuestSession(code);
+        naming.current = onReconnect(naming.current, saved?.name ?? null);
+
         channel.onMessage((raw) => {
           const msg = parseHostMessage(raw);
           if (!msg) return;
@@ -152,22 +221,80 @@ export function useGuest(code: string, name: string): Guest {
             case 'PING':
               return;
             case 'WELCOME':
-              saveGuestSession({ code, seatId: msg.seatId, name });
+              seatIdRef.current = msg.seatId;
+              tokenRef.current = msg.token;
+              // The seat and the token are what `WELCOME` is authoritative
+              // about, and they are written straight away — the token is how
+              // this device gets back in, and a drop before the first `VIEW`
+              // would otherwise cost it the seat.
+              //
+              // The *name* is deliberately not touched. The host ignores the
+              // name in a reclaiming JOIN, so what we asked to be called is
+              // not what it has us down as; writing it here would persist a
+              // name the host never agreed to. `VIEW` knows the answer.
+              saveGuestSession({
+                code,
+                seatId: msg.seatId,
+                token: msg.token,
+                name: naming.current.persisted ?? naming.current.intended,
+              });
+              // From here on a failure means "the host hiccuped", not "there is
+              // no such room" — and the two get very different patience.
+              seatedOnce.current = true;
               setStatus('PLAYING');
               setReason(null);
               return;
-            case 'VIEW':
+            case 'VIEW': {
               viewRef.current = msg.view;
               setView(msg.view);
               setStatus('PLAYING');
               // A refusal belongs to the tap that caused it. Leaving it set
               // pinned a red banner over every screen for the rest of the game.
               setReason(null);
+
+              // The host's copy of our name is the only authority on it, and
+              // this is where it arrives. Every decision that follows from it
+              // lives in `guestName.ts`.
+              const out = onView(
+                naming.current,
+                msg.view.you.name,
+                msg.view.phase === 'SETUP',
+              );
+              const seatId = seatIdRef.current;
+              // The machine records what it believes is on disk, so it must
+              // not be told a write happened that did not. Nothing can reach a
+              // view before its `WELCOME` — the host only pushes to a channel
+              // that holds a seat, over an ordered channel — but "provably
+              // unreachable" is a poor thing for a persist path to rest on.
+              naming.current =
+                out.persist !== undefined && seatId === null
+                  ? { ...out.state, persisted: naming.current.persisted }
+                  : out.state;
+              if (out.rename !== undefined) {
+                channel.send({ t: 'RENAME', name: out.rename } satisfies GuestMessage);
+              }
+              if (out.persist !== undefined && seatId !== null) {
+                saveGuestSession({
+                  code,
+                  seatId,
+                  token: tokenRef.current ?? undefined,
+                  name: out.persist,
+                });
+              }
               return;
+            }
             case 'REJECTED':
               // A screen that fell behind, not a mistake the player made. The
               // host has already sent a fresh view; say nothing.
               if (msg.reason === 'STALE') return;
+              // A refused rename leaves us still called what we were called,
+              // and is only worth saying out loud sometimes — see
+              // `onRenameRefused`.
+              if (msg.on === 'RENAME') {
+                const out = onRenameRefused(naming.current, msg.reason);
+                naming.current = out.state;
+                if (!out.surface) return;
+              }
               setReason(msg.reason);
               // Only a refusal the player can actually do something about ends
               // the attempt. Anything else stays in the backoff loop, so a
@@ -175,11 +302,24 @@ export function useGuest(code: string, name: string): Guest {
               // game they are still sitting in.
               if (msg.on === 'JOIN' && TERMINAL.has(msg.reason)) {
                 stopped.current = true;
+                // Drop the channel reference too, or the heartbeat below keeps
+                // pinging forever — which keeps the host's `lastSeen` fresh and
+                // makes this channel permanently un-sweepable on their side.
+                channelRef.current = null;
+                // Scoped to the room that refused us. `clearGuestSession` is
+                // room-agnostic, so an unscoped call would let a failed
+                // attempt to join a *second* room — from a shared link, say —
+                // delete the session for the game this phone is still seated
+                // in, which is the one thing that gets it back there.
+                if (FORGET_SESSION.has(msg.reason) && loadGuestSession(code)) {
+                  clearGuestSession();
+                }
                 setStatus('REJECTED');
               }
               return;
             case 'CLOSED':
               stopped.current = true;
+              channelRef.current = null;
               clearGuestSession();
               setStatus('CLOSED');
               return;
@@ -191,19 +331,14 @@ export function useGuest(code: string, name: string): Guest {
           channelRef.current = null;
           setStatus('RECONNECTING');
           // A channel that was open and then dropped is worth chasing: the host
-          // is probably still there. Start the count again from zero.
+          // is probably still there. Fresh count, fresh clock.
           attempt.current = 0;
+          outageSince.current = Date.now();
           scheduleRetry('NETWORK');
         });
 
         heardFrom.current = Date.now();
-        const saved = loadGuestSession(code);
-        channel.send({
-          t: 'JOIN',
-          v: PROTOCOL_VERSION,
-          name,
-          ...(saved ? { seatId: saved.seatId } : {}),
-        } satisfies GuestMessage);
+        sendJoin(channel);
       })
       .catch((err: unknown) => {
         if (cancelled || stopped.current) return;
@@ -229,14 +364,32 @@ export function useGuest(code: string, name: string): Guest {
    * stopped existing minutes ago.
    */
   useEffect(() => {
+    /** When this interval last ran, so a tick that was skipped is recognisable. */
+    let lastBeatAt = Date.now();
     const id = window.setInterval(() => {
+      const now = Date.now();
+      const gap = now - lastBeatAt;
+      lastBeatAt = now;
+
       const channel = channelRef.current;
       if (!channel?.isOpen()) return;
       channel.send({ t: 'PING' } satisfies GuestMessage);
-      if (Date.now() - heardFrom.current > SILENCE_TIMEOUT_MS) {
-        // Drop it ourselves rather than wait for an event that is not coming;
-        // closing fires `onClose`, which starts the reconnect.
-        channel.close();
+
+      // The host has the same guard, for the same reason, and this side was
+      // missing it: while the tab was suspended no interval ran and no message
+      // was delivered, so the first tick after waking reads the silence as the
+      // host being gone — on a channel that is perfectly alive. One skipped
+      // tick's grace costs a single round of late death detection.
+      if (gap > HEARTBEAT_MS * 2) {
+        heardFrom.current = now;
+        return;
+      }
+
+      if (now - heardFrom.current > SILENCE_TIMEOUT_MS) {
+        // `drop()`, not `close()`. Closing is the silent form — it tears the
+        // channel down without telling anyone, so the reconnect this exists to
+        // start would never happen and the screen would freeze for good.
+        channel.drop();
       }
     }, HEARTBEAT_MS);
     return () => window.clearInterval(id);
@@ -249,16 +402,79 @@ export function useGuest(code: string, name: string): Guest {
     channel.send({ ...msg, key } as GuestMessage);
   }, []);
 
+  const rename = useCallback((next: string) => {
+    const channel = channelRef.current;
+    if (!channel) return;
+    // Deliberately no sync key: two players renaming in the same tick would
+    // otherwise reject each other for no reason. The host validates the name
+    // through the very gate `START_GAME` will apply later.
+    const out = onRename(naming.current, next);
+    naming.current = out.state;
+    channel.send({ t: 'RENAME', name: out.rename! } satisfies GuestMessage);
+    // Nothing is written to storage here. The host may well refuse this — the
+    // name may be taken, or the roster already frozen — and a stored name it
+    // never accepted would be re-sent by every reconnect from now on. The
+    // `VIEW` that follows an accepted rename is what persists it.
+  }, []);
+
   const retry = useCallback(() => {
     stopped.current = false;
     attempt.current = 0;
+    // A fresh clock, or the budget from the outage that produced this screen is
+    // already spent: `nextRetry` would answer GIVE_UP on the first failure and
+    // the button would be worth exactly one dial, however many times it is
+    // tapped. `outageSince` is only ever read as "how long has this gone on",
+    // and a deliberate tap starts a new one.
+    outageSince.current = Date.now();
     setReason(null);
     setFailure(null);
     setNonce((n) => n + 1);
   }, []);
 
+  /**
+   * Coming back from the background.
+   *
+   * The host has the same handler for the same reason: while the tab was
+   * suspended no intervals ran and no events were delivered, so the first thing
+   * the heartbeat would otherwise do on resume is read the silence as the host
+   * being gone — on a channel that is perfectly alive.
+   */
   useEffect(() => {
-    const bye = (): void => {
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      // A player who has been told the room closed, or that they were refused,
+      // stays told. Without this, switching apps and back would quietly clear
+      // their terminal state and start re-dialling a room that no longer
+      // exists — the exact loop the unreachable screen was written to end.
+      if (stopped.current) return;
+      const channel = channelRef.current;
+      if (!channel || !channel.isOpen()) {
+        attempt.current = 0;
+        outageSince.current = Date.now();
+        setNonce((n) => n + 1);
+        return;
+      }
+      heardFrom.current = Date.now();
+      // Not just a PING. The `pagehide` below may have said `LEAVE` on the way
+      // out — the browser fires it for an ordinary background, not only for a
+      // close — and in the lobby that removes the seat outright. Nothing else
+      // would ever put it back: the channel is still open, so no reconnect is
+      // scheduled, and the host stops broadcasting to a player it no longer
+      // has. Saying hello again costs one message and fixes all three cases
+      // (seat intact, seat disconnected, seat gone).
+      sendJoin(channel);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [sendJoin]);
+
+  useEffect(() => {
+    const bye = (event: Event): void => {
+      // `persisted` means the page is being frozen, not closed — it can come
+      // back, and on mobile it usually does. Announcing a departure for one is
+      // how a player who switched apps for ten seconds found the game had
+      // started without them.
+      if ((event as PageTransitionEvent).persisted) return;
       channelRef.current?.send({ t: 'LEAVE' } satisfies GuestMessage);
     };
     // `pagehide` is the one mobile Safari actually fires; `beforeunload` covers
@@ -273,10 +489,15 @@ export function useGuest(code: string, name: string): Guest {
 
   const leave = useCallback(() => {
     stopped.current = true;
-    channelRef.current?.send({ t: 'LEAVE' } satisfies GuestMessage);
+    const channel = channelRef.current;
+    channel?.send({ t: 'LEAVE' } satisfies GuestMessage);
+    // Same drain as the host's close: destroying the peer immediately would
+    // take the LEAVE with it, and the host would hold a phantom seat for the
+    // full silence timeout instead of freeing it now.
+    channel?.closeGracefully();
     channelRef.current = null;
-    destroyGuest();
     clearGuestSession();
+    window.setTimeout(() => destroyGuest(), 300);
   }, []);
 
   return {
@@ -287,6 +508,7 @@ export function useGuest(code: string, name: string): Guest {
     failure,
     message: reason ? REJECT_TEXT[reason] : null,
     retry,
+    rename,
     leave,
   };
 }

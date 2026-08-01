@@ -38,10 +38,21 @@ export type ChoiceOption = 'VOTE' | 'ANOTHER_ROUND';
  * double taps and messages buffered across a phase change harmless.
  */
 export type GuestMessage =
-  | { t: 'JOIN'; v: number; name: string; seatId?: SeatId }
+  /**
+   * `seatId` + `token` together mean "I am coming back to that seat"; the id
+   * alone means nothing, because it is guessable and the token is not. Both are
+   * absent on a first join.
+   */
+  | { t: 'JOIN'; v: number; name: string; seatId?: SeatId; token?: string }
   | { t: 'LEAVE' }
   /** Heartbeat. Carries nothing; arriving at all is the whole message. */
   | { t: 'PING' }
+  /**
+   * Change my display name. Lobby only, and deliberately without a sync key:
+   * two players renaming in the same tick would otherwise reject each other
+   * for no reason at all.
+   */
+  | { t: 'RENAME'; name: string }
   | { t: 'READY'; key: string }
   | { t: 'CHOOSE'; key: string; option: ChoiceOption }
   | { t: 'VOTE'; key: string; target: PlayerId }
@@ -68,7 +79,8 @@ export type Intent =
     : never;
 
 export type HostMessage =
-  | { t: 'WELCOME'; v: number; seatId: SeatId }
+  /** The seat, and the secret that lets this device come back to it. */
+  | { t: 'WELCOME'; v: number; seatId: SeatId; token: string }
   | { t: 'PING' }
   | { t: 'VIEW'; view: PlayerView }
   | {
@@ -89,7 +101,17 @@ export type RejectReason =
   | 'BAD_VERSION'
   | 'NOT_ALLOWED'
   | 'STALE'
-  | 'BAD_PAYLOAD';
+  | 'BAD_PAYLOAD'
+  /**
+   * Somebody else reconnected to this seat, and took it.
+   *
+   * Terminal on purpose. A seat is taken over rather than defended (see
+   * `handleJoin`), which means whenever two channels claim one seat, one of
+   * them has to stop — and if the loser retries, it takes the seat straight
+   * back and the two spend the evening evicting each other, one second apart,
+   * with both screens flickering. Whoever arrived first stands down.
+   */
+  | 'SEAT_TAKEN';
 
 /**
  * What the host can do to unstick a room — see `driver.hostCommand`.
@@ -100,6 +122,10 @@ export type RejectReason =
  */
 export type HostCommand =
   | { t: 'FORCE_REVEAL' }
+  /** Back to the lobby after a game: settings reopen, latecomers can join. */
+  | { t: 'REOPEN' }
+  /** The host renaming themselves — `act` goes through the intent gate. */
+  | { t: 'RENAME_SEAT'; seatId: SeatId; name: string }
   | { t: 'SKIP_TURN' }
   | { t: 'FORCE_CHOICE'; option: ChoiceOption }
   | { t: 'DROP_SEAT'; seatId: SeatId }
@@ -122,6 +148,7 @@ const GUEST_TYPES: ReadonlySet<string> = new Set<GuestMessageType>([
   'JOIN',
   'LEAVE',
   'PING',
+  'RENAME',
   'READY',
   'CHOOSE',
   'VOTE',
@@ -147,16 +174,20 @@ export function parseGuestMessage(raw: unknown): GuestMessage | null {
     case 'JOIN':
       if (typeof msg.v !== 'number' || !str(msg.name)) return null;
       if (msg.seatId !== undefined && !str(msg.seatId)) return null;
+      if (msg.token !== undefined && !str(msg.token)) return null;
       return {
         t: 'JOIN',
         v: msg.v,
         name: msg.name,
         ...(str(msg.seatId) ? { seatId: msg.seatId } : {}),
+        ...(str(msg.token) ? { token: msg.token } : {}),
       };
     case 'LEAVE':
       return { t: 'LEAVE' };
     case 'PING':
       return { t: 'PING' };
+    case 'RENAME':
+      return str(msg.name) ? { t: 'RENAME', name: msg.name } : null;
     case 'READY':
     case 'NEXT_TURN':
     case 'SKIP_CLUES':
@@ -187,15 +218,24 @@ export function parseHostMessage(raw: unknown): HostMessage | null {
   const msg = raw as Record<string, unknown>;
   switch (msg.t) {
     case 'WELCOME':
-      return typeof msg.v === 'number' && typeof msg.seatId === 'string'
-        ? { t: 'WELCOME', v: msg.v, seatId: msg.seatId }
+      return typeof msg.v === 'number' &&
+        typeof msg.seatId === 'string' &&
+        typeof msg.token === 'string'
+        ? { t: 'WELCOME', v: msg.v, seatId: msg.seatId, token: msg.token }
         : null;
     case 'VIEW':
       return typeof msg.view === 'object' && msg.view !== null
         ? { t: 'VIEW', view: msg.view as PlayerView }
         : null;
     case 'REJECTED':
-      return typeof msg.reason === 'string'
+      // Checked against the real set rather than cast. A host on a newer build
+      // can name a reason this one has never heard of, and an unchecked cast
+      // put it straight into `REJECT_TEXT[reason]` — undefined — so the player
+      // got a refusal screen with no text on it at all.
+      return typeof msg.reason === 'string' &&
+        msg.reason in REJECT_TEXT &&
+        typeof msg.on === 'string' &&
+        GUEST_TYPES.has(msg.on)
         ? {
             t: 'REJECTED',
             reason: msg.reason as RejectReason,
@@ -223,4 +263,5 @@ export const REJECT_TEXT: Record<RejectReason, string> = {
   NOT_ALLOWED: 'הפעולה לא אפשרית כרגע',
   STALE: 'המשחק התקדם בינתיים',
   BAD_PAYLOAD: 'הודעה לא תקינה',
+  SEAT_TAKEN: 'התחברת למקום הזה ממכשיר אחר',
 };

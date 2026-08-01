@@ -197,7 +197,9 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
     );
   }
 
-  if (!host.view) {
+  // `ERROR` belongs here too, not only a missing view: the room failed to open
+  // at all, so whatever is on screen is a game nobody else is in.
+  if (!host.view || host.status === 'ERROR') {
     return (
       <Screen>
         <ScreenBody>
@@ -221,9 +223,21 @@ function HostSide({ name, onExit }: { name: string; onExit: () => void }) {
         onCommand={host.command}
         onClose={close}
       />
-      {host.status !== 'OPEN' && (
-        <ConnectionBanner tone="bad">
-          החיבור לחדר אבד — השאירו את המשחק פתוח על המסך
+      {/*
+        Only DEGRADED, and worded for what it actually is. The players already
+        in the room are connected directly to this phone and are entirely
+        unaffected — it is the *room code* that has stopped being routable. The
+        old banner fired on OPENING too, so every host saw "the connection to
+        the room was lost" for the first second of a perfectly healthy game.
+      */}
+      {host.status === 'DEGRADED' && (
+        // Top, not bottom. This one stays up for the whole outage — that is the
+        // point of it — and the bottom of a game screen is where the host's own
+        // "continue" button lives. A banner saying the game carries on as
+        // normal, sitting on the control you would carry on with, is worse than
+        // no banner.
+        <ConnectionBanner tone="warn" place="top">
+          אין חיבור לשירות החדרים — המשחק ממשיך כרגיל, אבל אי אפשר לצרף שחקנים חדשים
         </ConnectionBanner>
       )}
     </>
@@ -338,7 +352,7 @@ function GuestSide({
           <p className="max-w-[30ch] text-base leading-relaxed text-slate-400">
             {noRoom
               ? `אף אחד לא מחזיק חדר עם הקוד ${code}. ייתכן שהמארח סגר אותו, או שיש טעות בקוד.`
-              : 'החיבור לא נוצר. בדקו שיש רשת, ושהמארח עדיין עם המשחק פתוח על המסך.'}
+              : 'החיבור לא נוצר. בדקו שיש רשת, ושהמארח עדיין עם המשחק פתוח על המסך. אם זה לא עוזר — התחברו לאותה רשת wifi כמו המארח.'}
           </p>
         </div>
 
@@ -399,6 +413,8 @@ function GuestSide({
         <GuestLobbyScreen
           view={guest.view}
           onLeave={quit}
+          onRename={guest.rename}
+          renameError={guest.message}
         />
       ) : (
         <>

@@ -22,7 +22,30 @@ export type Seat = {
   /** The live data channel, or null while this player is disconnected. */
   connId: string | null;
   isHost: boolean;
+  /**
+   * The secret that proves this seat is yours. Issued once, in `WELCOME`.
+   *
+   * Seat ids are `s0`…`s11` and a `JOIN` may name one, because a reconnecting
+   * phone has to be able to say which seat it is coming back to. Without a
+   * secret to go with it that sentence is an instruction anybody with the room
+   * code can give: name somebody else's seat, and the host hands over their
+   * projected view — their reveal card, and with it the word and the imposter —
+   * plus the ability to vote as them. Six digits shouted across a room is not
+   * an access control, and it was never meant to be; this is.
+   *
+   * Deliberately the *only* secret in the design. There is no login, no
+   * signature on messages, and no attempt to stop somebody joining a room they
+   * were not invited to — the game is played in one room and the threat is a
+   * bored player with a console, not an adversary.
+   */
+  token: string;
 };
+
+/**
+ * The host's seat, which has no channel and can never be reclaimed over the
+ * wire. A constant rather than a secret because it is never a valid answer.
+ */
+export const HOST_TOKEN = 'host';
 
 /**
  * Intents that have arrived but are not yet a game action.
@@ -98,7 +121,9 @@ export function createRoom(
 ): Room {
   return {
     code,
-    seats: [{ seatId: 's0', name: hostName, connId: 'host', isHost: true }],
+    seats: [
+      { seatId: 's0', name: hostName, connId: 'host', isHost: true, token: HOST_TOKEN },
+    ],
     seatOrder: null,
     locked: false,
     settings: { ...DEFAULT_SETTINGS, ...settings },
@@ -114,8 +139,23 @@ export function seatById(room: Room, seatId: SeatId): Seat | undefined {
   return room.seats.find((s) => s.seatId === seatId);
 }
 
+/**
+ * Which seat is behind this connection — never the host's.
+ *
+ * The host's seat carries the literal `connId: 'host'`, and `connId` is
+ * `channel.id`. PeerJS lets the *connecting* peer choose its own connection id
+ * and the answering side adopts it verbatim, so before this predicate a guest
+ * could open a channel calling itself `'host'` and every lookup here — the JOIN
+ * short-circuit, the intent router, `dropConnection` — resolved it to the
+ * host's seat. That handed over the host's reveal card and let the attacker
+ * play, rename and leave as them.
+ *
+ * `peer.ts` now mints connection ids locally, which closes the door properly.
+ * This stays as the second lock: the host's seat has no channel behind it by
+ * construction, so no string should ever reach it through here.
+ */
 export function seatByConn(room: Room, connId: string): Seat | undefined {
-  return room.seats.find((s) => s.connId === connId);
+  return room.seats.find((s) => !s.isHost && s.connId === connId);
 }
 
 /**
@@ -199,24 +239,28 @@ export function validateJoin(
  *
  * The host cannot wait to be told a guest has gone: a tab closed, a phone
  * locked or a wifi dropped all leave the data channel looking open on this
- * side. Silence is the only signal that arrives every time, so it is the one
- * the room acts on.
+ * side. Silence is the only signal that arrives every time.
  *
- * A connection with no recorded sighting at all is treated as seen just now by
- * the caller, not as stale — a seat must never be swept in the window between
- * the channel opening and its first message.
+ * Takes the live connection ids rather than the room, so it also reaps the two
+ * populations that hold no seat and would otherwise accumulate forever: a
+ * channel that was refused entry, and a channel whose seat was taken over by a
+ * reconnect. The host's own pseudo-connection is excluded by construction — it
+ * has no entry in the channel table.
+ *
+ * A connection with no recorded sighting is NOT stale: the caller stamps one
+ * the moment a channel opens, so an absent entry means somebody forgot, and
+ * reaping on that would drop players as they arrive.
  */
 export function staleConnIds(
-  room: Room,
+  connIds: Iterable<string>,
   lastSeen: ReadonlyMap<string, number>,
   now: number,
   timeoutMs: number,
 ): string[] {
   const stale: string[] = [];
-  for (const seat of room.seats) {
-    if (seat.isHost || seat.connId === null) continue;
-    const seen = lastSeen.get(seat.connId);
-    if (seen !== undefined && now - seen > timeoutMs) stale.push(seat.connId);
+  for (const connId of connIds) {
+    const seen = lastSeen.get(connId);
+    if (seen !== undefined && now - seen > timeoutMs) stale.push(connId);
   }
   return stale;
 }
