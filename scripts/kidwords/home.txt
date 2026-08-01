@@ -40,7 +40,7 @@ mirror | מראה | picture | window | lamp | wall | brush
 picture | תמונה | mirror | vase | wall | lamp | bookcase
 vase | אגרטל | flowerpot | picture | candle | jug | tray
 flowerpot | עציץ | vase | balcony | picture | tray | basket
-carpet | שטיח | curtain | floor | sofa | mattress | broom
+carpet | שָׁטִיחַ | curtain | floor | sofa | mattress | broom
 curtain | וילון | carpet | window | sheet | blanket | wall
 clock | שעון | lamp | picture | mirror | wall | curtain
 
@@ -77,7 +77,7 @@ pan | מחבת | pot | lid | grill | baking-tin | spatula
 lid | מכסה | pot | pan | container | bottle | cork
 kettle | קומקום | pot | thermos | mug | pitcher | jug
 baking-tin | תבנית | pan | pot | oven | rolling-pin | tray
-grill | מצלה | pan | skewer | oven | stovetop | pot
+grill | מַצְלֶה | pan | skewer | oven | stovetop | pot
 skewer | שפוד | grill | fork | knife | pan | tray
 oven | תנור | stovetop | microwave | baking-tin | grill | toaster
 stovetop | כירים | oven | pot | pan | kettle | grill
@@ -91,7 +91,7 @@ mixer | מיקסר | blender | whisk | mill | toaster | rolling-pin
 mill | מטחנה | blender | mixer | grater | salt-shaker | whisk
 grater | פומפיה | peeler | mill | strainer | knife | cutting-board
 peeler | קולפת | grater | knife | cutting-board | strainer | spatula
-strainer | מסננת | sieve | funnel | ladle | bowl | grater
+strainer | מִסְנֶנֶת | sieve | funnel | ladle | bowl | grater
 sieve | נפה | strainer | funnel | bowl | mill | ladle
 funnel | משפך | strainer | sieve | jug | bottle | ladle
 ladle | מצקית | spoon | spatula | pot | bowl | strainer
@@ -127,7 +127,7 @@ television | טלויזיה | remote | screen | console | computer | sofa
 remote | שלט | television | console | airconditioner | screen | battery
 console | קונסולה | television | remote | screen | computer | headphones
 computer | מחשב | screen | keyboard-pc | tablet | console | remote
-laptop | מחשב ניד | tablet | screen | keyboard-pc | charger | console
+laptop | מַחְשֵׁב נַיָּד | tablet | screen | keyboard-pc | charger | console
 tablet | טבלט | laptop | smartphone | screen | headphones | smartwatch
 smartphone | סמארטפון | tablet | smartwatch | camera | charger | screen
 smartwatch | שעון חכם | smartphone | tablet | camera | charger | screen

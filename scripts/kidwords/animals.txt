@@ -43,7 +43,7 @@ gazelle | צבי | deer | horse | goat | fox | camel
 deer | אַיָּל | gazelle | horse | goat | camel | bear
 monkey | קוף | gorilla | chimp | koala | panda | squirrel
 gorilla | גּוֹרִילָה | monkey | chimp | bear | elephant | panda
-chimp | שִׁימְפַּנְזָה | monkey | gorilla | koala | panda | bear
+chimp | שִׁימְפַּנְזֶה | monkey | gorilla | koala | panda | bear
 elephant | פיל | rhino | hippo | giraffe | camel | gorilla
 rhino | קרנף | hippo | elephant | giraffe | zebra | bull
 hippo | היפופוטם | rhino | elephant | crocodile | giraffe | zebra

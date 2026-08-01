@@ -36,7 +36,7 @@ pashtida | פשטידה | quiche | lasagna | burekas | cholent | omelet
 quiche | קִישׁ | pashtida | burekas | lasagna | pizza | crepe
 burekas | בורקס | pashtida | quiche | malawach | jachnun | croissant
 malawach | מְלַוַּח | jachnun | burekas | crepe | pita | pancake
-jachnun | ג'חְנוּן | malawach | burekas | challah | pita | crepe
+jachnun | גַ'חְנוּן | malawach | burekas | challah | pita | crepe
 crepe | קְרֶפּ | pancake | malawach | waffle | toast | quiche
 pancake | פַּנְקֵיק | crepe | waffle | toast | omelet | doughnut
 
@@ -55,7 +55,7 @@ matzah | מַצָּה | cracker | bread | challah | pita | slice
 
 # ── מתוקים ומלוחים ───────────────────────────────────────────────────────────
 cake | עוגה | doughnut | icecream | chocolate | matzah | sandwich
-birthday-cake | עוּגַת גְּבִינָה | doughnut | icecream | whipped-cream | matzah | cracker
+birthday-cake | עוּגַת יוֹם הֻלֶּדֶת | doughnut | icecream | whipped-cream | matzah | cracker
 cookie | עוגיה | cracker | waffle | chocolate | candy | matzah
 cracker | קְרָקֶר | cookie | pretzel | bisli | snack | matzah
 waffle | ופל | cookie | crepe | pancake | icecream | chocolate
@@ -116,7 +116,7 @@ menu | תַּפְרִיט | portion | meal | dessert | water | juice
 water | מים | juice | soda | milk | tea | lemonade
 juice | מיץ | lemonade | nectar | water | soda | smoothie
 lemonade | לימונדה | limonana | juice | gazoz | soda | water
-limonana | לימוננע | lemonade | juice | gazoz | soda | smoothie
+limonana | לִימוֹנַעֲנָע | lemonade | juice | gazoz | soda | smoothie
 nectar | נקטר | juice | concentrate | lemonade | syrup | smoothie
 concentrate | תרכיז | syrup | nectar | juice | lemonade | gazoz
 syrup | סירופ | concentrate | nectar | gazoz | juice | honey

@@ -20,7 +20,7 @@ overall | סרבל | pajamas | dress | shorts | skirt | tracksuit
 
 # ── מה שלובשים למטה ──────────────────────────────────────────────────────────
 pants | מכנסים | jeans | skirt | tights | tracksuit | overall
-jeans | ג'ִינְס | pants | skirt | overall | shirt | tracksuit
+jeans | גִּ'ינְס | pants | skirt | overall | shirt | tracksuit
 shorts | מכנסים קצרים | jeans | skirt | swimsuit | tshirt | dress
 skirt | חצאית | dress | pants | tights | jeans | underwear
 dress | שמלה | skirt | overall | suit | tights | robe
@@ -60,7 +60,7 @@ ring | טבעת | earring | bracelet | necklace | crown | pin
 earring | עגיל | ring | necklace | bracelet | pin | crown
 pin | סִיכָּה | ring | earring | button | ribbon | bracelet
 ribbon | סֶרֶט | pin | hairband | braid | shoelace | kerchief
-hairband | גֻּמִּיָּה | ribbon | braid | ponytail | pin | kerchief
+hairband | גּוּמִיָּה | ribbon | braid | ponytail | pin | kerchief
 braid | צַמָּה | ponytail | hairband | ribbon | kerchief | pin
 ponytail | קוּקוּ | braid | hairband | ribbon | pin | kerchief
 bag | תיק | wallet | umbrella | pocket | clothes | shoes

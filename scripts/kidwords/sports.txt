@@ -50,7 +50,7 @@ judo | ג'ודו | karate | wrestling | kravmaga | boxing | fencing
 karate | קרטה | judo | kravmaga | wrestling | boxing | fencing
 kravmaga | קרב מגע | karate | judo | boxing | wrestling | fencing
 fencing | סיף | boxing | karate | archery | judo | wrestling
-archery | קליעה | fencing | contest | ball | racket | medal
+archery | קְלִיעָה | fencing | contest | ball | racket | medal
 
 # ── על גלגלים ובשלג ──────────────────────────────────────────────────────────
 ski | סקי | snowboard | skating | surfing | climbing | helmet
@@ -61,7 +61,7 @@ rollerblades | גלגליות | skateboard | skating | helmet | shinguards | cli
 climbing | טפוס | ladder | jump | walking | riding | helmet
 riding | רכיבה | climbing | walking | helmet | training | contest
 helmet | קסדה | shinguards | skateboard | rollerblades | riding | climbing
-shinguards | מְגִנֵּי שׁוֹקַיִם | helmet | soccer | goalkeeper | rollerblades | skateboard
+shinguards | מָגִנֵּי שׁוֹקַיִם | helmet | soccer | goalkeeper | rollerblades | skateboard
 
 # ── תחרויות ──────────────────────────────────────────────────────────────────
 contest | תחרות | championship | tournament | olympics | league | prize

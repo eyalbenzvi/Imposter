@@ -49,7 +49,7 @@ skin | עור | nail | hair | bone | muscle | scratch
 blood | דם | heart | pulse | wound | skin | breath
 heart | לב | blood | pulse | brain | breath | chest
 brain | מח | heart | head | dream | thought | blood
-thought | מַחְשָׁבָה | brain | dream | secret | curiosity | memory
+thought | מַחֲשָׁבָה | brain | dream | secret | curiosity | memory
 memory | זִכָּרוֹן | thought | brain | dream | secret | time
 
 # ── חושים ────────────────────────────────────────────────────────────────────
