@@ -7,7 +7,12 @@ import { names } from '../game/testUtils';
 import { currentCluePlayer } from '../game/rules';
 import type { PlayerId, Settings } from '../game/types';
 import { handleIntent, hostCommand, startGame, type Env, type Outcome } from './driver';
-import { PROTOCOL_VERSION, type GuestMessage, type HostCommand } from './protocol';
+import {
+  PROTOCOL_VERSION,
+  type GuestMessage,
+  type HostCommand,
+  type Intent,
+} from './protocol';
 import { handleJoin } from './driver';
 import { createRoom, playerIdOf, seatIdOf, type Room } from './room';
 
@@ -44,7 +49,7 @@ export function expectOk(outcome: Outcome): Room {
 export function asPlayer(
   room: Room,
   playerId: PlayerId,
-  msg: Omit<Extract<GuestMessage, { key: string }>, 'key'>,
+  msg: Intent,
   e: Env = env(),
 ): Outcome {
   const seatId = seatIdOf(room, playerId);

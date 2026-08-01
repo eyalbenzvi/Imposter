@@ -47,6 +47,21 @@ export type GuestMessage =
 
 export type GuestMessageType = GuestMessage['t'];
 
+/**
+ * An intent without its sync key — what a screen hands to `send`, which fills
+ * the key in from the view it was rendered from.
+ *
+ * The `T extends unknown` is not noise: a plain `Omit<Union, 'key'>` collapses
+ * the union down to the fields every member shares, which is just `{ t }`, and
+ * every payload silently disappears.
+ */
+export type Intent =
+  Extract<GuestMessage, { key: string }> extends infer T
+    ? T extends unknown
+      ? Omit<T, 'key'>
+      : never
+    : never;
+
 export type HostMessage =
   | { t: 'WELCOME'; v: number; seatId: SeatId }
   | { t: 'VIEW'; view: PlayerView }

@@ -101,11 +101,6 @@ export function createRoom(
   };
 }
 
-/** The host always holds seat 0, and therefore `p0` once the game starts. */
-export function hostSeat(room: Room): Seat {
-  return room.seats[0]!;
-}
-
 export function seatById(room: Room, seatId: SeatId): Seat | undefined {
   return room.seats.find((s) => s.seatId === seatId);
 }
