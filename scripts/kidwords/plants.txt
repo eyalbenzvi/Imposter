@@ -19,11 +19,11 @@ strawberry | תות | cherry | raspberry | blueberry | grapes | watermelon
 raspberry | פֶּטֶל | strawberry | blueberry | cherry | grapes | fig
 blueberry | אֻכְמָנִיּוֹת | raspberry | strawberry | cherry | grapes | fig
 cherry | דבדבן | plum | strawberry | apricot | raspberry | grapes
-plum | שזיף | apricot | peach | cherry | pear | nectarine
+plum | שְׁזִיף | apricot | peach | cherry | pear | nectarine
 apricot | מִשְׁמֵשׁ | plum | peach | nectarine | cherry | loquat
 peach | אפרסק | nectarine | plum | apricot | apple | pear
 nectarine | נקטרינה | peach | plum | apricot | apple | pear
-mango | מנגו | pineapple | papaya | banana | lychee | melon
+mango | מַנְגּוֹ | pineapple | papaya | banana | lychee | melon
 pineapple | אננס | mango | papaya | banana | melon | coconut
 papaya | פפיה | mango | pineapple | melon | lychee | banana
 lychee | לִיצִ'י | papaya | mango | pineapple | coconut | cherry
@@ -38,7 +38,7 @@ persimmon | אפרסמון | pomegranate | apple | fig | date | orange
 olive | זית | pickle | tomato | avocado | pepper | fig
 
 # ── ירקות ────────────────────────────────────────────────────────────────────
-cucumber | מלפפון | tomato | pepper | zucchini | lettuce | olive
+cucumber | מְלָפְפוֹן | tomato | pepper | zucchini | lettuce | olive
 pickle | מְלָפְפוֹן חָמוּץ | olive | tomato | cabbage | pepper | persimmon
 tomato | עגבניה | cucumber | pepper | eggplant | lettuce | onion
 pepper | פלפל | tomato | cucumber | eggplant | zucchini | onion
@@ -81,7 +81,7 @@ walnut | אֱגוֹז מֶלֶךְ | almond | pecan | pistachio | cashew | mushr
 almond | שָׁקֵד | nut | pistachio | cashew | peanut | mushroom
 peanut | בּוֹטְנִים | almond | nut | cashew | pistachio | seeds-snack
 pistachio | פִּיסְטוּק | cashew | almond | walnut | peanut | pecan
-cashew | קָשְׁיוּ | pistachio | almond | peanut | pecan | walnut
+cashew | קַשְׁיוּ | pistachio | almond | peanut | pecan | walnut
 pecan | פֶּקָאן | walnut | pistachio | cashew | almond | seeds-snack
 seeds-snack | גַּרְעִינִים | seeds-sesame | pinenuts | peanut | almond | nut
 seeds-sesame | שֻׁמְשֹׁם | seeds-snack | pinenuts | almond | peanut | nut
@@ -102,7 +102,7 @@ bud | נִצָּן | bouquet | flower | leaf | seedling | rose
 
 # ── עצים וצמחים ──────────────────────────────────────────────────────────────
 tree | עץ | bush | palmtree | pine | oak | branch
-bush | שיח | tree | cactus | grass | thorn | leaf
+bush | שִׂיחַ | tree | cactus | grass | thorn | leaf
 palmtree | דֶּקֶל | tree | pine | cypress | oak | date
 pine | אֹרֶן | cypress | palmtree | oak | tree | pinecone
 cypress | בְּרוֹשׁ | pine | palmtree | oak | tree | willow
@@ -123,6 +123,6 @@ gardenpatch | גִּנָּה | lawn | greenhouse | orchard | vineyard | flower
 greenhouse | חֲמָמָה | gardenpatch | orchard | vineyard | seedling | lawn
 orchard | פַּרְדֵּס | vineyard | greenhouse | gardenpatch | tree | orange
 vineyard | כֶּרֶם | orchard | greenhouse | gardenpatch | grapes | tree
-peel | קְלִיפָּה | pit | bunch | seed | banana | orange
+peel | קְלִפָּה | pit | bunch | seed | banana | orange
 pit | גַּלְעִין | peel | seed | bunch | plum | date
 bunch | אֶשְׁכּוֹל | grapes | peel | pit | branch | bouquet
