@@ -257,14 +257,23 @@ export function useGuest(code: string, name: string): Guest {
                 msg.view.you.name,
                 msg.view.phase === 'SETUP',
               );
-              naming.current = out.state;
+              const seatId = seatIdRef.current;
+              // The machine records what it believes is on disk, so it must
+              // not be told a write happened that did not. Nothing can reach a
+              // view before its `WELCOME` — the host only pushes to a channel
+              // that holds a seat, over an ordered channel — but "provably
+              // unreachable" is a poor thing for a persist path to rest on.
+              naming.current =
+                out.persist !== undefined && seatId === null
+                  ? { ...out.state, persisted: naming.current.persisted }
+                  : out.state;
               if (out.rename !== undefined) {
                 channel.send({ t: 'RENAME', name: out.rename } satisfies GuestMessage);
               }
-              if (out.persist !== undefined && seatIdRef.current !== null) {
+              if (out.persist !== undefined && seatId !== null) {
                 saveGuestSession({
                   code,
-                  seatId: seatIdRef.current,
+                  seatId,
                   token: tokenRef.current ?? undefined,
                   name: out.persist,
                 });
@@ -294,7 +303,14 @@ export function useGuest(code: string, name: string): Guest {
                 // pinging forever — which keeps the host's `lastSeen` fresh and
                 // makes this channel permanently un-sweepable on their side.
                 channelRef.current = null;
-                if (FORGET_SESSION.has(msg.reason)) clearGuestSession();
+                // Scoped to the room that refused us. `clearGuestSession` is
+                // room-agnostic, so an unscoped call would let a failed
+                // attempt to join a *second* room — from a shared link, say —
+                // delete the session for the game this phone is still seated
+                // in, which is the one thing that gets it back there.
+                if (FORGET_SESSION.has(msg.reason) && loadGuestSession(code)) {
+                  clearGuestSession();
+                }
                 setStatus('REJECTED');
               }
               return;

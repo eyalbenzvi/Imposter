@@ -563,11 +563,10 @@ function applyIntent(
       return commit(room, [{ type: 'NEXT_CLUE_TURN' }], env);
 
     case 'CLUE':
-      // Trimmed here, not left to the reducer. `authorise` checked the length
-      // of the trimmed text, so forwarding the raw string means the thing that
-      // was validated and the thing that is stored are different values — and
-      // what is stored gets broadcast to every guest on every version bump and
-      // serialized into the host's session on every save.
+      // Trimmed here as well as in the reducer, so the driver's own contract
+      // holds: `authorise` measured the trimmed text, and passing on something
+      // else means what was approved and what is dispatched are different
+      // values. Nothing depends on `src/game/` also trimming, which it does.
       return commit(room, [{ type: 'SUBMIT_CLUE', playerId, text: msg.text.trim() }], env);
 
     case 'GUESS':
