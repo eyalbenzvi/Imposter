@@ -105,21 +105,15 @@ export function SetupScreen({ game }: { game: Game }) {
         >
           מִתְחַזֶּה
         </h1>
-        <p className="pt-1 text-sm text-slate-400">
-          מכשיר אחד, {MIN_PLAYERS}–{MAX_PLAYERS} שחקנים, מילה אחת שלא כולם קיבלו
-        </p>
       </header>
 
       <div className="flex flex-col gap-4 pb-2">
         {/* ── players ─────────────────────────────────────────────────── */}
-        <section className="card">
-          <div className="flex items-baseline justify-between pb-3">
-            <h2 className="text-base font-bold text-slate-200">שחקנים</h2>
-            <span className="num text-sm text-slate-400">
-              {names.length} / {MAX_PLAYERS}
-            </span>
-          </div>
-
+        <Panel
+          title="שחקנים"
+          summary={`${names.length} / ${MAX_PLAYERS}`}
+          defaultOpen
+        >
           <ul className="flex flex-col gap-2">
             {names.map((name, index) => (
               <li key={index} className="flex items-center gap-2">
@@ -163,11 +157,13 @@ export function SetupScreen({ game }: { game: Game }) {
           >
             + הוסף שחקן
           </button>
-        </section>
+        </Panel>
 
         {/* ── game mode ───────────────────────────────────────────────── */}
-        <section className="card">
-          <h2 className="pb-1 text-base font-bold text-slate-200">מצב משחק</h2>
+        <Panel
+          title="מצב משחק"
+          summary={MODE_CARDS.find((c) => c.value === state.settings.mode)?.title}
+        >
           <p className="pb-3 text-sm text-slate-400">
             מה המתחזה יודע על עצמו בתחילת המשחק
           </p>
@@ -208,16 +204,10 @@ export function SetupScreen({ game }: { game: Game }) {
               );
             })}
           </div>
-        </section>
+        </Panel>
 
         {/* ── categories ──────────────────────────────────────────────── */}
-        <section className="card">
-          <div className="flex items-baseline justify-between gap-2 pb-1">
-            <h2 className="text-base font-bold text-slate-200">קטגוריות</h2>
-            <span className="num text-sm text-slate-400">
-              {active.length} / {CATEGORIES.length}
-            </span>
-          </div>
+        <Panel title="קטגוריות" summary={`${active.length} / ${CATEGORIES.length}`}>
           <p className="pb-3 text-sm text-slate-400">
             מאיפה תבוא המילה הסודית. אפשר לבחור כמה שרוצים
           </p>
@@ -265,10 +255,10 @@ export function SetupScreen({ game }: { game: Game }) {
               נקה בחירה
             </button>
           </div>
-        </section>
+        </Panel>
 
         {/* ── settings ────────────────────────────────────────────────── */}
-        <section className="card flex flex-col gap-5">
+        <Panel title="הגדרות" bodyClassName="flex flex-col gap-5">
           <Field
             label="מספר מתחזים"
             note={
@@ -367,7 +357,7 @@ export function SetupScreen({ game }: { game: Game }) {
             on={state.settings.imposterGuessEnabled}
             onChange={(on) => set({ imposterGuessEnabled: on })}
           />
-        </section>
+        </Panel>
       </div>
 
       <ScreenFooter>
@@ -388,6 +378,50 @@ export function SetupScreen({ game }: { game: Game }) {
         </button>
       </ScreenFooter>
     </Screen>
+  );
+}
+
+/**
+ * A setup card that folds down to its title. Collapsed, the summary keeps the
+ * chosen value visible so nothing has to be opened just to check it.
+ */
+function Panel({
+  title,
+  summary,
+  defaultOpen = false,
+  bodyClassName = '',
+  children,
+}: {
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  bodyClassName?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="card">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        className="flex min-h-[44px] w-full items-center justify-between gap-3 text-start"
+      >
+        <h2 className="text-base font-bold text-slate-200">{title}</h2>
+        <span className="flex shrink-0 items-center gap-2">
+          {summary && <span className="num text-sm text-slate-400">{summary}</span>}
+          <span
+            aria-hidden
+            className={`text-xs text-slate-500 transition-transform ${
+              open ? 'rotate-180' : ''
+            }`}
+          >
+            ▾
+          </span>
+        </span>
+      </button>
+      {open && <div className={`pt-4 ${bodyClassName}`}>{children}</div>}
+    </section>
   );
 }
 
